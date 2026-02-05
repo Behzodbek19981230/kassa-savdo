@@ -9,9 +9,9 @@ interface ProductListProps {
 }
 export function ProductList({ products, searchQuery, onSearchQueryChange, onProductClick }: ProductListProps) {
 	return (
-		<div className='flex flex-col h-full bg-gradient-to-b from-white to-indigo-50/30 border-r border-indigo-200/50'>
+		<div className='flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 border-r border-blue-200/50'>
 			{/* Search */}
-			<div className='p-3 border-b border-indigo-200/50 bg-white/90 backdrop-blur-sm'>
+			<div className='p-3 border-b border-blue-200/50 bg-white/90 backdrop-blur-sm'>
 				<div className='relative'>
 					<div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none'>
 						<Search size={18} className='text-blue-600/70' />
@@ -27,15 +27,15 @@ export function ProductList({ products, searchQuery, onSearchQueryChange, onProd
 			</div>
 
 			{/* Filters */}
-			<div className='p-3 flex space-x-2 border-b border-indigo-200/50 bg-white/80 backdrop-blur-sm'>
+			<div className='p-3 flex space-x-2 border-b border-blue-200/50 bg-white/80 backdrop-blur-sm'>
 				<button className='p-2.5 bg-gradient-to-br from-orange-400 to-amber-500 text-white rounded-xl hover:from-orange-500 hover:to-amber-600 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.02]'>
 					<Star size={20} />
 				</button>
-				<button className='flex items-center px-4 py-2.5 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded-xl hover:from-indigo-200 hover:to-purple-200 text-sm font-semibold transition-all duration-200 shadow-sm'>
+				<button className='flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 rounded-xl hover:from-blue-200 hover:to-cyan-200 text-sm font-semibold transition-all duration-200 shadow-sm'>
 					<Tag size={16} className='mr-2' />
 					Bo'limlar
 				</button>
-				<button className='flex items-center px-4 py-2.5 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded-xl hover:from-indigo-200 hover:to-purple-200 text-sm font-semibold transition-all duration-200 shadow-sm'>
+				<button className='flex items-center px-4 py-2.5 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 rounded-xl hover:from-blue-200 hover:to-cyan-200 text-sm font-semibold transition-all duration-200 shadow-sm'>
 					<Tag size={16} className='mr-2' />
 					Brendlar
 				</button>
@@ -47,14 +47,14 @@ export function ProductList({ products, searchQuery, onSearchQueryChange, onProd
 					<button
 						key={product.id}
 						onClick={() => onProductClick(product)}
-						className='w-full text-left p-4 bg-white hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 border-2 border-transparent hover:border-indigo-300 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex justify-between items-start group'
+						className='w-full text-left p-4 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 border-2 border-transparent hover:border-blue-300 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex justify-between items-start group'
 					>
 						<div className='flex items-start space-x-3'>
 							{product.isFavorite && (
 								<Star size={16} className='text-orange-400 mt-0.5 flex-shrink-0' fill='currentColor' />
 							)}
 							<div>
-								<div className='font-semibold text-gray-800 text-sm group-hover:text-indigo-700'>
+								<div className='font-semibold text-gray-800 text-sm group-hover:text-blue-700'>
 									{product.name}
 								</div>
 								<div className='text-xs text-gray-500 mt-1.5 font-medium'>
@@ -62,7 +62,7 @@ export function ProductList({ products, searchQuery, onSearchQueryChange, onProd
 								</div>
 							</div>
 						</div>
-						<div className='text-sm font-bold text-indigo-600 whitespace-nowrap group-hover:text-indigo-700'>
+						<div className='text-sm font-bold text-blue-600 whitespace-nowrap group-hover:text-blue-700'>
 							{product.price.toLocaleString()}
 						</div>
 					</button>

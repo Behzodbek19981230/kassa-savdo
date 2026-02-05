@@ -106,18 +106,18 @@ export function OrderSummary({
 
   const usdTotal = (totalAmount / usdRate).toFixed(2);
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-white to-indigo-50/30 p-4">
+    <div className="flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 p-4">
       {/* Customer Selection */}
-      <div className="bg-white rounded-2xl border-2 border-indigo-200 shadow-lg mb-4 overflow-hidden">
+      <div className="bg-white rounded-2xl border-2 border-blue-200 shadow-lg mb-4 overflow-hidden">
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center text-indigo-600 text-sm font-semibold">
+            <div className="flex items-center text-blue-600 text-sm font-semibold">
               <User size={18} className="mr-2" />
               <span>Kontakt</span>
             </div>
             <button 
               onClick={handleOpenAddModal}
-              className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white p-2 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+              className="bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 text-white p-2 rounded-xl hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 transition-all duration-200 shadow-md hover:shadow-lg"
               title="Yangi kontakt qo'shish"
             >
               <Plus size={18} />
@@ -134,7 +134,7 @@ export function OrderSummary({
           />
 
           {selectedCustomer && (
-            <div className="mt-3 p-3 bg-indigo-50 rounded-xl border border-indigo-200">
+            <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="font-semibold text-gray-900 text-sm mb-1">
@@ -156,7 +156,7 @@ export function OrderSummary({
                     setEditingCustomer(selectedCustomer);
                     setIsCustomerModalOpen(true);
                   }}
-                  className="text-indigo-600 hover:text-indigo-700 p-1 rounded hover:bg-indigo-100 transition-colors"
+                  className="text-blue-600 hover:text-blue-700 p-1 rounded hover:bg-blue-100 transition-colors"
                   title="Tahrirlash"
                 >
                   <User size={14} />
@@ -175,7 +175,7 @@ export function OrderSummary({
             </div>
           )}
         </div>
-        <div className="p-3 text-center text-indigo-500 text-sm flex items-center justify-center hover:bg-indigo-50 cursor-pointer transition-colors duration-200 font-medium border-t border-indigo-100">
+        <div className="p-3 text-center text-blue-500 text-sm flex items-center justify-center hover:bg-blue-50 cursor-pointer transition-colors duration-200 font-medium border-t border-blue-100">
           <MessageSquare size={16} className="mr-2" />
           Izoh yozish
         </div>
@@ -193,9 +193,9 @@ export function OrderSummary({
       />
 
       {/* Cashier Selection */}
-      <div className="bg-white rounded-2xl border-2 border-indigo-200 shadow-lg mb-auto overflow-hidden p-4">
+      <div className="bg-white rounded-2xl border-2 border-blue-200 shadow-lg mb-auto overflow-hidden p-4">
         <div className="mb-3">
-          <label className="text-xs text-indigo-600 font-semibold">
+          <label className="text-xs text-blue-600 font-semibold">
             Sotuvchi tanlash
           </label>
         </div>
@@ -214,7 +214,7 @@ export function OrderSummary({
       {/* Totals Section */}
       <div className="mt-4 space-y-4">
         {/* Exchange Rate */}
-        <div className="flex justify-between items-center text-xs text-indigo-600 font-semibold px-2 bg-indigo-50/50 p-2 rounded-xl">
+        <div className="flex justify-between items-center text-xs text-blue-600 font-semibold px-2 bg-blue-50/50 p-2 rounded-xl">
           <div className="flex items-center">
             <span className="mr-1">✎</span> Kurs
           </div>
@@ -222,17 +222,17 @@ export function OrderSummary({
         </div>
 
         {/* Total Display */}
-        <div className="flex justify-between items-end px-2 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border-2 border-indigo-200">
+        <div className="flex justify-between items-end px-2 bg-gradient-to-r from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200">
           <span className="text-gray-700 font-semibold">Yig'indi</span>
           <div className="text-right">
-            <div className="text-2xl font-bold text-indigo-700">
+            <div className="text-2xl font-bold text-blue-700">
               {totalAmount.toLocaleString()}{' '}
-              <span className="text-sm font-normal text-indigo-500">UZS</span>
+              <span className="text-sm font-normal text-blue-500">UZS</span>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-between items-center px-2 text-sm text-indigo-600 bg-indigo-50/50 p-2 rounded-xl">
+        <div className="flex justify-between items-center px-2 text-sm text-blue-600 bg-blue-50/50 p-2 rounded-xl">
           <span className="font-medium">Chegirma (0%)</span>
           <span className="font-bold text-gray-800">
             0 <span className="text-xs font-normal text-gray-500">UZS</span>
@@ -242,7 +242,7 @@ export function OrderSummary({
         {/* Payment Button */}
         <button
           onClick={onPayment}
-          className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white py-5 rounded-2xl shadow-xl hover:shadow-2xl flex justify-between items-center px-6 mt-2 transition-all duration-200 transform hover:scale-[1.01] font-bold">
+          className="w-full bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 text-white py-5 rounded-2xl shadow-xl hover:shadow-2xl flex justify-between items-center px-6 mt-2 transition-all duration-200 transform hover:scale-[1.01] font-bold">
 
           <div className="text-left">
             <div className="text-xs opacity-90">To'lovga</div>

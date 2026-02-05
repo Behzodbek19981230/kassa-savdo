@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Clock, DollarSign, Plus, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, BarChart2, Clock, DollarSign, Plus, User } from 'lucide-react';
 import { ProductList } from './ProductList';
 import { Cart } from './Cart';
 import { OrderSummary } from './OrderSummary';
@@ -95,6 +96,7 @@ interface KassaPageProps {
 	onBack: () => void;
 }
 export function KassaPage({ onBack }: KassaPageProps) {
+	const navigate = useNavigate();
 	const USD_RATE = 12180;
 	const [now, setNow] = useState(() => new Date());
 	const dateTimeText = new Intl.DateTimeFormat('uz-UZ', {
@@ -175,18 +177,28 @@ export function KassaPage({ onBack }: KassaPageProps) {
 	const totalAmount = cart.reduce((sum, item) => sum + item.totalPrice, 0);
 	const filteredProducts = MOCK_PRODUCTS.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
 	return (
-		<div className='flex flex-col h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-hidden'>
+		<div className='flex flex-col h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 overflow-hidden'>
 			{/* Top Navigation Bar */}
-			<header className='bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600 text-white min-h-14 px-3 sm:px-5 py-2 flex flex-col sm:flex-row sm:items-center gap-2 justify-between shrink-0 shadow-lg'>
+			<header className='bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white min-h-14 px-3 sm:px-5 py-2 flex flex-col sm:flex-row sm:items-center gap-2 justify-between shrink-0 shadow-lg'>
 				<div className='flex items-center justify-between gap-2'>
 					<button onClick={onBack} className='hover:bg-white/20 p-2 rounded-xl transition-all duration-200'>
 						<ArrowLeft size={24} />
 					</button>
-					<div className='sm:hidden text-sm font-semibold tracking-wide text-white/90'>Smart kassa</div>
+					<button
+						onClick={() => navigate('/')}
+						className='sm:hidden text-sm font-semibold tracking-wide text-white/90 hover:opacity-90'
+					>
+						Bosh sahifa
+					</button>
 				</div>
 
 				<div className='hidden sm:flex flex-1 items-center justify-center'>
-					<div className='text-sm font-semibold tracking-wide text-white/90'>Smart kassa</div>
+					<button
+						onClick={() => navigate('/')}
+						className='text-sm font-semibold tracking-wide text-white/90 hover:opacity-90'
+					>
+						Bosh sahifa
+					</button>
 				</div>
 
 				<div className='flex items-center justify-between sm:justify-end gap-2 sm:gap-3'>
@@ -215,6 +227,14 @@ export function KassaPage({ onBack }: KassaPageProps) {
 							</div>
 						</div>
 					)}
+					<button
+						onClick={() => navigate('/statistika')}
+						className='flex items-center hover:bg-white/20 px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200'
+						title='Statistika'
+					>
+						<BarChart2 size={18} className='mr-2' />
+						<span className='hidden sm:inline'>Statistika</span>
+					</button>
 					<button className='flex items-center hover:bg-white/20 px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200'>
 						<Plus size={18} className='mr-2' />
 						<span className='hidden sm:inline'>Yangi savdo</span>
@@ -246,7 +266,7 @@ export function KassaPage({ onBack }: KassaPageProps) {
 				</div>
 
 				{/* Right: Summary (25%) */}
-				<div className='w-[25%] min-w-[260px] max-w-xs h-full border-l border-indigo-200/50 bg-white/30'>
+				<div className='w-[25%] min-w-[260px] max-w-xs h-full border-l border-blue-200/50 bg-white/30'>
 					<OrderSummary
 						totalAmount={totalAmount}
 						usdRate={USD_RATE}
