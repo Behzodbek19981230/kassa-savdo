@@ -192,4 +192,37 @@ export const orderService = {
     deleteOrder: async (id: number): Promise<void> => {
         await api.delete(`/v1/order-history/${id}`);
     },
+
+    // Order-history-product yaratish
+    createOrderProduct: async (data: {
+        order_history?: number;
+        count: number;
+    }): Promise<any> => {
+        const response = await api.post('/v1/order-history-product', {
+            // date: data.date || new Date().toISOString().split('T')[0],
+            order_history: data.order_history,
+            // vozvrat_order: data.vozvrat_order || 0,
+            // branch: data.branch,
+            // model: data.model,
+            // type: data.type,
+            // size: data.size,
+            count: data.count,
+            // given_count: data.given_count || data.count,
+            // real_price: data.real_price,
+            // unit_price: data.unit_price,
+            // wholesale_price: data.wholesale_price || data.unit_price,
+            // is_delete: data.is_delete ?? false,
+            // cargo_terminal: data.cargo_terminal || '',
+            // price_difference: data.price_difference ?? false,
+            // status_order: data.status_order ?? true,
+            // is_karzinka: data.is_karzinka ?? true,
+        });
+        return response.data;
+    },
+
+    // Order-history-product ro'yxatini olish
+    getOrderProducts: async (orderHistoryId: number): Promise<any[]> => {
+        const response = await api.get(`/v1/order-history-product?order_history=${orderHistoryId}`);
+        return response.data?.results || response.data || [];
+    },
 };

@@ -3,9 +3,20 @@ export interface Product {
   name: string;
   price: number;
   stock: number;
-  unit: 'dona' | 'kg' | 'xizmat';
+  unit: 'dona' | 'kg' | 'xizmat' | string;
   category?: string;
   isFavorite?: boolean;
+  image?: string;
+  branchName?: string;
+  productId?: number; // API dan kelgan id
+  modelName?: string;
+  typeName?: string;
+  size?: number | string;
+  unitCode?: string;
+  branchId?: number;
+  modelId?: number;
+  typeId?: number;
+  sizeId?: number;
 }
 
 export interface CartItem extends Product {

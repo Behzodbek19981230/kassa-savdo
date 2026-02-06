@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   X,
   Printer,
@@ -7,13 +7,19 @@ import {
   CreditCard,
   Smartphone,
   Wallet,
-  CheckCircle2 } from
+  CheckCircle2,
+  FileText,
+  Truck,
+  Save,
+  Loader2 } from
 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { Input } from '../ui/Input';
 import { Receipt } from './Receipt';
 import { CartItem, Customer, Sale } from './types';
 import { useSales } from '../../contexts/SalesContext';
+import { orderService, OrderResponse } from '../../services/orderService';
+import { showSuccess, showError } from '../../lib/toast';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -24,6 +30,8 @@ interface PaymentModalProps {
   items?: CartItem[];
   customer?: Customer;
   kassirName?: string;
+  orderData?: OrderResponse | null;
+  onOrderUpdate?: (order: OrderResponse) => void;
 }
 export function PaymentModal({
   isOpen,
@@ -33,13 +41,71 @@ export function PaymentModal({
   usdRate,
   items = [],
   customer,
-  kassirName
+  kassirName,
+  orderData,
+  onOrderUpdate
 }: PaymentModalProps) {
   const { addSale } = useSales();
   const [paidAmount, setPaidAmount] = useState(0);
   const [selectedMethods, setSelectedMethods] = useState<{[key: string]: number}>({});
   const receiptRef = useRef<HTMLDivElement>(null);
   const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
+  const [note, setNote] = useState('');
+  const [driverInfo, setDriverInfo] = useState('');
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isSavingDriverInfo, setIsSavingDriverInfo] = useState(false);
+
+  // OrderData o'zgarganda note va driverInfo ni yangilash
+  useEffect(() => {
+    if (orderData) {
+      setNote(orderData.note || '');
+      setDriverInfo(orderData.driver_info || '');
+    }
+  }, [orderData]);
+
+  // Note saqlash
+  const handleSaveNote = async () => {
+    if (!orderData) return;
+    
+    setIsSavingNote(true);
+    try {
+      const updatedOrder = await orderService.updateOrder(orderData.id, { note });
+      const mergedOrder: OrderResponse = {
+        ...updatedOrder,
+        client_detail: updatedOrder.client_detail || orderData.client_detail,
+      };
+      onOrderUpdate?.(mergedOrder);
+      showSuccess('Izoh saqlandi');
+    } catch (error: any) {
+      console.error('Failed to save note:', error);
+      const errorMessage = error?.response?.data?.detail || error?.message || 'Izoh saqlashda xatolik yuz berdi';
+      showError(errorMessage);
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  // Driver info saqlash
+  const handleSaveDriverInfo = async () => {
+    if (!orderData) return;
+    
+    setIsSavingDriverInfo(true);
+    try {
+      const updatedOrder = await orderService.updateOrder(orderData.id, { driver_info: driverInfo });
+      const mergedOrder: OrderResponse = {
+        ...updatedOrder,
+        client_detail: updatedOrder.client_detail || orderData.client_detail,
+      };
+      onOrderUpdate?.(mergedOrder);
+      showSuccess('Yetkazib beruvchi ma\'lumotlari saqlandi');
+    } catch (error: any) {
+      console.error('Failed to save driver info:', error);
+      const errorMessage = error?.response?.data?.detail || error?.message || 'Yetkazib beruvchi ma\'lumotlarini saqlashda xatolik yuz berdi';
+      showError(errorMessage);
+    } finally {
+      setIsSavingDriverInfo(false);
+    }
+  };
   
   // Hook'lar har doim bir xil tartibda chaqirilishi kerak
   const handlePrint = useReactToPrint({
@@ -219,7 +285,7 @@ export function PaymentModal({
           </div>
 
           {/* Payment Methods Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {paymentMethods.map((method) => {
               const isSelected = selectedMethods[method.id] > 0;
               return (
@@ -255,6 +321,69 @@ export function PaymentModal({
               </div>
             )})}
           </div>
+
+          {/* Izoh va Yetkazib beruvchi maydonlari */}
+          {orderData && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Izoh maydoni */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center text-blue-600 text-sm font-semibold">
+                    <FileText size={18} className="mr-2" />
+                    <span>Izoh</span>
+                  </div>
+                  <button
+                    onClick={handleSaveNote}
+                    disabled={isSavingNote}
+                    className="bg-blue-600 hover:bg-blue-700 text-white w-8 h-8 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    title="Saqlash"
+                  >
+                    {isSavingNote ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Izoh kiriting..."
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows={3}
+                />
+              </div>
+
+              {/* Yetkazib beruvchi maydoni */}
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl border-2 border-purple-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center text-purple-600 text-sm font-semibold">
+                    <Truck size={18} className="mr-2" />
+                    <span>Yetkazib beruvchi</span>
+                  </div>
+                  <button
+                    onClick={handleSaveDriverInfo}
+                    disabled={isSavingDriverInfo}
+                    className="bg-purple-600 hover:bg-purple-700 text-white w-8 h-8 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    title="Saqlash"
+                  >
+                    {isSavingDriverInfo ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+                <textarea
+                  value={driverInfo}
+                  onChange={(e) => setDriverInfo(e.target.value)}
+                  placeholder="Yetkazib beruvchi ma'lumotlari..."
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

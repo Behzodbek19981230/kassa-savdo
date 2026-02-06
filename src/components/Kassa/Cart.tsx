@@ -1,29 +1,476 @@
-import { Trash2, Plus, Minus } from 'lucide-react';
-import { CartItem } from './types';
+import { Trash2, Plus, Minus, User, Loader2, DollarSign, X } from 'lucide-react';
+import { CartItem, Customer } from './types';
+import { OrderResponse } from '../../services/orderService';
+import { Autocomplete, AutocompleteOption } from '../ui/Autocomplete';
+import { useState, useEffect, useCallback } from 'react';
+import { clientService, Client } from '../../services/clientService';
+import { showError, showSuccess, showLoading } from '../../lib/toast';
+import { useAuth } from '../../contexts/AuthContext';
+import { CustomerModal } from './CustomerModal';
+import { orderService } from '../../services/orderService';
+import { useNavigate } from 'react-router-dom';
+
 interface CartProps {
     items: CartItem[];
     onUpdateQuantity: (id: string, delta: number) => void;
     onRemoveItem: (id: string) => void;
     totalItems: number;
+    orderData?: OrderResponse | null;
+    selectedCustomer?: Customer | null;
+    onCustomerChange?: (customer: Customer | null) => void;
+    onPayment?: () => void;
+    isSaleStarted?: boolean;
+    orderId?: number;
+    onOrderUpdate?: (order: OrderResponse) => void;
+    onStartSaleClick?: () => void;
+    isCreatingOrder?: boolean;
 }
 export function Cart({
     items,
     onUpdateQuantity,
     onRemoveItem,
-    totalItems
+    totalItems,
+    orderData,
+    selectedCustomer,
+    onCustomerChange,
+    onPayment,
+    isSaleStarted = false,
+    orderId,
+    onOrderUpdate,
+    onStartSaleClick,
+    isCreatingOrder = false
 }: CartProps) {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [clients, setClients] = useState<Client[]>([]);
+    const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+    const [editingCustomer, setEditingCustomer] = useState<Customer | undefined>();
+    const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+    const [isSearchingCustomers, setIsSearchingCustomers] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Mijozlarni qidirish
+    const searchClients = useCallback(async (query: string) => {
+        setIsSearchingCustomers(true);
+        try {
+            const response = await clientService.getClients(query || '');
+            setClients(response.results.filter(client => client.is_active && !client.is_delete));
+        } catch (error) {
+            console.error('Failed to search clients:', error);
+            setClients([]);
+            if (query.trim()) {
+                showError('Mijozlarni yuklashda xatolik yuz berdi');
+            }
+        } finally {
+            setIsSearchingCustomers(false);
+        }
+    }, []);
+
+    // Komponent mount bo'lganda barcha mijozlarni yuklash
+    useEffect(() => {
+        searchClients('');
+    }, [searchClients]);
+
+    // Qidiruv o'zgarganda API ga so'rov yuborish
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            searchClients(customerSearchQuery || '');
+        }, 300);
+        return () => clearTimeout(timeoutId);
+    }, [customerSearchQuery, searchClients]);
+
+    // OrderData yuklanganda selectedClientId ni set qilish
+    useEffect(() => {
+        if (orderData?.client_detail) {
+            setSelectedClientId(orderData.client);
+        } else if (selectedCustomer) {
+            setSelectedClientId(parseInt(selectedCustomer.id));
+        }
+    }, [orderData, selectedCustomer]);
+
+    const autocompleteOptions: AutocompleteOption[] = clients.map(client => ({
+        id: client.id.toString(),
+        label: `${client.full_name}${client.phone_number ? ` (${client.phone_number})` : ''}`,
+        value: client.id.toString()
+    }));
+
+    // Mijoz tanlash
+    const handleCustomerSelect = async (clientId: string) => {
+        const id = parseInt(clientId);
+        const client = clients.find(c => c.id === id);
+        if (client) {
+            const customer: Customer = {
+                id: client.id.toString(),
+                name: client.full_name,
+                phone: client.phone_number,
+            };
+
+            // Agar orderData mavjud bo'lsa, order ni yangilash
+            if (orderData && orderId) {
+                showLoading('Mijoz yangilanmoqda...');
+                try {
+                    const updatedOrder = await orderService.updateOrder(orderId, {
+                        client: id
+                    });
+                    setSelectedClientId(id);
+                    onOrderUpdate?.(updatedOrder);
+                    onCustomerChange?.(customer);
+                    showSuccess('Mijoz muvaffaqiyatli yangilandi');
+                } catch (error: any) {
+                    console.error('Failed to update order client:', error);
+                    const errorMessage = error?.response?.data?.detail || error?.message || 'Mijozni yangilashda xatolik yuz berdi';
+                    showError(errorMessage);
+                }
+            } else {
+                setSelectedClientId(id);
+                onCustomerChange?.(customer);
+            }
+        }
+    };
+
+    // Yangi mijoz yaratish
+    const handleAddNewCustomer = async (name: string) => {
+        const parts = name.trim().split(/\s+/);
+        let fullName = name;
+        let phoneNumber = '';
+        const phoneRegex = /\+?\d{9,13}/;
+        const lastPart = parts[parts.length - 1];
+
+        if (phoneRegex.test(lastPart)) {
+            phoneNumber = lastPart;
+            fullName = parts.slice(0, -1).join(' ');
+        }
+
+        if (!fullName.trim()) {
+            fullName = name;
+        }
+
+        showLoading('Mijoz yaratilmoqda...');
+        try {
+            const newClient = await clientService.createClient({
+                full_name: fullName,
+                phone_number: phoneNumber || '',
+                is_active: true,
+                filial: user?.filials[0] || 0
+            });
+
+            const customer: Customer = {
+                id: newClient.id.toString(),
+                name: newClient.full_name,
+                phone: newClient.phone_number,
+            };
+
+            // Agar orderData mavjud bo'lsa, order ni yangilash
+            if (orderData && orderId) {
+                try {
+                    const updatedOrder = await orderService.updateOrder(orderId, {
+                        client: newClient.id
+                    });
+                    setSelectedClientId(newClient.id);
+                    setClients([newClient, ...clients]);
+                    onOrderUpdate?.(updatedOrder);
+                    onCustomerChange?.(customer);
+                    showSuccess('Mijoz muvaffaqiyatli yaratildi va order ga qo\'shildi');
+                } catch (error: any) {
+                    console.error('Failed to update order client:', error);
+                    const errorMessage = error?.response?.data?.detail || error?.message || 'Order ga mijoz qo\'shishda xatolik yuz berdi';
+                    showError(errorMessage);
+                    // Mijoz yaratildi lekin order ga qo'shilmadi
+                    setSelectedClientId(newClient.id);
+                    setClients([newClient, ...clients]);
+                    onCustomerChange?.(customer);
+                }
+            } else {
+                setSelectedClientId(newClient.id);
+                setClients([newClient, ...clients]);
+                onCustomerChange?.(customer);
+                showSuccess('Mijoz muvaffaqiyatli yaratildi');
+            }
+        } catch (error: any) {
+            console.error('Failed to create client:', error);
+            const errorMessage = error?.response?.data?.detail || error?.message || 'Mijoz yaratishda xatolik yuz berdi';
+            showError(errorMessage);
+            setIsCustomerModalOpen(true);
+            setEditingCustomer({
+                id: '',
+                name: fullName,
+                phone: phoneNumber,
+            });
+        }
+    };
+
+    // Modal orqali mijoz yaratish/yangilash
+    const handleSaveCustomer = async (customerData: Omit<Customer, 'id'>) => {
+        if (!customerData.name.trim() || !customerData.phone?.trim()) {
+            showError('Ism va telefon raqamni kiriting');
+            return;
+        }
+
+        showLoading('Mijoz saqlanmoqda...');
+        try {
+            const newClient = await clientService.createClient({
+                full_name: customerData.name,
+                phone_number: customerData.phone || '',
+                is_active: true,
+                filial: user?.filials[0] || 0
+            });
+
+            const customer: Customer = {
+                id: newClient.id.toString(),
+                name: newClient.full_name,
+                phone: newClient.phone_number,
+            };
+
+            // Agar orderData mavjud bo'lsa, order ni yangilash
+            if (orderData && orderId) {
+                try {
+                    const updatedOrder = await orderService.updateOrder(orderId, {
+                        client: newClient.id
+                    });
+                    setSelectedClientId(newClient.id);
+                    setClients([newClient, ...clients]);
+                    onOrderUpdate?.(updatedOrder);
+                    onCustomerChange?.(customer);
+                    setIsCustomerModalOpen(false);
+                    setEditingCustomer(undefined);
+                    showSuccess('Mijoz muvaffaqiyatli saqlandi va order ga qo\'shildi');
+                } catch (error: any) {
+                    console.error('Failed to update order client:', error);
+                    const errorMessage = error?.response?.data?.detail || error?.message || 'Order ga mijoz qo\'shishda xatolik yuz berdi';
+                    showError(errorMessage);
+                    // Mijoz yaratildi lekin order ga qo'shilmadi
+                    setSelectedClientId(newClient.id);
+                    setClients([newClient, ...clients]);
+                    onCustomerChange?.(customer);
+                    setIsCustomerModalOpen(false);
+                    setEditingCustomer(undefined);
+                }
+            } else {
+                setSelectedClientId(newClient.id);
+                setClients([newClient, ...clients]);
+                onCustomerChange?.(customer);
+                setIsCustomerModalOpen(false);
+                setEditingCustomer(undefined);
+                showSuccess('Mijoz muvaffaqiyatli saqlandi');
+            }
+        } catch (error: any) {
+            console.error('Failed to save client:', error);
+            const errorMessage = error?.response?.data?.detail || error?.message || 'Mijoz saqlashda xatolik yuz berdi';
+            showError(errorMessage);
+        }
+    };
+
+    // Savdoni bekor qilish
+    const handleDeleteOrder = async () => {
+        if (!orderData) return;
+
+        setIsDeleting(true);
+        try {
+            await orderService.deleteOrder(orderData.id);
+            showSuccess('Savdo bekor qilindi');
+            setIsDeleteModalOpen(false);
+            navigate('/');
+        } catch (error: any) {
+            console.error('Failed to delete order:', error);
+            const errorMessage = error?.response?.data?.detail || error?.message || 'Savdoni bekor qilishda xatolik yuz berdi';
+            showError(errorMessage);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 border-r border-blue-200/50">
             {/* Header */}
-            <div className="p-4 bg-gradient-to-r from-blue-500 via-blue-400 to-cyan-500 border-b border-blue-400 flex justify-between items-center shadow-md">
-                <h2 className="text-2xl font-bold text-white flex items-center">
-                    Savdo{' '}
-                    <span className="ml-3 text-yellow-200 text-xl">
-                        {totalItems.toLocaleString()}
-                    </span>
-                </h2>
-                <span className="text-white/80 font-semibold bg-white/20 px-3 py-1 rounded-xl">#2</span>
+            <div className="p-4 bg-gradient-to-r from-blue-500 via-blue-400 to-cyan-500 border-b border-blue-400 shadow-md">
+                {/* Barcha elementlar bir qatorda */}
+                <div className="flex items-center gap-3 flex-wrap">
+                    {/* Savdo va Order ID */}
+                    <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center shrink-0">
+                        Savdo{' '}
+                        {orderData && (
+                            <span className="ml-2 sm:ml-3 text-white/80 font-semibold bg-white/20 px-2 sm:px-3 py-1 rounded-xl text-base sm:text-lg">
+                                #{orderData.id}
+                            </span>
+                        )}
+                    </h2>
+
+                    {/* Mijoz tanlash va Savdoni boshlash */}
+                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                        <div className="flex-1 min-w-[200px] max-w-md">
+                            <div className='flex items-center gap-2 bg-white/20 px-3 py-2 rounded-xl backdrop-blur-sm'>
+                                <div className='relative flex-1'>
+                                    <Autocomplete
+                                        options={autocompleteOptions}
+                                        value={selectedClientId?.toString() || ''}
+                                        onChange={handleCustomerSelect}
+                                        onAddNew={handleAddNewCustomer}
+                                        onSearchChange={setCustomerSearchQuery}
+                                        placeholder="Mijoz tanlang..."
+                                        emptyMessage={isSearchingCustomers ? 'Qidirilmoqda...' : 'Mijoz topilmadi'}
+                                    />
+                                    {isSearchingCustomers && (
+                                        <div className="absolute right-12 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setIsCustomerModalOpen(true)}
+                                    className='bg-white/30 hover:bg-white/40 p-1.5 rounded-lg transition-colors shrink-0'
+                                    title="Yangi mijoz qo'shish"
+                                >
+                                    <Plus size={16} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Savdoni boshlash knopkasi */}
+                        {!orderData && selectedCustomer && !isSaleStarted && onStartSaleClick && (
+                            <button
+                                onClick={onStartSaleClick}
+                                disabled={isCreatingOrder}
+                                className='flex items-center justify-center gap-2 bg-green-500/80 hover:bg-green-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
+                                title='Savdoni boshlash'
+                            >
+                                {isCreatingOrder ? (
+                                    <>
+                                        <Loader2 size={18} className='animate-spin' />
+                                        <span className='hidden sm:inline'>Yaratilmoqda...</span>
+                                        <span className='sm:hidden'>Yuklanmoqda...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus size={18} />
+                                        <span className='hidden sm:inline'>Savdoni boshlash</span>
+                                        <span className='sm:hidden'>Boshlash</span>
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Mijoz ma'lumotlari */}
+                    {selectedCustomer && (
+                        <div className='hidden sm:flex items-center gap-2 bg-white/20 px-3 py-2 rounded-xl backdrop-blur-sm shrink-0'>
+                            <User className='w-4 h-4 text-white/90 shrink-0' />
+                            <div className='text-xs'>
+                                <div className='font-semibold whitespace-nowrap'>{selectedCustomer.name}</div>
+                                {selectedCustomer.phone && (
+                                    <div className='text-[10px] opacity-80 whitespace-nowrap'>{selectedCustomer.phone}</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Jami summa */}
+                    <div className="text-right shrink-0 ml-auto">
+                        <div className="text-xs text-white/80 mb-1">Jami</div>
+                        <div className="text-xl sm:text-2xl font-bold text-yellow-200 whitespace-nowrap">
+                            {totalItems.toLocaleString()} UZS
+                        </div>
+                    </div>
+
+                    {/* To'lov va Bekor qilish knopkalari */}
+                    {orderData && (
+                        <>
+                            <button
+                                onClick={() => setIsDeleteModalOpen(true)}
+                                disabled={isDeleting}
+                                className='flex items-center justify-center gap-2 bg-red-500/80 hover:bg-red-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
+                                title='Savdoni bekor qilish'
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span className='hidden sm:inline'>Bekor qilinmoqda...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 size={16} />
+                                        <span className='hidden sm:inline'>Bekor qilish</span>
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                onClick={onPayment}
+                                disabled={!isSaleStarted || totalItems === 0}
+                                className='flex items-center justify-center gap-2 bg-green-500/80 hover:bg-green-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
+                                title="To'lov"
+                            >
+                                <DollarSign size={16} />
+                                <span className='hidden sm:inline'>To'lov</span>
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
+
+            {/* Customer Modal */}
+            <CustomerModal
+                isOpen={isCustomerModalOpen}
+                onClose={() => {
+                    setIsCustomerModalOpen(false);
+                    setEditingCustomer(undefined);
+                }}
+                onSave={handleSaveCustomer}
+                initialData={editingCustomer}
+            />
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-red-200">
+                        <div className="flex justify-between items-center p-5 border-b-2 border-red-100 bg-gradient-to-r from-red-50 to-pink-50">
+                            <h3 className="text-xl font-bold text-gray-900">
+                                Savdoni bekor qilish
+                            </h3>
+                            <button
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                disabled={isDeleting}
+                                className="text-gray-500 hover:text-red-600 hover:bg-white p-2 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 bg-white">
+                            <p className="text-gray-700 mb-6">
+                                Savdoni bekor qilmoqchimisiz? Bu amalni qaytarib bo'lmaydi.
+                            </p>
+
+                            <div className="flex gap-3 justify-end">
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(false)}
+                                    disabled={isDeleting}
+                                    className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Bekor qilish
+                                </button>
+                                <button
+                                    onClick={handleDeleteOrder}
+                                    disabled={isDeleting}
+                                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isDeleting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <span>Bekor qilinmoqda...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className="w-4 h-4" />
+                                            <span>Ha, bekor qilish</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3">

@@ -1,98 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart2, Clock, DollarSign, Plus, User, Building2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { ProductList } from './ProductList';
 import { Cart } from './Cart';
-import { OrderSummary } from './OrderSummary';
 import { ProductModal } from './ProductModal';
 import { PaymentModal } from './PaymentModal';
+import { Layout } from '../Layout';
 import { Product, CartItem, Customer } from './types';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService, OrderResponse } from '../../services/orderService';
-import { showError } from '../../lib/toast';
-// Mock Data
-const MOCK_PRODUCTS: Product[] = [
-    {
-        id: '1',
-        name: 'Bamboo',
-        price: 12000,
-        stock: 17,
-        unit: 'dona',
-        isFavorite: true,
-    },
-    {
-        id: '2',
-        name: 'Fanta, fanta orange vitamin',
-        price: 14420,
-        stock: 36,
-        unit: 'dona',
-        isFavorite: true,
-    },
-    {
-        id: '3',
-        name: 'Just shampoo 1l',
-        price: 26000,
-        stock: 197,
-        unit: 'dona',
-        isFavorite: true,
-    },
-    {
-        id: '4',
-        name: 'Kango',
-        price: 2000,
-        stock: 30,
-        unit: 'dona',
-        isFavorite: true,
-    },
-    {
-        id: '5',
-        name: 'Windows ustanovka',
-        price: 40000,
-        stock: 8,
-        unit: 'xizmat',
-        isFavorite: true,
-    },
-    {
-        id: '6',
-        name: 'X24 kalaska',
-        price: 2200000,
-        stock: 0,
-        unit: 'dona',
-        isFavorite: true,
-    },
-    {
-        id: '7',
-        name: 'X22 kalaska',
-        price: 1950000,
-        stock: 0,
-        unit: 'dona',
-        isFavorite: true,
-    },
-    {
-        id: '8',
-        name: 'X17',
-        price: 1560000,
-        stock: 6,
-        unit: 'dona',
-        isFavorite: true,
-    },
-    {
-        id: '9',
-        name: 'Tufli (brendi)',
-        price: 250000,
-        stock: 29,
-        unit: 'dona',
-        isFavorite: true,
-    },
-    {
-        id: '10',
-        name: 'Bolt 25',
-        price: 10000,
-        stock: 10,
-        unit: 'dona',
-        isFavorite: true,
-    },
-];
+import { productService, ProductResponse } from '../../services/productService';
+import { showError, showSuccess, showLoading } from '../../lib/toast';
 
 interface KassaPageProps {
     onBack: () => void;
@@ -100,26 +18,7 @@ interface KassaPageProps {
 }
 export function KassaPage({ onBack, orderId }: KassaPageProps) {
     const navigate = useNavigate();
-    const USD_RATE = 12180;
-    const [now, setNow] = useState(() => new Date());
-    const dateTimeText = new Intl.DateTimeFormat('uz-UZ', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    }).format(now);
-    const timeText = new Intl.DateTimeFormat('uz-UZ', {
-        hour: '2-digit',
-        minute: '2-digit',
-    }).format(now);
-
-    useEffect(() => {
-        const id = window.setInterval(() => setNow(new Date()), 1000);
-        return () => window.clearInterval(id);
-    }, []);
-
-    const { kassir, user } = useAuth();
+    const { user } = useAuth();
     const [cart, setCart] = useState<CartItem[]>([]);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -127,19 +26,23 @@ export function KassaPage({ onBack, orderId }: KassaPageProps) {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isSaleStarted, setIsSaleStarted] = useState(false);
     const [orderData, setOrderData] = useState<OrderResponse | null>(null);
-    const [isLoadingOrder, setIsLoadingOrder] = useState(false);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+    const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+    const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+    const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
     // Order ID mavjud bo'lsa, order ma'lumotlarini yuklash
     useEffect(() => {
         if (orderId) {
             setIsSaleStarted(true);
-            setIsLoadingOrder(true);
 
             orderService.getOrder(orderId)
                 .then((order) => {
                     setOrderData(order);
                     // Mijoz ma'lumotlarini set qilish
                     if (order.client_detail) {
+                        setSelectedClientId(order.client);
                         setSelectedCustomer({
                             id: order.client_detail.id.toString(),
                             name: order.client_detail.full_name,
@@ -150,12 +53,141 @@ export function KassaPage({ onBack, orderId }: KassaPageProps) {
                 .catch((error) => {
                     console.error('Failed to load order:', error);
                     showError('Order ma\'lumotlarini yuklashda xatolik');
-                })
-                .finally(() => {
-                    setIsLoadingOrder(false);
                 });
         }
     }, [orderId]);
+
+    // API response dan Product ga transform qilish
+    const transformProduct = (productResponse: ProductResponse): Product => {
+        const productName = [
+            productResponse.branch_detail?.name,
+            productResponse.model_detail?.name,
+            productResponse.type_detail?.name,
+            productResponse.size_detail?.size
+        ].filter(Boolean).join(' ');
+
+        return {
+            id: productResponse.id.toString(),
+            productId: productResponse.id,
+            name: productName || `Mahsulot #${productResponse.id}`,
+            price: parseFloat(productResponse.real_price || productResponse.unit_price || '0'),
+            stock: productResponse.count,
+            unit: productResponse.size_detail?.unit_detail?.name || 'dona',
+            image: productResponse.images?.[0]?.file,
+            branchName: productResponse.branch_detail?.name,
+            modelName: productResponse.model_detail?.name,
+            typeName: productResponse.type_detail?.name,
+            size: productResponse.size_detail?.size,
+            unitCode: productResponse.size_detail?.unit_detail?.code,
+            branchId: productResponse.branch,
+            modelId: productResponse.model,
+            typeId: productResponse.type,
+            sizeId: productResponse.size,
+            isFavorite: false,
+        };
+    };
+
+    // Order-history-product dan Product ga transform qilish
+    const transformOrderProduct = useCallback((orderProduct: any): Product => {
+        // Order-history-product da product ma'lumotlari null bo'lishi mumkin
+        // Shuning uchun faqat mavjud ma'lumotlarni ishlatamiz
+        const productName = [
+            orderProduct.branch_detail?.name,
+            orderProduct.model_detail?.name,
+            orderProduct.type_detail?.name,
+            orderProduct.size_detail?.size
+        ].filter(Boolean).join(' ');
+
+        return {
+            id: orderProduct.id?.toString() || `order-product-${orderProduct.id || 'unknown'}`,
+            productId: orderProduct.id,
+            name: productName || `Mahsulot #${orderProduct.id || 'unknown'}`,
+            price: parseFloat(orderProduct.real_price || orderProduct.unit_price || '0'),
+            stock: orderProduct.count || orderProduct.given_count || 0,
+            unit: orderProduct.size_detail?.unit_detail?.name || 'dona',
+            image: orderProduct.product?.images?.[0]?.file || orderProduct.images?.[0]?.file || null,
+            branchName: orderProduct.branch_detail?.name || null,
+            modelName: orderProduct.model_detail?.name || null,
+            typeName: orderProduct.type_detail?.name || null,
+            size: orderProduct.size_detail?.size || null,
+            unitCode: orderProduct.size_detail?.unit_detail?.code || null,
+            branchId: orderProduct.branch || null,
+            modelId: orderProduct.model || null,
+            typeId: orderProduct.type || null,
+            sizeId: orderProduct.size || null,
+            isFavorite: false,
+        };
+    }, []);
+
+    // OrderData o'zgarganda mahsulotlarni yangilash
+    useEffect(() => {
+        if (orderData?.id && isSaleStarted) {
+            // OrderData o'zgarganda mahsulotlarni yuklash
+            const currentOrderId = orderData.id;
+            setIsLoadingProducts(true);
+            orderService.getOrderProducts(currentOrderId)
+                .then((orderProducts) => {
+                    const transformedProducts = orderProducts
+                        .filter((p: any) => !p.is_delete)
+                        .map(transformOrderProduct);
+                    setProducts(transformedProducts);
+                })
+                .catch((error) => {
+                    console.error('Failed to load order products:', error);
+                    showError('Mahsulotlarni yuklashda xatolik');
+                })
+                .finally(() => {
+                    setIsLoadingProducts(false);
+                });
+        }
+    }, [orderData?.id, isSaleStarted, transformOrderProduct]);
+
+    // Mahsulotlarni yuklash
+    const loadProducts = useCallback(async (search?: string, branch?: number | null) => {
+        if (!user?.filials?.[0]) return;
+
+        setIsLoadingProducts(true);
+        try {
+            // Agar orderId mavjud bo'lsa, order-history-product dan olish
+            const currentOrderId = orderId || orderData?.id;
+            if (currentOrderId) {
+                const orderProducts = await orderService.getOrderProducts(currentOrderId);
+                const transformedProducts = orderProducts
+                    .filter((p: any) => !p.is_delete)
+                    .map(transformOrderProduct);
+                setProducts(transformedProducts);
+            } else {
+                // Oddiy product dan olish
+                const response = await productService.getProducts({
+                    search: search || undefined,
+                    filial: user.filials[0],
+                    branch: branch || undefined,
+                    per_page: 100,
+                });
+
+                const transformedProducts = response.results
+                    .filter(p => !p.is_delete)
+                    .map(transformProduct);
+
+                setProducts(transformedProducts);
+            }
+        } catch (error) {
+            console.error('Failed to load products:', error);
+            showError('Mahsulotlarni yuklashda xatolik');
+        } finally {
+            setIsLoadingProducts(false);
+        }
+    }, [user?.filials, orderId, orderData]);
+
+    // Mahsulotlarni yuklash - component mount va filter o'zgarganda
+    useEffect(() => {
+        loadProducts(searchQuery, selectedBranch);
+    }, [loadProducts, searchQuery, selectedBranch]);
+
+    // Branch filter o'zgarganda
+    const handleBranchChange = (branchId: number | null) => {
+        setSelectedBranch(branchId);
+    };
 
     const handleProductClick = (product: Product) => {
         if (!isSaleStarted) return;
@@ -170,15 +202,81 @@ export function KassaPage({ onBack, orderId }: KassaPageProps) {
         }
     };
 
-    const handleCustomerChange = (customer: Customer | null) => {
-        setSelectedCustomer(customer);
-        if (!customer) {
-            setIsSaleStarted(false);
-            setCart([]);
+
+
+    // Savdoni boshlash
+    const handleStartSaleClick = async () => {
+        if (!selectedClientId) {
+            showError('Mijozni tanlang');
+            return;
+        }
+
+        setIsCreatingOrder(true);
+        showLoading('Savdo yaratilmoqda...');
+        try {
+            const order = await orderService.createOrder({
+                client: selectedClientId,
+                employee: user?.id || 0,
+                exchange_rate: USD_RATE,
+                is_karzinka: true,
+            });
+
+            handleStartSale(order.id);
+            showSuccess('Savdo muvaffaqiyatli yaratildi');
+        } catch (error: any) {
+            const errorMessage = error?.response?.data?.detail || error?.message || 'Savdo yaratishda xatolik yuz berdi';
+            showError(errorMessage);
+        } finally {
+            setIsCreatingOrder(false);
         }
     };
-    const handleAddToCart = (quantity: number, price: number) => {
+
+    const handleCustomerChange = (customer: Customer | null) => {
+        setSelectedCustomer(customer);
+        if (customer) {
+            setSelectedClientId(parseInt(customer.id));
+            // Mijoz tanlanganda savdo hali boshlanmagan
+            setIsSaleStarted(false);
+        } else {
+            setIsSaleStarted(false);
+            setCart([]);
+            setSelectedClientId(null);
+        }
+    };
+    const handleAddToCart = async (quantity: number, price: number) => {
         if (!selectedProduct || !isSaleStarted) return;
+
+        // Order ID mavjudligini tekshirish
+        const currentOrderId = orderId || orderData?.id;
+        if (!currentOrderId) {
+            showError('Savdo boshlanmagan');
+            return;
+        }
+
+        // API ga POST qilish
+        if (selectedProduct.branchId && selectedProduct.modelId && selectedProduct.typeId && selectedProduct.sizeId) {
+            try {
+                await orderService.createOrderProduct({
+                    order_history: currentOrderId,
+                    // branch: selectedProduct.branchId,
+                    // model: selectedProduct.modelId,
+                    // type: selectedProduct.typeId,
+                    // size: selectedProduct.sizeId,
+                    count: quantity,
+                    // real_price: price,
+                    // unit_price: price,
+                    // wholesale_price: price,
+                    // is_karzinka: true,
+                });
+            } catch (error: any) {
+                console.error('Failed to add product to order:', error);
+                const errorMessage = error?.response?.data?.detail || error?.message || 'Mahsulot qo\'shishda xatolik yuz berdi';
+                showError(errorMessage);
+                return;
+            }
+        }
+
+        // Cart ga qo'shish
         setCart((prev) => {
             const existing = prev.find((item) => item.id === selectedProduct.id);
             if (existing) {
@@ -230,119 +328,56 @@ export function KassaPage({ onBack, orderId }: KassaPageProps) {
         setIsSaleStarted(false);
     };
     const totalAmount = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-    const filteredProducts = MOCK_PRODUCTS.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const USD_RATE = 12180;
+
     return (
-        <div className='flex flex-col h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 overflow-hidden'>
-            {/* Top Navigation Bar */}
-            <header className='bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white min-h-14 px-3 sm:px-5 py-2 flex flex-col sm:flex-row sm:items-center gap-2 justify-between shrink-0 shadow-lg'>
-                <div className='flex items-center justify-between gap-2'>
-                    <button onClick={onBack} className='hover:bg-white/20 p-2 rounded-xl transition-all duration-200'>
-                        <ArrowLeft size={24} />
-                    </button>
-                    <button
-                        onClick={() => navigate('/')}
-                        className='sm:hidden text-sm font-semibold tracking-wide text-white/90 hover:opacity-90'
-                    >
-                        Bosh sahifa
-                    </button>
-                </div>
-
-                <div className='hidden sm:flex flex-1 items-center justify-center gap-3'>
-                    <button
-                        onClick={() => navigate('/')}
-                        className='text-sm font-semibold tracking-wide text-white/90 hover:opacity-90'
-                    >
-                        Bosh sahifa
-                    </button>
-                    {user?.filials_detail && user.filials_detail.length > 0 && (
-                        <div className='flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm'>
-                            <Building2 className='w-3 h-3 text-white/90' />
-                            <span className='text-xs font-semibold'>{user.filials_detail[0].name}</span>
-                        </div>
-                    )}
-                </div>
-
-                <div className='flex items-center justify-between sm:justify-end gap-2 sm:gap-3'>
-                    <div className='flex items-center gap-2'>
-                        <div className='flex items-center gap-2 bg-white/20 px-3 py-2 rounded-xl backdrop-blur-sm'>
-                            <Clock className='w-4 h-4 text-white/90' />
-                            <span className='hidden md:inline text-xs font-semibold'>{dateTimeText}</span>
-                            <span className='md:hidden text-xs font-semibold'>{timeText}</span>
-                        </div>
-                        <div className='hidden md:flex items-center gap-2 bg-white/20 px-3 py-2 rounded-xl backdrop-blur-sm'>
-                            <DollarSign className='w-4 h-4 text-white/90' />
-                            <span className='text-xs font-semibold'>1 USD = {USD_RATE.toLocaleString()} UZS</span>
-                        </div>
-                    </div>
-
-                    {/* Kassir Profili */}
-                    {(kassir || user) && (
-                        <div className='hidden sm:flex items-center space-x-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm'>
-                            <div className='w-8 h-8 bg-white/30 rounded-full flex items-center justify-center'>
-                                <User className='w-4 h-4' />
-                            </div>
-                            <div className='text-xs'>
-                                <div className='font-semibold'>
-                                    {kassir?.full_name || user?.full_name || 'Foydalanuvchi'}
-                                </div>
-                                <div className='text-[10px] opacity-80 mt-0.5'>
-                                    {user?.role_detail && user.role_detail.length > 0
-                                        ? user.role_detail.map((role) => role.name).join(', ')
-                                        : kassir?.username || 'Rol yo\'q'}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    <button
-                        onClick={() => navigate('/statistika')}
-                        className='flex items-center hover:bg-white/20 px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200'
-                        title='Statistika'
-                    >
-                        <BarChart2 size={18} className='mr-2' />
-                        <span className='hidden sm:inline'>Statistika</span>
-                    </button>
-                    <button className='flex items-center hover:bg-white/20 px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200'>
-                        <Plus size={18} className='mr-2' />
-                        <span className='hidden sm:inline'>Yangi savdo</span>
-                        <span className='sm:hidden'>Yangi</span>
-                    </button>
-                </div>
-            </header>
-
+        <Layout
+            onBack={onBack}
+            showBackButton={true}
+            selectedCustomer={selectedCustomer}
+            orderData={orderData}
+            isSaleStarted={isSaleStarted}
+            isCreatingOrder={isCreatingOrder}
+            onStartSaleClick={handleStartSaleClick}
+        >
             {/* Main Content Grid */}
             <div className='flex-1 flex overflow-hidden'>
-                {/* Left: Product List (30%) */}
-                <div className={`w-[30%] min-w-[280px] max-w-sm h-full border-r border-blue-200/50 ${!isSaleStarted ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <ProductList
-                        products={filteredProducts}
-                        searchQuery={searchQuery}
-                        onSearchQueryChange={setSearchQuery}
-                        onProductClick={handleProductClick}
-                    />
+                {/* Left: Product List */}
+                <div className={`w-[60%] min-w-[360px] max-w-2xl h-full border-r border-blue-200/50 ${!isSaleStarted ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {isLoadingProducts ? (
+                        <div className='flex flex-col items-center justify-center h-full'>
+                            <Loader2 className='w-8 h-8 animate-spin text-blue-600 mb-4' />
+                            <p className='text-sm text-gray-500'>Mahsulotlar yuklanmoqda...</p>
+                        </div>
+                    ) : (
+                        <ProductList
+                            products={products}
+                            searchQuery={searchQuery}
+                            onSearchQueryChange={setSearchQuery}
+                            onProductClick={handleProductClick}
+                            filialId={user?.filials?.[0]}
+                            selectedBranch={selectedBranch}
+                            onBranchChange={handleBranchChange}
+                        />
+                    )}
                 </div>
 
-                {/* Center: Cart (45%) */}
-                <div className={`flex-1 h-full min-w-[320px] ${!isSaleStarted ? 'opacity-50 pointer-events-none' : ''}`}>
+                {/* Center: Cart (100%) */}
+                <div className={`flex-1 h-full min-w-[320px] `}>
                     <Cart
                         items={cart}
                         onUpdateQuantity={handleUpdateQuantity}
                         onRemoveItem={handleRemoveItem}
-                        totalItems={totalAmount} // Using totalAmount as per screenshot showing total value in header
-                    />
-                </div>
-
-                {/* Right: Summary (25%) */}
-                <div className='w-[25%] min-w-[260px] max-w-xs h-full border-l border-blue-200/50 bg-white/30'>
-                    <OrderSummary
-                        totalAmount={totalAmount}
-                        usdRate={USD_RATE}
-                        onPayment={() => setIsPaymentModalOpen(true)}
-                        onCustomerChange={handleCustomerChange}
-                        isSaleStarted={isSaleStarted}
-                        onStartSale={handleStartSale}
+                        totalItems={totalAmount}
                         orderData={orderData}
-                        isLoadingOrder={isLoadingOrder}
+                        selectedCustomer={selectedCustomer}
+                        onCustomerChange={handleCustomerChange}
+                        onPayment={() => setIsPaymentModalOpen(true)}
+                        isSaleStarted={isSaleStarted}
+                        orderId={orderId}
                         onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
+                        onStartSaleClick={handleStartSaleClick}
+                        isCreatingOrder={isCreatingOrder}
                     />
                 </div>
             </div>
@@ -363,8 +398,10 @@ export function KassaPage({ onBack, orderId }: KassaPageProps) {
                 usdRate={USD_RATE}
                 items={cart}
                 customer={selectedCustomer || undefined}
-                kassirName={kassir?.full_name || user?.full_name || undefined}
+                kassirName={user?.full_name || undefined}
+                orderData={orderData}
+                onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
             />
-        </div>
+        </Layout>
     );
 }
