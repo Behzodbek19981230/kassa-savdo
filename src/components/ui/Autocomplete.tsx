@@ -15,6 +15,7 @@ interface AutocompleteProps {
   value?: string;
   onChange?: (value: string) => void;
   onAddNew?: (value: string) => void;
+  onSearchChange?: (query: string) => void;
   placeholder?: string;
   className?: string;
   emptyMessage?: string;
@@ -25,6 +26,7 @@ export function Autocomplete({
   value,
   onChange,
   onAddNew,
+  onSearchChange,
   placeholder = 'Qidirish...',
   className,
   emptyMessage = 'Ma\'lumot topilmadi'
@@ -39,6 +41,12 @@ export function Autocomplete({
     const option = options.find(opt => opt.value === value);
     setSelectedOption(option || null);
   }, [value, options]);
+
+  React.useEffect(() => {
+    if (onSearchChange) {
+      onSearchChange(searchQuery);
+    }
+  }, [searchQuery, onSearchChange]);
 
   const filteredOptions = React.useMemo(() => {
     if (!searchQuery) return options;

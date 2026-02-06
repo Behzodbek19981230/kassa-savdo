@@ -5,3 +5,44 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 /* DO NOT DELETE THESE TAILWIND IMPORTS, OTHERWISE THE STYLING WILL NOT RENDER AT ALL - DO NOT DELETE THIS COMMENT */
+
+/* Toast Animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Toast Custom Styles */
+.toast-success {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast-error {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast-loading {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Toast Container */
+[data-sonner-toaster] {
+  z-index: 9999 !important;
+}

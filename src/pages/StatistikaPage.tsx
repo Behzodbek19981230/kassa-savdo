@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart2, Clock, DollarSign, LogOut, User } from 'lucide-react';
+import { BarChart2, Clock, DollarSign, LogOut, User, Building2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { StatisticsCards } from '../components/Kassa/StatisticsCards';
 
 export function StatistikaPage() {
 	const navigate = useNavigate();
-	const { kassir, logout } = useAuth();
+	const { kassir, user, logout } = useAuth();
 	const [now, setNow] = useState(() => new Date());
 
 	const USD_RATE = 12180;
@@ -31,12 +31,20 @@ export function StatistikaPage() {
 		<div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex flex-col">
 			<header className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white p-5 shadow-xl">
 				<div className="container mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-					<button
-						onClick={() => navigate('/')}
-						className="text-2xl font-bold tracking-tight text-left hover:opacity-90 transition-opacity"
-					>
-						Bosh sahifa
-					</button>
+					<div className='flex items-center gap-3'>
+						<button
+							onClick={() => navigate('/')}
+							className="text-2xl font-bold tracking-tight text-left hover:opacity-90 transition-opacity"
+						>
+							Bosh sahifa
+						</button>
+						{user?.filials_detail && user.filials_detail.length > 0 && (
+							<div className='flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm'>
+								<Building2 className='w-4 h-4 text-white/90' />
+								<span className='text-sm font-semibold'>{user.filials_detail[0].name}</span>
+							</div>
+						)}
+					</div>
 					<div className="flex items-center flex-wrap gap-2 sm:gap-4">
 						<div className="flex items-center gap-2 bg-white/20 px-3 py-2 rounded-xl backdrop-blur-sm">
 							<Clock className="w-4 h-4 text-white/90" />
@@ -53,9 +61,13 @@ export function StatistikaPage() {
 							</div>
 							<div className="text-sm">
 								<div className="font-semibold">
-									{kassir?.firstName} {kassir?.lastName}
+									{kassir?.full_name || user?.full_name || 'Foydalanuvchi'}
 								</div>
-								<div className="text-xs opacity-80">{kassir?.login}</div>
+								<div className="text-xs opacity-80">
+									{user?.role_detail && user.role_detail.length > 0
+										? user.role_detail.map((role) => role.name).join(', ')
+										: kassir?.username || 'Rol yo\'q'}
+								</div>
 							</div>
 						</div>
 						<button

@@ -1,24 +1,28 @@
-import { Plus, Eye, Trash2 } from 'lucide-react';
+import { Plus, Eye, Trash2, Loader2 } from 'lucide-react';
 import { DatePicker } from '../ui/DatePicker';
 import { useState, useEffect } from 'react';
-import { useSales } from '../../contexts/SalesContext';
-import { Sale } from './types';
+import { useOrders } from '../../hooks/useOrders';
+import { OrderResponse } from '../../services/orderService';
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 
 interface DashboardProps {
 	onNewSale?: () => void;
 }
 
 export function Dashboard({ onNewSale }: DashboardProps) {
-	const { sales, getSalesByDateRange } = useSales();
+	const navigate = useNavigate();
 	const [startDate, setStartDate] = useState<Date | undefined>(new Date());
 	const [endDate, setEndDate] = useState<Date | undefined>(new Date());
-	const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
 
-	useEffect(() => {
-		const filtered = getSalesByDateRange(startDate, endDate);
-		setFilteredSales(filtered);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [sales, startDate, endDate]);
+	// API dan order-historylarni olish
+	const { data: ordersData, isLoading, error } = useOrders({
+		date_from: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
+		date_to: endDate ? format(endDate, 'yyyy-MM-dd') : undefined,
+		page_size: 100,
+	});
+
+	const orders = ordersData?.results || [];
 
 	return (
 		<div className='p-6 min-h-full'>
@@ -52,62 +56,79 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 					</div>
 				</div>
 
-				{/* Sales List */}
-				{filteredSales.length > 0 ? (
+				{/* Orders List */}
+				{isLoading ? (
+					<div className='flex justify-center items-center h-64'>
+						<Loader2 className='w-8 h-8 animate-spin text-blue-600' />
+					</div>
+				) : error ? (
+					<div className='flex justify-center items-center h-64 text-red-500 text-lg'>
+						Xatolik yuz berdi
+					</div>
+				) : orders.length > 0 ? (
 					<div className='space-y-1.5'>
-						{filteredSales.map((sale) => (
-							<div
-								key={sale.id}
-								className='bg-white border border-blue-200 rounded-lg px-3 py-2 hover:shadow-md transition-all duration-200 flex items-center gap-3 flex-wrap'
-							>
-								<span className='text-gray-500 font-mono text-xs shrink-0'>#{sale.orderNumber.slice(-4)}</span>
-								<span className='font-semibold text-gray-900 text-sm shrink-0'>{sale.orderNumber}</span>
-								<span className='text-xs text-gray-500 shrink-0'>
-									{new Date(sale.date).toLocaleString('uz-UZ', {
-										day: '2-digit',
-										month: '2-digit',
-										year: 'numeric',
-										hour: '2-digit',
-										minute: '2-digit',
-									})}
-								</span>
-								<span className='text-gray-400'>|</span>
-								<span className='text-xs text-gray-600'>
-									<span className='text-gray-500'>Mijoz:</span>{' '}
-									{sale.customer?.name || 'Umumiy'}
-								</span>
-								<span className='text-gray-400'>|</span>
-								<span className='text-xs text-gray-600'>
-									<span className='text-gray-500'>Sotuvchi:</span>{' '}
-									{sale.kassirName || "Noma'lum"}
-								</span>
-								<span className='text-gray-400'>|</span>
-								<span className='text-xs text-gray-600'>
-									<span className='text-gray-500'>{sale.items.length} ta</span>
-								</span>
-								<span className='flex-1 min-w-0' />
-								<span className='font-bold text-blue-700 text-sm shrink-0'>
-									{sale.totalAmount.toLocaleString()} UZS
-								</span>
-								<div className='flex items-center gap-1 shrink-0'>
-									<button
-										className='p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors'
-										title="Ko'rish"
-									>
-										<Eye size={16} />
-									</button>
-									<button
-										className='p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors'
-										title="O'chirish"
-									>
-										<Trash2 size={16} />
-									</button>
+						{orders
+							.filter((order) => !order.is_delete)
+							.map((order) => (
+								<div
+									key={order.id}
+									className='bg-white border border-blue-200 rounded-lg px-3 py-2 hover:shadow-md transition-all duration-200 flex items-center gap-3 flex-wrap cursor-pointer'
+									onClick={() => navigate(`/order/${order.id}`)}
+								>
+									<span className='text-gray-500 font-mono text-xs shrink-0'>
+										#{order.id.toString().slice(-4)}
+									</span>
+									<span className='font-semibold text-gray-900 text-sm shrink-0'>
+										Order #{order.id}
+									</span>
+									{order.date && (
+										<span className='text-xs text-gray-500 shrink-0'>
+											{new Date(order.date).toLocaleString('uz-UZ', {
+												day: '2-digit',
+												month: '2-digit',
+												year: 'numeric',
+												hour: '2-digit',
+												minute: '2-digit',
+											})}
+										</span>
+									)}
+									{order.date && <span className='text-gray-400'>|</span>}
+									<span className='text-gray-400'>|</span>
+									<span className='text-xs text-gray-600'>
+										<span className='text-gray-500'>Mijoz:</span>{' '}
+										{order.client_detail?.full_name || `ID: ${order.client}`}
+									</span>
+									{order.client_detail?.phone_number && (
+										<>
+											<span className='text-gray-400'>|</span>
+											<span className='text-xs text-gray-600'>
+												{order.client_detail.phone_number}
+											</span>
+										</>
+									)}
+									<span className='flex-1 min-w-0' />
+									<span className='font-bold text-blue-700 text-sm shrink-0'>
+										{parseFloat(order.all_product_summa || '0').toLocaleString()} UZS
+									</span>
+									<div className='flex items-center gap-1 shrink-0'>
+										<button
+											onClick={(e) => {
+												e.stopPropagation();
+												navigate(`/order/${order.id}`);
+											}}
+											className='p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors'
+											title="Ko'rish"
+										>
+											<Eye size={16} />
+										</button>
+									</div>
 								</div>
-							</div>
-						))}
+							))}
 					</div>
 				) : (
-					<div className='flex justify-center items-center h-64 text-gray-400 text-lg'>Ma'lumotlar yo'q</div>
+					<div className='flex justify-center items-center h-64 text-gray-400 text-lg'>
+						Ma'lumotlar yo'q
+					</div>
 				)}
 			</div>
 		</div>
