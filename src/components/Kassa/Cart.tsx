@@ -637,54 +637,57 @@ export function Cart({
                     displayItems.map((item, index) => (
                         <div
                             key={item.id}
-                            className='bg-white p-4 rounded-xl shadow-lg hover:shadow-xl border-2 border-blue-100 flex items-center transition-all duration-200'
+                            className='bg-white p-3 sm:p-4 rounded-xl shadow-lg hover:shadow-xl border-2 border-blue-100 flex flex-col sm:flex-row sm:items-center gap-3 transition-all duration-200'
                         >
-                            <div className='w-10 h-10 text-center font-bold text-blue-600 text-sm bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg flex items-center justify-center'>
-                                {index + 1}
-                            </div>
-
-                            {/* Quantity Controls - faqat readOnly emas bo'lsa ko'rsatish */}
-                            {!readOnly && (
-                                <div className='flex flex-col border-2 border-blue-200 rounded-xl mx-3 overflow-hidden shadow-sm'>
-                                    <button
-                                        onClick={() => handleUpdateQuantity(item.id, 1)}
-                                        className='p-1.5 hover:bg-gradient-to-br hover:from-emerald-400 hover:to-green-500 text-emerald-600 border-b border-blue-200 flex justify-center transition-all duration-200'
-                                    >
-                                        <Plus size={14} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleUpdateQuantity(item.id, -1)}
-                                        className='p-1.5 hover:bg-gradient-to-br hover:from-rose-400 hover:to-red-500 text-rose-600 flex justify-center transition-all duration-200'
-                                    >
-                                        <Minus size={14} />
-                                    </button>
+                            {/* Top row for mobile, inline for desktop */}
+                            <div className='flex items-center gap-2 sm:gap-3 flex-1 min-w-0'>
+                                <div className='w-8 h-8 sm:w-10 sm:h-10 text-center font-bold text-blue-600 text-xs sm:text-sm bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg flex items-center justify-center shrink-0'>
+                                    {index + 1}
                                 </div>
-                            )}
 
-                            {/* Quantity Display */}
-                            <div className='w-20 text-center border-2 border-blue-200 rounded-xl px-2 py-2.5 bg-gradient-to-br from-blue-50 to-cyan-50 text-sm font-semibold mx-1 text-blue-700'>
-                                {item.quantity} {item.unit === 'dona' ? 'dona' : 'kg'}
-                            </div>
+                                {/* Quantity Controls - faqat readOnly emas bo'lsa ko'rsatish */}
+                                {!readOnly && (
+                                    <div className='flex flex-col border-2 border-blue-200 rounded-xl overflow-hidden shadow-sm shrink-0'>
+                                        <button
+                                            onClick={() => handleUpdateQuantity(item.id, 1)}
+                                            className='p-1 sm:p-1.5 hover:bg-gradient-to-br hover:from-emerald-400 hover:to-green-500 text-emerald-600 border-b border-blue-200 flex justify-center transition-all duration-200'
+                                        >
+                                            <Plus size={12} className='sm:w-3.5 sm:h-3.5' />
+                                        </button>
+                                        <button
+                                            onClick={() => handleUpdateQuantity(item.id, -1)}
+                                            className='p-1 sm:p-1.5 hover:bg-gradient-to-br hover:from-rose-400 hover:to-red-500 text-rose-600 flex justify-center transition-all duration-200'
+                                        >
+                                            <Minus size={12} className='sm:w-3.5 sm:h-3.5' />
+                                        </button>
+                                    </div>
+                                )}
 
-                            {/* Product Details */}
-                            <div className='flex-1 px-3'>
-                                <div className='font-semibold text-gray-900 text-sm'>{item.name}</div>
-                                <div className='text-xs text-blue-600 font-medium mt-1'>
-                                    {item.price.toLocaleString()} UZS
+                                {/* Quantity Display */}
+                                <div className='w-16 sm:w-20 text-center border-2 border-blue-200 rounded-xl px-2 py-1.5 sm:py-2.5 bg-gradient-to-br from-blue-50 to-cyan-50 text-xs sm:text-sm font-semibold text-blue-700 shrink-0'>
+                                    {item.quantity} {item.unit === 'dona' ? 'dona' : 'kg'}
+                                </div>
+
+                                {/* Product Details */}
+                                <div className='flex-1 px-2 sm:px-3 min-w-0'>
+                                    <div className='font-semibold text-gray-900 text-xs sm:text-sm truncate'>{item.name}</div>
+                                    <div className='text-xs text-blue-600 font-medium mt-1'>
+                                        {item.price.toLocaleString()} UZS
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Total & Delete */}
-                            <div className='flex items-center space-x-3'>
-                                <div className='font-bold text-blue-700 text-right w-28 text-lg'>
-                                    {item.totalPrice.toLocaleString()}
+                            <div className='flex items-center justify-between sm:justify-end gap-2 sm:space-x-3 shrink-0'>
+                                <div className='font-bold text-blue-700 text-right text-base sm:text-lg whitespace-nowrap'>
+                                    {item.totalPrice.toLocaleString()} UZS
                                 </div>
                                 {!readOnly && (
                                     <button
                                         onClick={() => handleRemoveItem(item.id)}
-                                        className='text-white bg-gradient-to-br from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 p-2 rounded-xl hover:shadow-lg transition-all duration-200 transform hover:scale-105'
+                                        className='text-white bg-gradient-to-br from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 p-1.5 sm:p-2 rounded-xl hover:shadow-lg transition-all duration-200 transform hover:scale-105 shrink-0'
                                     >
-                                        <Trash2 size={18} />
+                                        <Trash2 size={16} className='sm:w-4 sm:h-4' />
                                     </button>
                                 )}
                             </div>

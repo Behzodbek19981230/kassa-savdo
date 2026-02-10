@@ -313,11 +313,11 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
             onStartSaleClick={readOnly ? undefined : handleStartSaleClick}
         >
             {/* Main Content Grid */}
-            <div className='flex-1 flex overflow-hidden'>
+            <div className='flex-1 flex flex-col lg:flex-row overflow-hidden'>
                 {/* Left: Product List - faqat readOnly emas bo'lsa ko'rsatish */}
                 {!readOnly && (
                     <div
-                        className={`w-[50%] min-w-[360px] max-w-xl h-full border-r border-blue-200/50 ${!isSaleStarted ? 'opacity-50 pointer-events-none' : ''
+                        className={`w-full lg:w-[50%] lg:min-w-[360px] lg:max-w-xl h-full lg:h-auto lg:border-r border-blue-200/50 ${!isSaleStarted ? 'opacity-50 pointer-events-none' : ''
                             }`}
                     >
                         {isLoadingProducts ? (
@@ -340,7 +340,7 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
                 )}
 
                 {/* Center: Cart (100% readOnly mode da, aks holda flex-1) */}
-                <div className={readOnly ? 'w-full h-full' : 'flex-1 h-full min-w-[320px]'}>
+                <div className={readOnly ? 'w-full h-full' : 'flex-1 h-full min-w-0 lg:min-w-[320px]'}>
                     <Cart
                         items={cart}
                         onUpdateQuantity={readOnly ? () => { } : handleUpdateQuantity}
