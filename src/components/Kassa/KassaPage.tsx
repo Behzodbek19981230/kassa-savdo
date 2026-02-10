@@ -104,13 +104,13 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
     // Mahsulotlarni /api/v1/product dan yuklash (har doim)
     const loadProducts = useCallback(
         async (search?: string, branch?: number | null) => {
-            if (!user?.filials?.[0]) return;
+            if (!user?.order_filial) return;
 
             setIsLoadingProducts(true);
             try {
                 const response = await productService.getProducts({
                     search: search || undefined,
-                    filial: user.filials[0],
+                    filial: user.order_filial,
                     branch: branch || undefined,
                     per_page: 100,
                 });
@@ -124,7 +124,7 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
                 setIsLoadingProducts(false);
             }
         },
-        [user?.filials]
+        [user?.order_filial]
     );
 
     // Mahsulotlarni yuklash - component mount va filter o'zgarganda
@@ -330,7 +330,7 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
                                 searchQuery={searchQuery}
                                 onSearchQueryChange={setSearchQuery}
                                 onProductClick={handleProductClick}
-                                filialId={user?.filials?.[0]}
+                                filialId={user?.order_filial || 0}
                                 selectedBranch={selectedBranch}
                                 onBranchChange={handleBranchChange}
                             />

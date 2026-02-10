@@ -295,7 +295,7 @@ export function Cart({
                 full_name: fullName,
                 phone_number: phoneNumber || '',
                 is_active: true,
-                filial: user?.filials[0] || 0,
+                filial: user?.order_filial || 0,
             });
 
             const customer: Customer = {
@@ -359,7 +359,7 @@ export function Cart({
                 full_name: customerData.name,
                 phone_number: customerData.phone || '',
                 is_active: true,
-                filial: user?.filials[0] || 0,
+                filial: user?.order_filial || 0,
             });
 
             const customer: Customer = {

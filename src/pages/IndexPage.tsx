@@ -38,10 +38,10 @@ export function IndexPage() {
 						>
 							Bosh sahifa
 						</button>
-						{user?.filials_detail && user.filials_detail.length > 0 && (
+						{user?.order_filial && (
 							<div className='flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm'>
 								<Building2 className='w-4 h-4 text-white/90' />
-								<span className='text-sm font-semibold'>{user.filials_detail[0].name}</span>
+								<span className='text-sm font-semibold'>{user.order_filial_detail?.name}</span>
 							</div>
 						)}
 					</div>
