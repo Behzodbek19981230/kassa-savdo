@@ -1,7 +1,7 @@
 import { Plus, Eye, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { DatePicker } from '../ui/DatePicker';
 import { useState } from 'react';
-import { useOrders } from '../../hooks/useOrders';
+import { useOrders, useOrdersMySelf } from '../../hooks/useOrders';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
@@ -15,7 +15,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
     const [endDate, setEndDate] = useState<Date | undefined>(new Date());
 
     // API dan order-historylarni olish
-    const { data: ordersData, isLoading, error } = useOrders({
+    const { data: ordersData, isLoading, error } = useOrdersMySelf({
         date_from: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
         date_to: endDate ? format(endDate, 'yyyy-MM-dd') : undefined,
         page_size: 100,

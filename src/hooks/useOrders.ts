@@ -16,3 +16,10 @@ export const useOrders = (params?: UseOrdersParams) => {
 		staleTime: 30000, // 30 soniya
 	});
 };
+export const useOrdersMySelf = (params?: UseOrdersParams) => {
+	return useQuery({
+		queryKey: ['orders-my-self', params],
+		queryFn: () => orderService.getOrdersMySelf(params),
+		staleTime: 30000, // 30 soniya
+	});
+};

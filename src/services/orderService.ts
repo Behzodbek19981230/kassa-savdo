@@ -147,6 +147,35 @@ export const orderService = {
         return response.data;
     },
 
+    // Order-historylar ro'yxatini olish
+    getOrdersMySelf: async (params?: {
+        page?: number;
+        page_size?: number;
+        search?: string;
+        date_from?: string;
+        date_to?: string;
+    }): Promise<{
+        count: number;
+        next: string | null;
+        previous: string | null;
+        results: OrderResponse[];
+    }> => {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+        if (params?.search) queryParams.append('search', params.search);
+        if (params?.date_from) queryParams.append('date_from', params.date_from);
+        if (params?.date_to) queryParams.append('date_to', params.date_to);
+
+        const response = await api.get<{
+            count: number;
+            next: string | null;
+            previous: string | null;
+            results: OrderResponse[];
+        }>(`/v1/order-history/self?${queryParams.toString()}`);
+        return response.data;
+    },
+
     // Order ma'lumotlarini olish
     getOrder: async (id: number): Promise<OrderResponse> => {
         const response = await api.get<OrderResponse>(`/v1/order-history/${id}`);
