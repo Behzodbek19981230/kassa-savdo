@@ -37,6 +37,14 @@ export function App() {
                         }
                     />
                     <Route
+                        path="/order/show/:id"
+                        element={
+                            <ProtectedRoute>
+                                <OrderPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
                         path="/statistika"
                         element={
                             <ProtectedRoute>

@@ -19,6 +19,7 @@ interface AutocompleteProps {
   placeholder?: string;
   className?: string;
   emptyMessage?: string;
+  disabled?: boolean;
 }
 
 export function Autocomplete({
@@ -29,7 +30,8 @@ export function Autocomplete({
   onSearchChange,
   placeholder = 'Qidirish...',
   className,
-  emptyMessage = 'Ma\'lumot topilmadi'
+  emptyMessage = 'Ma\'lumot topilmadi',
+  disabled = false
 }: AutocompleteProps) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -73,9 +75,10 @@ export function Autocomplete({
   };
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={disabled ? false : open} onOpenChange={disabled ? undefined : setOpen}>
       <Popover.Trigger asChild>
         <button
+          disabled={disabled}
           className={cn(
             'flex h-10 w-full items-center justify-between rounded-xl border-2 border-indigo-200 bg-white px-4 py-2 text-sm',
             'ring-offset-white',

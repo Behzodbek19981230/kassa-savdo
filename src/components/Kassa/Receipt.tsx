@@ -24,7 +24,23 @@ export function Receipt({
   date
 }: ReceiptProps) {
   return (
-    <div className="bg-white p-6 max-w-sm mx-auto" style={{ fontFamily: 'monospace' }}>
+    <div className="bg-white p-6 max-w-sm mx-auto" style={{ fontFamily: 'monospace' }} id="receipt-print">
+      <style>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 10mm;
+          }
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          #receipt-print {
+            max-width: 100%;
+            margin: 0 auto;
+          }
+        }
+      `}</style>
       {/* Header */}
       <div className="text-center mb-4 border-b-2 border-gray-300 pb-4">
         <h1 className="text-2xl font-bold mb-2">KASSA MODULI</h1>

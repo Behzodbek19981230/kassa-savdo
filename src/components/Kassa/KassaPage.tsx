@@ -13,345 +13,382 @@ import { productService, ProductResponse } from '../../services/productService';
 import { showError, showSuccess, showLoading } from '../../lib/toast';
 
 interface KassaPageProps {
-	onBack: () => void;
-	orderId?: number;
+    onBack: () => void;
+    orderId?: number;
+    readOnly?: boolean;
 }
-export function KassaPage({ onBack, orderId }: KassaPageProps) {
-	const navigate = useNavigate();
-	const { user } = useAuth();
-	const [cart, setCart] = useState<CartItem[]>([]);
-	const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-	const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-	const [searchQuery, setSearchQuery] = useState('');
-	const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-	const [isSaleStarted, setIsSaleStarted] = useState(false);
-	const [orderData, setOrderData] = useState<OrderResponse | null>(null);
-	const [products, setProducts] = useState<Product[]>([]);
-	const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-	const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
-	const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
-	const [isCreatingOrder, setIsCreatingOrder] = useState(false);
-	const [refreshCartTrigger, setRefreshCartTrigger] = useState(0);
-	const [cartItemsForPayment, setCartItemsForPayment] = useState<CartItem[]>([]);
-	const [totalAmountFromCart, setTotalAmountFromCart] = useState(0);
+export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps) {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [isSaleStarted, setIsSaleStarted] = useState(false);
+    const [orderData, setOrderData] = useState<OrderResponse | null>(null);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+    const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+    const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+    const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+    const [refreshCartTrigger, setRefreshCartTrigger] = useState(0);
+    const [cartItemsForPayment, setCartItemsForPayment] = useState<CartItem[]>([]);
+    const [totalAmountFromCart, setTotalAmountFromCart] = useState(0);
 
-	// Order ID mavjud bo'lsa, order ma'lumotlarini yuklash
-	useEffect(() => {
-		if (orderId) {
-			setIsSaleStarted(true);
+    // order_filial tekshiruvi - agar yo'q bo'lsa, xabar ko'rsatish
+    useEffect(() => {
+        if (user && !user.order_filial) {
+            showError('Sizda kassaga kirish huquqi yo\'q');
+        }
+    }, [user]);
 
-			orderService
-				.getOrder(orderId)
-				.then((order) => {
-					setOrderData(order);
-					// Mijoz ma'lumotlarini set qilish
-					if (order.client_detail) {
-						setSelectedClientId(order.client);
-						setSelectedCustomer({
-							id: order.client_detail.id.toString(),
-							name: order.client_detail.full_name,
-							phone: order.client_detail.phone_number,
-						});
-					}
-				})
-				.catch((error) => {
-					console.error('Failed to load order:', error);
-					showError("Order ma'lumotlarini yuklashda xatolik");
-				});
-		}
-	}, [orderId]);
+    // Order ID mavjud bo'lsa, order ma'lumotlarini yuklash
+    useEffect(() => {
+        if (orderId) {
+            setIsSaleStarted(true);
 
-	// API response dan Product ga transform qilish
-	const transformProduct = (productResponse: ProductResponse): Product => {
-		const productName = [
-			productResponse.branch_detail?.name,
-			productResponse.model_detail?.name,
-			productResponse.type_detail?.name,
-			productResponse.size_detail?.size,
-		]
-			.filter(Boolean)
-			.join(' ');
+            orderService
+                .getOrder(orderId)
+                .then((order) => {
+                    setOrderData(order);
+                    // Mijoz ma'lumotlarini set qilish
+                    if (order.client_detail) {
+                        setSelectedClientId(order.client);
+                        setSelectedCustomer({
+                            id: order.client_detail.id.toString(),
+                            name: order.client_detail.full_name,
+                            phone: order.client_detail.phone_number,
+                        });
+                    }
+                })
+                .catch((error) => {
+                    console.error('Failed to load order:', error);
+                    showError("Order ma'lumotlarini yuklashda xatolik");
+                });
+        }
+    }, [orderId]);
 
-		return {
-			id: productResponse.id.toString(),
-			productId: productResponse.id,
-			name: productName || `Mahsulot #${productResponse.id}`,
-			price: parseFloat(productResponse.real_price || productResponse.unit_price || '0'),
-			stock: productResponse.count,
-			unit: productResponse.size_detail?.unit_detail?.name || 'dona',
-			image: productResponse.images?.[0]?.file,
-			branchName: productResponse.branch_detail?.name,
-			modelName: productResponse.model_detail?.name,
-			typeName: productResponse.type_detail?.name,
-			size: productResponse.size_detail?.size,
-			unitCode: productResponse.size_detail?.unit_detail?.code,
-			branchId: productResponse.branch,
-			modelId: productResponse.model,
-			typeId: productResponse.type,
-			sizeId: productResponse.size,
-			isFavorite: false,
-		};
-	};
+    // API response dan Product ga transform qilish
+    const transformProduct = (productResponse: ProductResponse): Product => {
+        const productName = [
+            productResponse.branch_detail?.name,
+            productResponse.model_detail?.name,
+            productResponse.type_detail?.name,
+            productResponse.size_detail?.size,
+        ]
+            .filter(Boolean)
+            .join(' ');
 
-	// Mahsulotlarni /api/v1/product dan yuklash (har doim)
-	const loadProducts = useCallback(
-		async (search?: string, branch?: number | null) => {
-			if (!user?.filials?.[0]) return;
+        return {
+            id: productResponse.id.toString(),
+            productId: productResponse.id,
+            name: productName || `Mahsulot #${productResponse.id}`,
+            price: parseFloat(productResponse.real_price || productResponse.unit_price || '0'),
+            stock: productResponse.count,
+            unit: productResponse.size_detail?.unit_detail?.code || 'dona',
+            image: productResponse.images?.[0]?.file,
+            branchName: productResponse.branch_detail?.name,
+            modelName: productResponse.model_detail?.name,
+            typeName: productResponse.type_detail?.name,
+            size: productResponse.size_detail?.size,
+            unitCode: productResponse.size_detail?.unit_detail?.code,
+            branchId: productResponse.branch,
+            modelId: productResponse.model,
+            typeId: productResponse.type,
+            sizeId: productResponse.size,
+            isFavorite: false,
+        };
+    };
 
-			setIsLoadingProducts(true);
-			try {
-				const response = await productService.getProducts({
-					search: search || undefined,
-					filial: user.filials[0],
-					branch: branch || undefined,
-					per_page: 100,
-				});
+    // Mahsulotlarni /api/v1/product dan yuklash (har doim)
+    const loadProducts = useCallback(
+        async (search?: string, branch?: number | null) => {
+            if (!user?.filials?.[0]) return;
 
-				const transformedProducts = response.results.filter((p) => !p.is_delete).map(transformProduct);
-				setProducts(transformedProducts);
-			} catch (error) {
-				console.error('Failed to load products:', error);
-				showError('Mahsulotlarni yuklashda xatolik');
-			} finally {
-				setIsLoadingProducts(false);
-			}
-		},
-		[user?.filials]
-	);
+            setIsLoadingProducts(true);
+            try {
+                const response = await productService.getProducts({
+                    search: search || undefined,
+                    filial: user.filials[0],
+                    branch: branch || undefined,
+                    per_page: 100,
+                });
 
-	// Mahsulotlarni yuklash - component mount va filter o'zgarganda
-	useEffect(() => {
-		loadProducts(searchQuery, selectedBranch);
-	}, [loadProducts, searchQuery, selectedBranch]);
+                const transformedProducts = response.results.filter((p) => !p.is_delete).map(transformProduct);
+                setProducts(transformedProducts);
+            } catch (error) {
+                console.error('Failed to load products:', error);
+                showError('Mahsulotlarni yuklashda xatolik');
+            } finally {
+                setIsLoadingProducts(false);
+            }
+        },
+        [user?.filials]
+    );
 
-	// Branch filter o'zgarganda
-	const handleBranchChange = (branchId: number | null) => {
-		setSelectedBranch(branchId);
-	};
+    // Mahsulotlarni yuklash - component mount va filter o'zgarganda
+    useEffect(() => {
+        loadProducts(searchQuery, selectedBranch);
+    }, [loadProducts, searchQuery, selectedBranch]);
 
-	const handleProductClick = (product: Product) => {
-		if (!isSaleStarted) return;
-		setSelectedProduct(product);
-	};
+    // Branch filter o'zgarganda
+    const handleBranchChange = (branchId: number | null) => {
+        setSelectedBranch(branchId);
+    };
 
-	const handleStartSale = (newOrderId: number) => {
-		if (selectedCustomer) {
-			setIsSaleStarted(true);
-			// Order ID bilan sahifaga yo'naltirish
-			navigate(`/order/${newOrderId}`);
-		}
-	};
+    const handleProductClick = (product: Product) => {
+        if (!isSaleStarted) return;
+        setSelectedProduct(product);
+    };
 
-	// Savdoni boshlash
-	const handleStartSaleClick = async () => {
-		if (!selectedClientId) {
-			showError('Mijozni tanlang');
-			return;
-		}
+    const handleStartSale = (newOrderId: number) => {
+        if (selectedCustomer) {
+            setIsSaleStarted(true);
+            // Order ID bilan sahifaga yo'naltirish
+            navigate(`/order/${newOrderId}`);
+        }
+    };
 
-		setIsCreatingOrder(true);
-		showLoading('Savdo yaratilmoqda...');
-		try {
-			const order = await orderService.createOrder({
-				client: selectedClientId,
-				employee: user?.id || 0,
-				exchange_rate: USD_RATE,
-				is_karzinka: true,
-			});
+    // Savdoni boshlash
+    const handleStartSaleClick = async () => {
+        if (!selectedClientId) {
+            showError('Mijozni tanlang');
+            return;
+        }
 
-			handleStartSale(order.id);
-			showSuccess('Savdo muvaffaqiyatli yaratildi');
-		} catch (error: any) {
-			const errorMessage =
-				error?.response?.data?.detail || error?.message || 'Savdo yaratishda xatolik yuz berdi';
-			showError(errorMessage);
-		} finally {
-			setIsCreatingOrder(false);
-		}
-	};
+        setIsCreatingOrder(true);
+        showLoading('Savdo yaratilmoqda...');
+        try {
+            const order = await orderService.createOrder({
+                client: selectedClientId,
+                employee: user?.id || 0,
+                exchange_rate: USD_RATE,
+                is_karzinka: true,
+            });
 
-	const handleCustomerChange = (customer: Customer | null) => {
-		setSelectedCustomer(customer);
-		if (customer) {
-			setSelectedClientId(parseInt(customer.id));
-			// Mijoz tanlanganda savdo hali boshlanmagan
-			setIsSaleStarted(false);
-		} else {
-			setIsSaleStarted(false);
-			setCart([]);
-			setSelectedClientId(null);
-		}
-	};
-	const handleAddToCart = async (quantity: number, price: number) => {
-		if (!selectedProduct || !isSaleStarted) return;
+            handleStartSale(order.id);
+            showSuccess('Savdo muvaffaqiyatli yaratildi');
+        } catch (error: any) {
+            const errorMessage =
+                error?.response?.data?.detail || error?.message || 'Savdo yaratishda xatolik yuz berdi';
+            showError(errorMessage);
+        } finally {
+            setIsCreatingOrder(false);
+        }
+    };
 
-		// Order ID mavjudligini tekshirish
-		const currentOrderId = orderId || orderData?.id;
-		if (!currentOrderId) {
-			showError('Savdo boshlanmagan');
-			return;
-		}
+    const handleCustomerChange = (customer: Customer | null) => {
+        setSelectedCustomer(customer);
+        if (customer) {
+            setSelectedClientId(parseInt(customer.id));
+            // Mijoz tanlanganda savdo hali boshlanmagan
+            setIsSaleStarted(false);
+        } else {
+            setIsSaleStarted(false);
+            setCart([]);
+            setSelectedClientId(null);
+        }
+    };
+    const handleAddToCart = async (quantity: number, price: number) => {
+        if (!selectedProduct || !isSaleStarted) return;
 
-		// API ga POST qilish
-		if (selectedProduct.branchId && selectedProduct.modelId && selectedProduct.typeId && selectedProduct.sizeId) {
-			try {
-				await orderService.createOrderProduct({
-					order_history: currentOrderId,
-					// branch: selectedProduct.branchId,
-					// model: selectedProduct.modelId,
-					// type: selectedProduct.typeId,
-					// size: selectedProduct.sizeId,
-					count: quantity,
-					// real_price: price,
-					// unit_price: price,
-					// wholesale_price: price,
-					// is_karzinka: true,
-				});
-			} catch (error: any) {
-				console.error('Failed to add product to order:', error);
-				const errorMessage =
-					error?.response?.data?.detail || error?.message || "Mahsulot qo'shishda xatolik yuz berdi";
-				showError(errorMessage);
-				return;
-			}
-			setRefreshCartTrigger((t) => t + 1);
-		} else {
-			setCart((prev) => {
-				const existing = prev.find((item) => item.id === selectedProduct.id);
-				if (existing) {
-					return prev.map((item) =>
-						item.id === selectedProduct.id
-							? {
-									...item,
-									quantity: item.quantity + quantity,
-									totalPrice: (item.quantity + quantity) * price,
-							  }
-							: item
-					);
-				}
-				return [
-					...prev,
-					{
-						...selectedProduct,
-						quantity,
-						totalPrice: quantity * price,
-					},
-				];
-			});
-		}
-		setSelectedProduct(null);
-	};
-	const handleUpdateQuantity = (id: string, delta: number) => {
-		if (!isSaleStarted) return;
-		setCart((prev) =>
-			prev.map((item) => {
-				if (item.id === id) {
-					const newQty = Math.max(1, item.quantity + delta);
-					return {
-						...item,
-						quantity: newQty,
-						totalPrice: newQty * item.price,
-					};
-				}
-				return item;
-			})
-		);
-	};
-	const handleRemoveItem = (id: string) => {
-		if (!isSaleStarted) return;
-		setCart((prev) => prev.filter((item) => item.id !== id));
-	};
-	const handlePaymentComplete = () => {
-		// Cart ni tozalash
-		setCart([]);
-		setSelectedCustomer(null);
-		setIsSaleStarted(false);
-	};
-	const totalAmount =
-		orderId ?? orderData?.id ? totalAmountFromCart : cart.reduce((sum, item) => sum + item.totalPrice, 0);
-	const USD_RATE = 12180;
+        // Order ID mavjudligini tekshirish
+        const currentOrderId = orderId || orderData?.id;
+        if (!currentOrderId) {
+            showError('Savdo boshlanmagan');
+            return;
+        }
 
-	return (
-		<Layout
-			onBack={onBack}
-			showBackButton={true}
-			selectedCustomer={selectedCustomer}
-			orderData={orderData}
-			isSaleStarted={isSaleStarted}
-			isCreatingOrder={isCreatingOrder}
-			onStartSaleClick={handleStartSaleClick}
-		>
-			{/* Main Content Grid */}
-			<div className='flex-1 flex overflow-hidden'>
-				{/* Left: Product List */}
-				<div
-					className={`w-[50%] min-w-[360px] max-w-xl h-full border-r border-blue-200/50 ${
-						!isSaleStarted ? 'opacity-50 pointer-events-none' : ''
-					}`}
-				>
-					{isLoadingProducts ? (
-						<div className='flex flex-col items-center justify-center h-full'>
-							<Loader2 className='w-8 h-8 animate-spin text-blue-600 mb-4' />
-							<p className='text-sm text-gray-500'>Mahsulotlar yuklanmoqda...</p>
-						</div>
-					) : (
-						<ProductList
-							products={products}
-							searchQuery={searchQuery}
-							onSearchQueryChange={setSearchQuery}
-							onProductClick={handleProductClick}
-							filialId={user?.filials?.[0]}
-							selectedBranch={selectedBranch}
-							onBranchChange={handleBranchChange}
-						/>
-					)}
-				</div>
+        // API ga POST qilish
+        if (selectedProduct.branchId && selectedProduct.modelId && selectedProduct.typeId && selectedProduct.sizeId) {
+            try {
+                await orderService.createOrderProduct({
+                    product: selectedProduct.productId || 0,
+                    order_history: currentOrderId,
+                    // branch: selectedProduct.branchId,
+                    // model: selectedProduct.modelId,
+                    // type: selectedProduct.typeId,
+                    // size: selectedProduct.sizeId,
+                    count: quantity,
+                    // real_price: price,
+                    // unit_price: price,
+                    // wholesale_price: price,
+                    // is_karzinka: true,
+                });
+            } catch (error: any) {
+                console.error('Failed to add product to order:', error);
+                const errorMessage =
+                    error?.response?.data?.detail || error?.message || "Mahsulot qo'shishda xatolik yuz berdi";
+                showError(errorMessage);
+                return;
+            }
+            setRefreshCartTrigger((t) => t + 1);
+        } else {
+            setCart((prev) => {
+                const existing = prev.find((item) => item.id === selectedProduct.id);
+                if (existing) {
+                    return prev.map((item) =>
+                        item.id === selectedProduct.id
+                            ? {
+                                ...item,
+                                quantity: item.quantity + quantity,
+                                totalPrice: (item.quantity + quantity) * price,
+                            }
+                            : item
+                    );
+                }
+                return [
+                    ...prev,
+                    {
+                        ...selectedProduct,
+                        quantity,
+                        totalPrice: quantity * price,
+                    },
+                ];
+            });
+        }
+        setSelectedProduct(null);
+    };
+    const handleUpdateQuantity = (id: string, delta: number) => {
+        if (!isSaleStarted) return;
+        setCart((prev) =>
+            prev.map((item) => {
+                if (item.id === id) {
+                    const newQty = Math.max(1, item.quantity + delta);
+                    return {
+                        ...item,
+                        quantity: newQty,
+                        totalPrice: newQty * item.price,
+                    };
+                }
+                return item;
+            })
+        );
+    };
+    const handleRemoveItem = (id: string) => {
+        if (!isSaleStarted) return;
+        setCart((prev) => prev.filter((item) => item.id !== id));
+    };
+    const handlePaymentComplete = () => {
+        // Cart ni tozalash
+        setCart([]);
+        setSelectedCustomer(null);
+        setIsSaleStarted(false);
+    };
+    const totalAmount =
+        orderId ?? orderData?.id ? totalAmountFromCart : cart.reduce((sum, item) => sum + item.totalPrice, 0);
+    const USD_RATE = 12180;
 
-				{/* Center: Cart (100%) */}
-				<div className={`flex-1 h-full min-w-[320px] `}>
-					<Cart
-						items={cart}
-						onUpdateQuantity={handleUpdateQuantity}
-						onRemoveItem={handleRemoveItem}
-						totalItems={totalAmount}
-						orderData={orderData}
-						selectedCustomer={selectedCustomer}
-						onCustomerChange={handleCustomerChange}
-						onPayment={() => setIsPaymentModalOpen(true)}
-						isSaleStarted={isSaleStarted}
-						orderId={orderId}
-						onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
-						onStartSaleClick={handleStartSaleClick}
-						isCreatingOrder={isCreatingOrder}
-						refreshCartTrigger={refreshCartTrigger}
-						onCartChange={(items, total) => {
-							setCartItemsForPayment(items);
-							setTotalAmountFromCart(total);
-						}}
-					/>
-				</div>
-			</div>
+    // order_filial yo'q bo'lsa, xabar ko'rsatish
+    if (user && !user.order_filial) {
+        return (
+            <Layout
+                onBack={onBack}
+                showBackButton={true}
+                selectedCustomer={selectedCustomer}
+                orderData={orderData}
+                isSaleStarted={isSaleStarted}
+                isCreatingOrder={isCreatingOrder}
+                onStartSaleClick={handleStartSaleClick}
+            >
+                <div className="flex flex-col items-center justify-center h-full">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md text-center">
+                        <h2 className="text-xl font-semibold text-red-800 mb-2">Kirish huquqi yo'q</h2>
+                        <p className="text-red-600">Sizda kassaga kirish huquqi yo'q</p>
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
 
-			{/* Modals */}
-			<ProductModal
-				isOpen={!!selectedProduct}
-				onClose={() => setSelectedProduct(null)}
-				product={selectedProduct}
-				onConfirm={handleAddToCart}
-			/>
+    return (
+        <Layout
+            onBack={onBack}
+            showBackButton={true}
+            selectedCustomer={selectedCustomer}
+            orderData={orderData}
+            isSaleStarted={isSaleStarted}
+            isCreatingOrder={isCreatingOrder}
+            onStartSaleClick={readOnly ? undefined : handleStartSaleClick}
+        >
+            {/* Main Content Grid */}
+            <div className='flex-1 flex overflow-hidden'>
+                {/* Left: Product List - faqat readOnly emas bo'lsa ko'rsatish */}
+                {!readOnly && (
+                    <div
+                        className={`w-[50%] min-w-[360px] max-w-xl h-full border-r border-blue-200/50 ${!isSaleStarted ? 'opacity-50 pointer-events-none' : ''
+                            }`}
+                    >
+                        {isLoadingProducts ? (
+                            <div className='flex flex-col items-center justify-center h-full'>
+                                <Loader2 className='w-8 h-8 animate-spin text-blue-600 mb-4' />
+                                <p className='text-sm text-gray-500'>Mahsulotlar yuklanmoqda...</p>
+                            </div>
+                        ) : (
+                            <ProductList
+                                products={products}
+                                searchQuery={searchQuery}
+                                onSearchQueryChange={setSearchQuery}
+                                onProductClick={handleProductClick}
+                                filialId={user?.filials?.[0]}
+                                selectedBranch={selectedBranch}
+                                onBranchChange={handleBranchChange}
+                            />
+                        )}
+                    </div>
+                )}
 
-			<PaymentModal
-				isOpen={isPaymentModalOpen}
-				onClose={() => setIsPaymentModalOpen(false)}
-				onComplete={handlePaymentComplete}
-				totalAmount={totalAmount}
-				usdRate={USD_RATE}
-				items={orderId ?? orderData?.id ? cartItemsForPayment : cart}
-				customer={selectedCustomer || undefined}
-				kassirName={user?.full_name || undefined}
-				orderData={orderData}
-				onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
-			/>
-		</Layout>
-	);
+                {/* Center: Cart (100% readOnly mode da, aks holda flex-1) */}
+                <div className={readOnly ? 'w-full h-full' : 'flex-1 h-full min-w-[320px]'}>
+                    <Cart
+                        items={cart}
+                        onUpdateQuantity={readOnly ? () => { } : handleUpdateQuantity}
+                        onRemoveItem={readOnly ? () => { } : handleRemoveItem}
+                        totalItems={totalAmount}
+                        orderData={orderData}
+                        selectedCustomer={selectedCustomer}
+                        onCustomerChange={readOnly ? undefined : handleCustomerChange}
+                        onPayment={readOnly ? undefined : () => setIsPaymentModalOpen(true)}
+                        isSaleStarted={isSaleStarted}
+                        orderId={orderId}
+                        onOrderUpdate={readOnly ? undefined : (updatedOrder) => setOrderData(updatedOrder)}
+                        onStartSaleClick={readOnly ? undefined : handleStartSaleClick}
+                        isCreatingOrder={isCreatingOrder}
+                        refreshCartTrigger={refreshCartTrigger}
+                        onCartChange={(items, total) => {
+                            setCartItemsForPayment(items);
+                            setTotalAmountFromCart(total);
+                        }}
+                        readOnly={readOnly}
+                    />
+                </div>
+            </div>
+
+            {/* Modals - faqat readOnly emas bo'lsa ko'rsatish */}
+            {!readOnly && (
+                <>
+                    <ProductModal
+                        isOpen={!!selectedProduct}
+                        onClose={() => setSelectedProduct(null)}
+                        product={selectedProduct}
+                        onConfirm={handleAddToCart}
+                    />
+
+                    <PaymentModal
+                        isOpen={isPaymentModalOpen}
+                        onClose={() => setIsPaymentModalOpen(false)}
+                        onComplete={handlePaymentComplete}
+                        totalAmount={totalAmount}
+                        usdRate={USD_RATE}
+                        items={orderId ?? orderData?.id ? cartItemsForPayment : cart}
+                        customer={selectedCustomer || undefined}
+                        kassirName={user?.full_name || undefined}
+                        orderData={orderData}
+                        onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
+                    />
+                </>
+            )}
+        </Layout>
+    );
 }
