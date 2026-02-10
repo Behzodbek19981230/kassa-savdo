@@ -252,7 +252,6 @@ export function Cart({
 
             // Agar orderData mavjud bo'lsa, order ni yangilash
             if (orderData && orderId) {
-                showLoading('Mijoz yangilanmoqda...');
                 try {
                     const updatedOrder = await orderService.updateOrder(orderId, {
                         client: id,
@@ -291,7 +290,6 @@ export function Cart({
             fullName = name;
         }
 
-        showLoading('Mijoz yaratilmoqda...');
         try {
             const newClient = await clientService.createClient({
                 full_name: fullName,
@@ -356,7 +354,6 @@ export function Cart({
             return;
         }
 
-        showLoading('Mijoz saqlanmoqda...');
         try {
             const newClient = await clientService.createClient({
                 full_name: customerData.name,

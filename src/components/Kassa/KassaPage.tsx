@@ -158,7 +158,6 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
         }
 
         setIsCreatingOrder(true);
-        showLoading('Savdo yaratilmoqda...');
         try {
             const order = await orderService.createOrder({
                 client: selectedClientId,
