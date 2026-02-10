@@ -123,7 +123,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                         )}
 
                                         <span className='font-bold text-blue-700 text-sm shrink-0'>
-                                            {parseFloat(order.all_product_summa || '0').toLocaleString()} UZS
+                                            {parseFloat(order.all_product_summa || '0').toLocaleString()} USD
                                         </span>
 
                                         {/* Button */}
