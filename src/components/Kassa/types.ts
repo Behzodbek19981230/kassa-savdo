@@ -17,6 +17,8 @@ export interface Product {
   modelId?: number;
   typeId?: number;
   sizeId?: number;
+  unitPrice?: number; // unit_price
+  wholesalePrice?: number; // wholesale_price
 }
 
 export interface CartItem extends Product {

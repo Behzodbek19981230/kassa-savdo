@@ -6,7 +6,7 @@ interface ProductModalProps {
     isOpen: boolean;
     onClose: () => void;
     product: Product | null;
-    onConfirm: (quantity: number, price: number) => void;
+    onConfirm: (quantity: number, price: number, priceType: 'unit' | 'wholesale') => void;
 }
 export function ProductModal({
     isOpen,
@@ -15,23 +15,44 @@ export function ProductModal({
     onConfirm
 }: ProductModalProps) {
     const [quantity, setQuantity] = useState<string>('1');
-    const [price, setPrice] = useState<number>(0);
+    const [price, setPrice] = useState<string>('0');
+    const [priceType, setPriceType] = useState<'unit' | 'wholesale'>('unit');
     const [mode, setMode] = useState<'quantity' | 'sum'>('quantity');
+    
     useEffect(() => {
         if (product) {
-            setPrice(product.price);
+            // Default: agar unitCode "optom" bo'lsa wholesale_price, aks holda unit_price
+            const isOptom = product.unitCode?.toLowerCase() === 'optom';
+            setPriceType(isOptom ? 'wholesale' : 'unit');
+            const defaultPrice = isOptom 
+                ? (product.wholesalePrice || product.price)
+                : (product.unitPrice || product.price);
+            setPrice(defaultPrice.toString());
             setQuantity('1');
         }
     }, [product]);
+    
+    // Price type o'zgarganda narxni yangilash (faqat agar foydalanuvchi o'zgartirmagan bo'lsa)
+    const handlePriceTypeChange = (newPriceType: 'unit' | 'wholesale') => {
+        setPriceType(newPriceType);
+        if (product) {
+            const newPrice = newPriceType === 'wholesale'
+                ? (product.wholesalePrice || product.price)
+                : (product.unitPrice || product.price);
+            setPrice(newPrice.toString());
+        }
+    };
     if (!isOpen || !product) return null;
     const handleConfirm = () => {
         const qty = parseFloat(quantity);
-        if (qty > 0) {
-            onConfirm(qty, price);
+        const priceValue = parseFloat(price);
+        if (qty > 0 && priceValue > 0) {
+            onConfirm(qty, priceValue, priceType);
             onClose();
         }
     };
-    const total = parseFloat(quantity) * price;
+    const priceValue = parseFloat(price) || 0;
+    const total = parseFloat(quantity) * priceValue;
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-indigo-200">
@@ -57,6 +78,66 @@ export function ProductModal({
                     </div>
 
 
+                    {/* Narx tanlash - Radio buttons */}
+                    <div className="mt-4">
+                        <Label className="block text-xs text-indigo-600 mb-2 ml-1 font-semibold">
+                            Narx turi
+                        </Label>
+                        <div className="flex gap-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="priceType"
+                                    value="unit"
+                                    checked={priceType === 'unit'}
+                                    onChange={(e) => handlePriceTypeChange('unit')}
+                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="text-sm font-medium text-gray-700">Dona</span>
+                                <span className="text-sm text-gray-500">
+                                    ({product.unitPrice?.toLocaleString() || '0'} UZS)
+                                </span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="priceType"
+                                    value="wholesale"
+                                    checked={priceType === 'wholesale'}
+                                    onChange={(e) => handlePriceTypeChange('wholesale')}
+                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="text-sm font-medium text-gray-700">Optom</span>
+                                <span className="text-sm text-gray-500">
+                                    ({product.wholesalePrice?.toLocaleString() || '0'} UZS)
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Narx input */}
+                    <div className="mt-4">
+                        <Label htmlFor="price" className="block text-xs text-indigo-600 mb-2 ml-1 font-semibold">
+                            Narx
+                        </Label>
+                        <div className="flex rounded-xl shadow-lg overflow-hidden border-2 border-indigo-200">
+                            <Input
+                                id="price"
+                                type="number"
+                                step="0.01"
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                                className="flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white"
+                                placeholder="Narxni kiriting"
+                            />
+                            <div className="flex">
+                                <div className="flex justify-between text-sm text-gray-600 bg-indigo-50/50 p-3 rounded-xl">
+                                    UZS
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="mt-4">
                         <Label htmlFor="quantity" className="block text-xs text-indigo-600 mb-2 ml-1 font-semibold">
                             Miqdori
@@ -75,6 +156,16 @@ export function ProductModal({
                                     {product.unitCode}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Jami summa */}
+                    <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-emerald-700">Jami:</span>
+                            <span className="text-xl font-bold text-emerald-900">
+                                {total.toLocaleString()} UZS
+                            </span>
                         </div>
                     </div>
 

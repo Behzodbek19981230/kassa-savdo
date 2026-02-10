@@ -223,14 +223,28 @@ export const orderService = {
     },
 
     // Order-history-product yaratish
-    createOrderProduct: async (data: { order_history?: number; count: number; product?: number }): Promise<any> => {
-        const response = await api.post('/v1/order-history-product', {
-            // date: data.date || new Date().toISOString().split('T')[0],
+    createOrderProduct: async (data: {
+        order_history?: number;
+        count: number;
+        product?: number;
+        unit_price?: number;
+        wholesale_price?: number;
+    }): Promise<any> => {
+        const requestData: any = {
             order_history: data.order_history,
             product: data.product,
-            // vozvrat_order: data.vozvrat_order || 0,  // TODO: qo'shish kerak bo'lgan qism        
             count: data.count,
-        });
+        };
+
+        // unit_price yoki wholesale_price ni qo'shish
+        if (data.unit_price !== undefined) {
+            requestData.unit_price = data.unit_price;
+        }
+        if (data.wholesale_price !== undefined) {
+            requestData.wholesale_price = data.wholesale_price;
+        }
+
+        const response = await api.post('/v1/order-history-product', requestData);
         return response.data;
     },
 

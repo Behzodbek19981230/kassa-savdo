@@ -97,6 +97,8 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
             modelId: productResponse.model,
             typeId: productResponse.type,
             sizeId: productResponse.size,
+            unitPrice: parseFloat(productResponse.unit_price || '0'),
+            wholesalePrice: parseFloat(productResponse.wholesale_price || '0'),
             isFavorite: false,
         };
     };
@@ -189,7 +191,7 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
             setSelectedClientId(null);
         }
     };
-    const handleAddToCart = async (quantity: number, price: number) => {
+    const handleAddToCart = async (quantity: number, price: number, priceType: 'unit' | 'wholesale') => {
         if (!selectedProduct || !isSaleStarted) return;
 
         // Order ID mavjudligini tekshirish
@@ -202,19 +204,20 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
         // API ga POST qilish
         if (selectedProduct.branchId && selectedProduct.modelId && selectedProduct.typeId && selectedProduct.sizeId) {
             try {
-                await orderService.createOrderProduct({
+                // priceType ga qarab unit_price yoki wholesale_price ni yuborish
+                const orderProductData: any = {
                     product: selectedProduct.productId || 0,
                     order_history: currentOrderId,
-                    // branch: selectedProduct.branchId,
-                    // model: selectedProduct.modelId,
-                    // type: selectedProduct.typeId,
-                    // size: selectedProduct.sizeId,
                     count: quantity,
-                    // real_price: price,
-                    // unit_price: price,
-                    // wholesale_price: price,
-                    // is_karzinka: true,
-                });
+                };
+                
+                if (priceType === 'wholesale') {
+                    orderProductData.wholesale_price = price;
+                } else {
+                    orderProductData.unit_price = price;
+                }
+                
+                await orderService.createOrderProduct(orderProductData);
             } catch (error: any) {
                 console.error('Failed to add product to order:', error);
                 const errorMessage =
