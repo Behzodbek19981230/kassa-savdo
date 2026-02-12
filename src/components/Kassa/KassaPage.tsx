@@ -86,13 +86,13 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
             name: productName || `Mahsulot #${productResponse.id}`,
             price: parseFloat(productResponse.real_price || productResponse.unit_price || '0'),
             stock: productResponse.count,
-            unit: productResponse.size_detail?.unit_detail?.code || 'dona',
+            unit: productResponse.size_detail?.unit_code || 'dona',
             image: productResponse.images?.[0]?.file,
             branchName: productResponse.branch_detail?.name,
             modelName: productResponse.model_detail?.name,
             typeName: productResponse.type_detail?.name,
             size: productResponse.size_detail?.size,
-            unitCode: productResponse.size_detail?.unit_detail?.code,
+            unitCode: productResponse.size_detail?.unit_code,
             branchId: productResponse.branch,
             modelId: productResponse.model,
             typeId: productResponse.type,
@@ -210,13 +210,13 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
                     order_history: currentOrderId,
                     count: quantity,
                 };
-                
+
                 if (priceType === 'wholesale') {
                     orderProductData.wholesale_price = price;
                 } else {
                     orderProductData.unit_price = price;
                 }
-                
+
                 await orderService.createOrderProduct(orderProductData);
             } catch (error: any) {
                 console.error('Failed to add product to order:', error);

@@ -54,11 +54,7 @@ export function ProductList({ products, searchQuery, onSearchQueryChange, onProd
 
             {/* Filters */}
             <div className='p-3 flex flex-col gap-2 border-b border-blue-200/50 bg-white/80 backdrop-blur-sm'>
-                <div className='flex space-x-2'>
-                    <button className='p-2.5 bg-gradient-to-br from-orange-400 to-amber-500 text-white rounded-xl hover:from-orange-500 hover:to-amber-600 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.02]'>
-                        <Star size={20} />
-                    </button>
-                </div>
+
 
                 {/* Branch Filter */}
                 <div className='w-full'>
@@ -107,9 +103,7 @@ export function ProductList({ products, searchQuery, onSearchQueryChange, onProd
                                     />
                                 )}
                                 <div className='flex-1 min-w-0'>
-                                    <div className='font-semibold text-gray-800 text-sm group-hover:text-blue-700 truncate'>
-                                        {product.name}
-                                    </div>
+
                                     <div className='flex flex-wrap gap-2 mt-1.5'>
                                         {product.branchName && (
                                             <div className='text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded'>
@@ -131,10 +125,13 @@ export function ProductList({ products, searchQuery, onSearchQueryChange, onProd
                                                 O'lchami: {product.size}{product.unitCode ? ` ${product.unitCode}` : ''}
                                             </div>
                                         )}
+                                        {product.stock !== undefined && (
+                                            <div className='text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded'>
+                                                Soni: {product.stock}{product.unitCode ? ` ${product.unitCode}` : ''}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className='text-xs text-gray-500 mt-1.5 font-medium'>
-                                        {product.stock} {product.unit}
-                                    </div>
+
                                 </div>
                             </div>
                         </button>

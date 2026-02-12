@@ -3,7 +3,7 @@ export interface Product {
   name: string;
   price: number;
   stock: number;
-  unit: 'dona' | 'kg' | 'xizmat' | string;
+  unit:  string;
   category?: string;
   isFavorite?: boolean;
   image?: string;
