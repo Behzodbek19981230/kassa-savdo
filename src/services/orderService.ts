@@ -272,15 +272,13 @@ export const orderService = {
             product: data.product,
             count: data.count,
         };
-
-        // unit_price yoki wholesale_price ni qo'shish
-        if (data.unit_price !== undefined) {
+        // Narx turiga mos: dona bo'lsa unit_price, optom bo'lsa wholesale_price (faqat bittasini yuboramiz)
+        if (data.unit_price !== undefined && data.unit_price > 0) {
             requestData.unit_price = data.unit_price;
         }
-        if (data.wholesale_price !== undefined) {
+        if (data.wholesale_price !== undefined && data.wholesale_price > 0) {
             requestData.wholesale_price = data.wholesale_price;
         }
-
         const response = await api.post('/v1/order-history-product', requestData);
         return response.data;
     },

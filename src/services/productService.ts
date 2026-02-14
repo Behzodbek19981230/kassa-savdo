@@ -73,6 +73,8 @@ export const productService = {
         search?: string;
         filial?: number;
         branch?: number;
+        model?: number;
+        type?: number;
     }): Promise<ProductsResponse> => {
         const queryParams = new URLSearchParams();
         if (params?.page) queryParams.append('page', params.page.toString());
@@ -80,6 +82,8 @@ export const productService = {
         if (params?.search) queryParams.append('search', params.search);
         if (params?.filial) queryParams.append('filial', params.filial.toString());
         if (params?.branch) queryParams.append('branch', params.branch.toString());
+        if (params?.model) queryParams.append('model', params.model.toString());
+        if (params?.type) queryParams.append('type', params.type.toString());
 
         const response = await api.get<ProductsResponse>(`/v1/product?${queryParams.toString()}`);
         return response.data;

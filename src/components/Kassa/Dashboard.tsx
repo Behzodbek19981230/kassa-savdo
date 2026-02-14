@@ -155,7 +155,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 												onChange={(e) => setFilter('xodim', e.target.value)}
 												className={filterSelectClass}
 											>
-												<option value=''>Barchasi</option>
+												<option value=''>Barcha xodimlar</option>
 												{users.map((u) => (
 													<option key={u.id} value={String(u.id)}>
 														{u.full_name}
@@ -233,7 +233,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 												onChange={(e) => setFilter('holati', e.target.value as ColumnFilters['holati'])}
 												className={filterSelectClass}
 											>
-												<option value=''>Barchasi</option>
+												<option value=''>Barcha holatlar</option>
 												<option value='karzinka'>Korzinkada</option>
 												<option value='yakunlangan'>Yakunlangan</option>
 											</select>

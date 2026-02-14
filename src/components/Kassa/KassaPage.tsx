@@ -10,7 +10,9 @@ import { Product, CartItem, Customer } from './types';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService, OrderResponse } from '../../services/orderService';
 import { productService, ProductResponse } from '../../services/productService';
+import { skladService, Sklad } from '../../services/skladService';
 import { showError, showSuccess, showLoading } from '../../lib/toast';
+import type { ProductModalConfirmOptions } from './ProductModal';
 
 interface KassaPageProps {
     onBack: () => void;
@@ -29,12 +31,15 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
     const [orderData, setOrderData] = useState<OrderResponse | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-    const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
-    const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+	const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+	const [selectedModel, setSelectedModel] = useState<number | null>(null);
+	const [selectedType, setSelectedType] = useState<number | null>(null);
+	const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
     const [isCreatingOrder, setIsCreatingOrder] = useState(false);
     const [refreshCartTrigger, setRefreshCartTrigger] = useState(0);
     const [cartItemsForPayment, setCartItemsForPayment] = useState<CartItem[]>([]);
     const [totalAmountFromCart, setTotalAmountFromCart] = useState(0);
+    const [skladlar, setSkladlar] = useState<Sklad[]>([]);
 
     // order_filial tekshiruvi - agar yo'q bo'lsa, xabar ko'rsatish
     useEffect(() => {
@@ -42,6 +47,16 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
             showError('Sizda kassaga kirish huquqi yo\'q');
         }
     }, [user]);
+
+    // Skladlar ro'yxatini filial bo'yicha yuklash (ProductModal uchun)
+    const filialId = orderData?.order_filial ?? user?.order_filial ?? undefined;
+    useEffect(() => {
+        if (!filialId) {
+            setSkladlar([]);
+            return;
+        }
+        skladService.getSkladlar({ filial: filialId }).then(setSkladlar).catch(() => setSkladlar([]));
+    }, [filialId]);
 
     // Order ID mavjud bo'lsa, order ma'lumotlarini yuklash
     useEffect(() => {
@@ -105,7 +120,7 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
 
     // Mahsulotlarni /api/v1/product dan yuklash (har doim)
     const loadProducts = useCallback(
-        async (search?: string, branch?: number | null) => {
+        async (search?: string, branch?: number | null, model?: number | null, type?: number | null) => {
             if (!user?.order_filial) return;
 
             setIsLoadingProducts(true);
@@ -113,7 +128,9 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
                 const response = await productService.getProducts({
                     search: search || undefined,
                     filial: user.order_filial,
-                    branch: branch || undefined,
+                    branch: branch ?? undefined,
+                    model: model ?? undefined,
+                    type: type ?? undefined,
                     per_page: 100,
                 });
 
@@ -131,13 +148,12 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
 
     // Mahsulotlarni yuklash - component mount va filter o'zgarganda
     useEffect(() => {
-        loadProducts(searchQuery, selectedBranch);
-    }, [loadProducts, searchQuery, selectedBranch]);
+        loadProducts(searchQuery, selectedBranch, selectedModel, selectedType);
+    }, [loadProducts, searchQuery, selectedBranch, selectedModel, selectedType]);
 
-    // Branch filter o'zgarganda
-    const handleBranchChange = (branchId: number | null) => {
-        setSelectedBranch(branchId);
-    };
+    const handleBranchChange = (branchId: number | null) => setSelectedBranch(branchId);
+    const handleModelChange = (modelId: number | null) => setSelectedModel(modelId);
+    const handleTypeChange = (typeId: number | null) => setSelectedType(typeId);
 
     const handleProductClick = (product: Product) => {
         if (!isSaleStarted) return;
@@ -191,32 +207,29 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
             setSelectedClientId(null);
         }
     };
-    const handleAddToCart = async (quantity: number, price: number, priceType: 'unit' | 'wholesale') => {
+    const handleAddToCart = async (
+        quantity: number,
+        priceInSum: number,
+        priceType: 'unit' | 'wholesale',
+        _options: ProductModalConfirmOptions
+    ) => {
         if (!selectedProduct || !isSaleStarted) return;
 
-        // Order ID mavjudligini tekshirish
         const currentOrderId = orderId || orderData?.id;
         if (!currentOrderId) {
             showError('Savdo boshlanmagan');
             return;
         }
 
-        // API ga POST qilish
         if (selectedProduct.branchId && selectedProduct.modelId && selectedProduct.typeId && selectedProduct.sizeId) {
             try {
-                // priceType ga qarab unit_price yoki wholesale_price ni yuborish
                 const orderProductData: any = {
                     product: selectedProduct.productId || 0,
                     order_history: currentOrderId,
                     count: quantity,
+                    unit_price: priceType === 'unit' ? priceInSum : 0,
+                    wholesale_price: priceType === 'wholesale' ? priceInSum : 0,
                 };
-
-                if (priceType === 'wholesale') {
-                    orderProductData.wholesale_price = price;
-                } else {
-                    orderProductData.unit_price = price;
-                }
-
                 await orderService.createOrderProduct(orderProductData);
             } catch (error: any) {
                 console.error('Failed to add product to order:', error);
@@ -235,7 +248,7 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
                             ? {
                                 ...item,
                                 quantity: item.quantity + quantity,
-                                totalPrice: (item.quantity + quantity) * price,
+                                totalPrice: (item.quantity + quantity) * priceInSum,
                             }
                             : item
                     );
@@ -245,7 +258,7 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
                     {
                         ...selectedProduct,
                         quantity,
-                        totalPrice: quantity * price,
+                        totalPrice: quantity * priceInSum,
                     },
                 ];
             });
@@ -281,6 +294,8 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
     const totalAmount =
         orderId ?? orderData?.id ? totalAmountFromCart : cart.reduce((sum, item) => sum + item.totalPrice, 0);
     const USD_RATE = 12180;
+    const exchangeRate =
+        orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : USD_RATE;
 
     // order_filial yo'q bo'lsa, xabar ko'rsatish
     if (user && !user.order_filial) {
@@ -330,12 +345,15 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
                         ) : (
                             <ProductList
                                 products={products}
-                                searchQuery={searchQuery}
-                                onSearchQueryChange={setSearchQuery}
+                                appliedSearch={searchQuery}
+                                onSearchSubmit={(value) => setSearchQuery(value)}
                                 onProductClick={handleProductClick}
-                                filialId={user?.order_filial || 0}
                                 selectedBranch={selectedBranch}
+                                selectedModel={selectedModel}
+                                selectedType={selectedType}
                                 onBranchChange={handleBranchChange}
+                                onModelChange={handleModelChange}
+                                onTypeChange={handleTypeChange}
                             />
                         )}
                     </div>
@@ -374,6 +392,8 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
                         isOpen={!!selectedProduct}
                         onClose={() => setSelectedProduct(null)}
                         product={selectedProduct}
+                        exchangeRate={exchangeRate}
+                        skladlar={skladlar}
                         onConfirm={handleAddToCart}
                     />
 
