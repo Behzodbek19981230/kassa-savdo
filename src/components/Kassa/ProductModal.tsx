@@ -136,53 +136,19 @@ export function ProductModal({ isOpen, onClose, product, exchangeRate, skladlar,
 
 						{/* Manba: Do'kondan / Skladdan */}
 						<div>
-							<Label className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>Manba</Label>
-							<div className='flex gap-4'>
-								<label className='flex items-center gap-2 cursor-pointer'>
-									<input
-										type='radio'
-										name='source'
-										checked={source === 'filial'}
-										onChange={() => {
-											setSource('filial');
-											setSelectedSkladId(null);
-										}}
-										className='w-4 h-4 text-indigo-600 focus:ring-indigo-500'
-									/>
-									<span className='text-sm font-medium text-gray-700'>Do&apos;kondan</span>
-								</label>
-								<label className='flex items-center gap-2 cursor-pointer'>
-									<input
-										type='radio'
-										name='source'
-										checked={source === 'sklad'}
-										onChange={() => setSource('sklad')}
-										className='w-4 h-4 text-indigo-600 focus:ring-indigo-500'
-									/>
-									<span className='text-sm font-medium text-gray-700'>Skladdan</span>
-								</label>
-							</div>
-							{source === 'sklad' && (
-								<div className='mt-3'>
-									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-										Sklad
-									</Label>
-									<select
-										value={selectedSkladId ?? ''}
-										onChange={(e) =>
-											setSelectedSkladId(e.target.value ? Number(e.target.value) : null)
-										}
-										className='w-full rounded-xl border-2 border-indigo-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-									>
-										<option value=''>Skladni tanlang</option>
-										{skladlar.map((s) => (
-											<option key={s.id} value={s.id}>
-												{s.name}
-											</option>
-										))}
-									</select>
-								</div>
-							)}
+							<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>Sklad</Label>
+							<select
+								value={selectedSkladId ?? ''}
+								onChange={(e) => setSelectedSkladId(e.target.value ? Number(e.target.value) : null)}
+								className='w-full rounded-xl border-2 border-indigo-200 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+							>
+								<option value=''>Skladni tanlang</option>
+								{skladlar.map((s) => (
+									<option key={s.id} value={s.id}>
+										{s.name}
+									</option>
+								))}
+							</select>
 						</div>
 
 						{/* Narx turi */}
@@ -200,9 +166,14 @@ export function ProductModal({ isOpen, onClose, product, exchangeRate, skladlar,
 									/>
 									<span className='text-sm font-medium text-gray-700'>Dona</span>
 									<span className='text-sm text-gray-500'>
-										({currency === 'dollar'
-											? ((product.unitPrice || product.price || 0) / exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' USD'
-											: (product.unitPrice || product.price || 0).toLocaleString() + ' UZS'})
+										(
+										{currency === 'dollar'
+											? ((product.unitPrice || product.price || 0) / exchangeRate).toLocaleString(
+													undefined,
+													{ maximumFractionDigits: 2 },
+												) + ' USD'
+											: (product.unitPrice || product.price || 0).toLocaleString() + ' UZS'}
+										)
 									</span>
 								</label>
 								<label className='flex items-center gap-2 cursor-pointer'>
@@ -216,9 +187,13 @@ export function ProductModal({ isOpen, onClose, product, exchangeRate, skladlar,
 									/>
 									<span className='text-sm font-medium text-gray-700'>Optom</span>
 									<span className='text-sm text-gray-500'>
-										({currency === 'dollar'
-											? ((product.wholesalePrice || product.price || 0) / exchangeRate).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' USD'
-											: (product.wholesalePrice || product.price || 0).toLocaleString() + ' UZS'})
+										(
+										{currency === 'dollar'
+											? (
+													(product.wholesalePrice || product.price || 0) / exchangeRate
+												).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' USD'
+											: (product.wholesalePrice || product.price || 0).toLocaleString() + ' UZS'}
+										)
 									</span>
 								</label>
 							</div>

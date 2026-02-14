@@ -1,4 +1,4 @@
-import { Trash2, Plus, Minus, User, Loader2, DollarSign, X } from 'lucide-react';
+import { Trash2, Plus, User, Loader2, DollarSign, X } from 'lucide-react';
 import { CartItem, Customer } from './types';
 import { OrderResponse } from '../../services/orderService';
 import { Autocomplete, AutocompleteOption } from '../ui/Autocomplete';
@@ -85,24 +85,24 @@ export function Cart({
 
         const quantity = op.given_count != null ? op.given_count : op.count ?? 0;
 
-        // Narxni olish: avval product_detail dan, keyin order-history-product dan
-        const price = parseFloat(
-            productDetail?.real_price ||
-            productDetail?.unit_price ||
-            productDetail?.wholesale_price ||
-            op.real_price ||
-            op.unit_price ||
-            op.wholesale_price ||
-            '0'
-        );
+        // Narxni order-history-product dan: unit_price yoki wholesale_price (qaysi biri berilgan bo'lsa), keyin real_price
+        const priceStr =
+            (op.unit_price != null && parseFloat(String(op.unit_price)) > 0 ? op.unit_price : null) ??
+            (op.wholesale_price != null && parseFloat(String(op.wholesale_price)) > 0 ? op.wholesale_price : null) ??
+            op.real_price ??
+            productDetail?.real_price ??
+            '0';
+        const price = parseFloat(String(priceStr));
 
+        // Birlik: unit_detail.name (masalan "Komplekt"), keyin unit_detail.code, keyin dona
+        const unitName = sizeDetail?.unit_detail?.name ?? sizeDetail?.unit_detail?.code ?? sizeDetail?.unit_code ?? productDetail?.size_detail?.unit_detail?.name ?? productDetail?.size_detail?.unit_code ?? 'dona';
         return {
             id: String(op.id),
             productId: op.product ?? productDetail?.id ?? op.id,
             name: productName || `Savdo mahsulot #${op.id}`,
             price,
             stock: productDetail?.count ?? op.count ?? 0,
-            unit: sizeDetail?.unit_detail?.code || 'dona',
+            unit: unitName,
             quantity,
             totalPrice: quantity * price,
             image: productDetail?.images?.[0]?.file ?? op.product?.images?.[0]?.file ?? op.images?.[0]?.file,
@@ -110,7 +110,7 @@ export function Cart({
             modelName: modelDetail?.name ?? undefined,
             typeName: typeDetail?.name ?? undefined,
             size: sizeDetail?.size ?? undefined,
-            unitCode: sizeDetail?.unit_detail?.code ?? undefined,
+            unitCode: unitName,
             // ID larni olish: avval product_detail dan, keyin order-history-product dan
             branchId: productDetail?.branch ?? op.branch ?? undefined,
             modelId: productDetail?.model ?? op.model ?? undefined,
@@ -642,27 +642,9 @@ export function Cart({
                                     {index + 1}
                                 </div>
 
-                                {/* Quantity Controls - faqat readOnly emas bo'lsa ko'rsatish */}
-                                {!readOnly && (
-                                    <div className='flex flex-col border-2 border-blue-200 rounded-xl overflow-hidden shadow-sm shrink-0'>
-                                        <button
-                                            onClick={() => handleUpdateQuantity(item.id, 1)}
-                                            className='p-1 sm:p-1.5 hover:bg-gradient-to-br hover:from-emerald-400 hover:to-green-500 text-emerald-600 border-b border-blue-200 flex justify-center transition-all duration-200'
-                                        >
-                                            <Plus size={12} className='sm:w-3.5 sm:h-3.5' />
-                                        </button>
-                                        <button
-                                            onClick={() => handleUpdateQuantity(item.id, -1)}
-                                            className='p-1 sm:p-1.5 hover:bg-gradient-to-br hover:from-rose-400 hover:to-red-500 text-rose-600 flex justify-center transition-all duration-200'
-                                        >
-                                            <Minus size={12} className='sm:w-3.5 sm:h-3.5' />
-                                        </button>
-                                    </div>
-                                )}
-
                                 {/* Quantity Display */}
                                 <div className='w-16 sm:w-20 text-center border-2 border-blue-200 rounded-xl px-2 py-1.5 sm:py-2.5 bg-gradient-to-br from-blue-50 to-cyan-50 text-xs sm:text-sm font-semibold text-blue-700 shrink-0'>
-                                    {item.quantity} {item.unit === 'dona' ? 'dona' : 'kg'}
+                                    {item.quantity} {item.unit || item.unitCode || 'dona'}
                                 </div>
 
                                 {/* Product Details */}
