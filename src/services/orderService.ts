@@ -78,6 +78,24 @@ export interface ClientDetail {
     is_delete: boolean;
 }
 
+export interface CreatedByDetail {
+    id: number;
+    full_name: string;
+    phone_number?: string;
+}
+
+export interface OrderFilialDetail {
+    id: number;
+    name: string;
+    region?: number;
+    district?: number;
+    address?: string;
+    phone_number?: string | null;
+    logo?: string | null;
+    is_active?: boolean;
+    is_delete?: boolean;
+}
+
 export interface OrderResponse {
     id: number;
     order?: number | null;
@@ -109,6 +127,11 @@ export interface OrderResponse {
     status_order_sklad: boolean;
     driver_info: string;
     is_karzinka: boolean;
+    created_time?: string | null;
+    created_by?: number | null;
+    created_by_detail?: CreatedByDetail | null;
+    order_filial?: number | null;
+    order_filial_detail?: OrderFilialDetail | null;
 }
 
 // Order service
@@ -147,18 +170,25 @@ export const orderService = {
         return response.data;
     },
 
-    // Order-historylar ro'yxatini olish
+    // Order-historylar ro'yxatini olish (barcha filterlar backend params orqali)
     getOrdersMySelf: async (params?: {
         page?: number;
         page_size?: number;
         search?: string;
         date_from?: string;
         date_to?: string;
+        created_by?: number;
+        is_karzinka?: boolean;
+        all_product_summa_min?: number;
+        total_debt_today_client_min?: number;
+        total_debt_client_min?: number;
+        summa_total_min?: number;
     }): Promise<{
         count: number;
         next: string | null;
         previous: string | null;
         results: OrderResponse[];
+        pagination?: { currentPage: number; lastPage: number; perPage: number; total: number };
     }> => {
         const queryParams = new URLSearchParams();
         if (params?.page) queryParams.append('page', params.page.toString());
@@ -166,12 +196,19 @@ export const orderService = {
         if (params?.search) queryParams.append('search', params.search);
         if (params?.date_from) queryParams.append('date_from', params.date_from);
         if (params?.date_to) queryParams.append('date_to', params.date_to);
+        if (params?.created_by != null) queryParams.append('created_by', params.created_by.toString());
+        if (params?.is_karzinka !== undefined) queryParams.append('is_karzinka', String(params.is_karzinka));
+        if (params?.all_product_summa_min != null) queryParams.append('all_product_summa_min', params.all_product_summa_min.toString());
+        if (params?.total_debt_today_client_min != null) queryParams.append('total_debt_today_client_min', params.total_debt_today_client_min.toString());
+        if (params?.total_debt_client_min != null) queryParams.append('total_debt_client_min', params.total_debt_client_min.toString());
+        if (params?.summa_total_min != null) queryParams.append('summa_total_min', params.summa_total_min.toString());
 
         const response = await api.get<{
-            count: number;
-            next: string | null;
-            previous: string | null;
+            count?: number;
+            next?: string | null;
+            previous?: string | null;
             results: OrderResponse[];
+            pagination?: { currentPage: number; lastPage: number; perPage: number; total: number };
         }>(`/v1/order-history/self?${queryParams.toString()}`);
         return response.data;
     },

@@ -1,6 +1,34 @@
 import { useState, useEffect } from 'react';
-import { X, User, Phone, Mail } from 'lucide-react';
+import { X, User, Phone } from 'lucide-react';
 import { Input, Label } from '../ui/Input';
+
+const PHONE_PREFIX = '+998';
+const PHONE_MASK = '+998 ** *** ** **';
+
+function formatPhoneWithMask(localDigits: string): string {
+    const digits = localDigits.replace(/\D/g, '').slice(0, 9);
+    if (digits.length === 0) return PHONE_PREFIX + ' ';
+    if (digits.length <= 2) return `${PHONE_PREFIX} ${digits}`;
+    if (digits.length <= 5) return `${PHONE_PREFIX} ${digits.slice(0, 2)} ${digits.slice(2)}`;
+    if (digits.length <= 7) return `${PHONE_PREFIX} ${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`;
+    return `${PHONE_PREFIX} ${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 7)} ${digits.slice(7, 9)}`;
+}
+
+function digitsOnly(str: string): string {
+    return str.replace(/\D/g, '');
+}
+
+function toLocalDigits(full: string): string {
+    const d = digitsOnly(full);
+    if (d.startsWith('998')) return d.slice(3).slice(0, 9);
+    return d.slice(0, 9);
+}
+
+function parsePhoneToDisplay(phone: string): string {
+    const local = toLocalDigits(phone);
+    if (local.length === 0) return PHONE_PREFIX + ' ';
+    return formatPhoneWithMask(local);
+}
 
 interface Customer {
     id: string;
@@ -23,25 +51,49 @@ export function CustomerModal({
 }: CustomerModalProps) {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
+    const [phoneError, setPhoneError] = useState('');
 
     useEffect(() => {
         if (initialData) {
             setName(initialData.name);
-            setPhone(initialData.phone || '');
+            setPhone(initialData.phone ? parsePhoneToDisplay(initialData.phone) : PHONE_PREFIX + ' ');
         } else {
             setName('');
-            setPhone('');
+            setPhone(PHONE_PREFIX + ' ');
         }
+        setPhoneError('');
     }, [initialData, isOpen]);
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value;
+        if (raw.length > 0 && !/^[\d\s+]+$/.test(raw)) return;
+        const local = toLocalDigits(raw);
+        const formatted = formatPhoneWithMask(local);
+        setPhone(formatted);
+        setPhoneError(local.length > 0 && local.length !== 9 ? 'Telefon 9 ta raqamdan iborat bo‘lishi kerak' : '');
+    };
+
+    const getPhoneForSave = (): string | undefined => {
+        const local = toLocalDigits(phone);
+        if (local.length === 0) return undefined;
+        return PHONE_PREFIX + local;
+    };
 
     if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const phoneToSave = getPhoneForSave();
+        const localLen = toLocalDigits(phone).length;
+        if (localLen > 0 && localLen !== 9) {
+            setPhoneError('Telefon 9 ta raqamdan iborat bo‘lishi kerak');
+            return;
+        }
+        setPhoneError('');
         if (name.trim()) {
             onSave({
                 name: name.trim(),
-                phone: phone.trim() || undefined,
+                phone: phoneToSave || undefined,
             });
             onClose();
         }
@@ -91,14 +143,17 @@ export function CustomerModal({
                             <Input
                                 id="phone"
                                 type="tel"
-                                placeholder="+998 90 123 45 67"
+                                placeholder={PHONE_MASK}
                                 value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
+                                onChange={handlePhoneChange}
                                 className="pl-11"
+                                maxLength={17}
                             />
                         </div>
+                        {phoneError && (
+                            <p className="text-red-500 text-xs mt-1 ml-1">{phoneError}</p>
+                        )}
                     </div>
-
 
                     <div className="flex justify-end space-x-3 pt-4">
                         <button

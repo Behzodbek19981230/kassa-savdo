@@ -7,6 +7,12 @@ export interface UseOrdersParams {
 	search?: string;
 	date_from?: string;
 	date_to?: string;
+	created_by?: number;
+	is_karzinka?: boolean;
+	all_product_summa_min?: number;
+	total_debt_today_client_min?: number;
+	total_debt_client_min?: number;
+	summa_total_min?: number;
 }
 
 export const useOrders = (params?: UseOrdersParams) => {
