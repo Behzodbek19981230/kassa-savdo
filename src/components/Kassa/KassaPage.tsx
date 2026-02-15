@@ -229,6 +229,7 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
                     count: quantity,
                     unit_price: priceType === 'unit' ? priceInSum : 0,
                     wholesale_price: priceType === 'wholesale' ? priceInSum : 0,
+                    sklad: Number(_options.skladId),
                 };
                 await orderService.createOrderProduct(orderProductData);
             } catch (error: any) {

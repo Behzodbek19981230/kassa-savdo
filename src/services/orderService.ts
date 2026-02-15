@@ -266,6 +266,7 @@ export const orderService = {
         product?: number;
         unit_price?: number;
         wholesale_price?: number;
+        sklad?: number;
     }): Promise<any> => {
         const requestData: any = {
             order_history: data.order_history,
@@ -273,6 +274,7 @@ export const orderService = {
             count: data.count,
             unit_price: data.unit_price ?? 0,
             wholesale_price: data.wholesale_price ?? 0,
+            sklad: data.sklad ?? null,
         };
         const response = await api.post('/v1/order-history-product', requestData);
         return response.data;
