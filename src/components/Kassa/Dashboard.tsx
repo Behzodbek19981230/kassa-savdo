@@ -1,5 +1,5 @@
 import { Plus, Eye, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useOrdersMySelf } from '../../hooks/useOrders';
 import { useNavigate } from 'react-router-dom';
@@ -62,8 +62,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 			page_size: 500,
 			search: filters.mijoz.trim() || undefined,
 			created_by: filters.xodim.trim() ? parseInt(filters.xodim, 10) : undefined,
-			is_karzinka:
-				filters.holati === 'karzinka' ? true : filters.holati === 'yakunlangan' ? false : undefined,
+			is_karzinka: filters.holati === 'karzinka' ? true : filters.holati === 'yakunlangan' ? false : undefined,
 			all_product_summa_min: (() => {
 				const v = parseFloat(filters.zakaz);
 				return filters.zakaz.trim() && Number.isFinite(v) ? v : undefined;
@@ -101,8 +100,35 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 	});
 	const users = usersData?.results || [];
 
-	const rawOrders = ordersData?.results || [];
-	const filteredOrders = useMemo(() => rawOrders.filter((o) => !o.is_delete), [rawOrders]);
+	const groupedResults = ordersData?.results || [];
+	const isGroupedByDate = groupedResults.length > 0 && (groupedResults[0] as any).items !== undefined;
+	const groups = useMemo(() => {
+		if (!isGroupedByDate) {
+			return [
+				{
+					date: null,
+					count: groupedResults.length,
+					items: groupedResults,
+				},
+			];
+		}
+		return groupedResults as Array<any>;
+	}, [ordersData]);
+
+	const overallTotals = useMemo(() => {
+		let totalCount = 0;
+		let totalZakaz = 0;
+		let totalTolangan = 0;
+		for (const g of groups) {
+			const items = (g.items || []).filter((o: any) => !o.is_delete);
+			totalCount += items.length;
+			for (const o of items) {
+				totalZakaz += parseFloat(o.all_product_summa || '0') || 0;
+				totalTolangan += tolovSummasi(o as OrderResponse);
+			}
+		}
+		return { totalCount, totalZakaz, totalTolangan };
+	}, [groups]);
 
 	const setFilter = (key: keyof ColumnFilters, value: string | '' | 'karzinka' | 'yakunlangan') => {
 		setFilters((prev) => ({ ...prev, [key]: value }));
@@ -134,7 +160,21 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 						<table className='w-full border-collapse text-sm'>
 							<thead>
 								<tr className='border-b-2 border-blue-200 bg-blue-50/50'>
-									<th className='text-left p-2 font-semibold text-gray-700 whitespace-nowrap w-12'>t/r</th>
+									<th className='text-left p-2 font-semibold text-gray-700 whitespace-nowrap w-12'>
+										t/r
+									</th>
+									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
+										<div className='flex flex-col gap-1.5'>
+											<span>Sanasi</span>
+											<input
+												type='text'
+												placeholder='yyyy-mm-dd'
+												value={filters.sana}
+												onChange={(e) => setFilter('sana', e.target.value)}
+												className={filterInputClass}
+											/>
+										</div>
+									</th>
 									<th className='text-left p-2 font-semibold text-gray-700 min-w-[120px]'>
 										<div className='flex flex-col gap-1.5'>
 											<span>Mijoz</span>
@@ -213,24 +253,14 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 											/>
 										</div>
 									</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
-										<div className='flex flex-col gap-1.5'>
-											<span>Sanasi</span>
-											<input
-												type='text'
-												placeholder='yyyy-mm-dd'
-												value={filters.sana}
-												onChange={(e) => setFilter('sana', e.target.value)}
-												className={filterInputClass}
-											/>
-										</div>
-									</th>
 									<th className='text-left p-2 font-semibold text-gray-700 min-w-[110px]'>
 										<div className='flex flex-col gap-1.5'>
 											<span>Holati</span>
 											<select
 												value={filters.holati}
-												onChange={(e) => setFilter('holati', e.target.value as ColumnFilters['holati'])}
+												onChange={(e) =>
+													setFilter('holati', e.target.value as ColumnFilters['holati'])
+												}
 												className={filterSelectClass}
 											>
 												<option value=''>Barcha holatlar</option>
@@ -243,91 +273,170 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 								</tr>
 							</thead>
 							<tbody>
-								{filteredOrders.length === 0 ? (
+								{groups.length === 0 || groups.every((g) => (g.items?.length || 0) === 0) ? (
 									<tr>
 										<td colSpan={10} className='text-center py-12 text-gray-400'>
 											Ma'lumotlar yo'q
 										</td>
 									</tr>
 								) : (
-									filteredOrders.map((order, index) => {
-										const isKarzinka = order.is_karzinka;
-										const orderPath = isKarzinka ? `/order/${order.id}` : `/order/show/${order.id}`;
-										const tolangan = tolovSummasi(order);
-										return (
-											<tr
-												key={order.id}
-												className='border-b border-gray-100 hover:bg-blue-50/30 transition-colors'
-											>
-												<td className='p-2 text-gray-500 font-mono'>{index + 1}</td>
-												<td className='p-2'>
-													<span className='font-medium text-gray-800'>
-														{order.client_detail?.full_name || `ID: ${order.client}`}
-													</span>
-												</td>
-												<td className='p-2 text-gray-600'>
-													{order.created_by_detail?.full_name ?? order.employee ?? '—'}
-												</td>
-												<td className='p-2 text-right font-medium text-blue-700'>
-													{parseFloat(order.all_product_summa || '0').toLocaleString()}
-												</td>
-												<td className='p-2 text-right text-gray-700'>
-													{tolangan.toLocaleString()}
-												</td>
-												<td className='p-2 text-right text-gray-700'>
-													{parseFloat(order.total_debt_today_client || '0').toLocaleString()}
-												</td>
-												<td className='p-2 text-right text-gray-700'>
-													{parseFloat(order.total_debt_client || '0').toLocaleString()}
-												</td>
-												<td className='p-2 text-gray-600 whitespace-nowrap'>
-													{order.created_time
-														? new Date(order.created_time).toLocaleString('uz-UZ', {
-																day: '2-digit',
-																month: '2-digit',
-																year: 'numeric',
-																hour: '2-digit',
-																minute: '2-digit',
-														  })
-														: order.date
-															? new Date(order.date).toLocaleString('uz-UZ', {
-																	day: '2-digit',
-																	month: '2-digit',
-																	year: 'numeric',
-																	hour: '2-digit',
-																	minute: '2-digit',
-															  })
-															: '—'}
-												</td>
-												<td className='p-2'>
-													{isKarzinka ? (
-														<span className='px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full border border-yellow-300'>
-															Korzinkada
-														</span>
-													) : (
-														<span className='px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full border border-green-300 inline-flex items-center gap-1'>
-															<CheckCircle2 size={12} />
-															Yakunlangan
-														</span>
-													)}
-												</td>
-												<td className='p-2 text-center'>
-													<button
-														onClick={() => navigate(orderPath)}
-														className={`inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 ${
-															isKarzinka
-																? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-																: 'bg-green-500 hover:bg-green-600 text-white'
-														}`}
-														title={isKarzinka ? 'Davom etish' : "Ko'rish"}
-													>
-														{isKarzinka ? <ArrowRight size={18} /> : <Eye size={18} />}
-													</button>
-												</td>
-											</tr>
-										);
-									})
+									(() => {
+										let rowIndex = 0;
+										return groups.map((group, gIdx) => {
+											const items = (group.items || []).filter((o: any) => !o.is_delete);
+											const sumZakaz = items.reduce(
+												(s: number, o: any) =>
+													s + (parseFloat(o.all_product_summa || '0') || 0),
+												0,
+											);
+											const sumTolangan = items.reduce(
+												(s: number, o: any) => s + tolovSummasi(o as OrderResponse),
+												0,
+											);
+											return (
+												<Fragment key={`group-${group.date ?? gIdx}`}>
+													<tr className='bg-gray-100'>
+														<td className='p-2'>Jami</td>
+														<td className='px-2 py-1 font-semibold text-gray-700'>
+															{group.date
+																? format(new Date(group.date), 'yyyy-MM-dd')
+																: 'Barcha sanalar'}
+															<span className='ml-2 text-sm text-gray-500'>
+																({items.length})
+															</span>
+														</td>
+														<td className='p-2' />
+														<td className='p-2 text-right font-semibold text-blue-700'>
+															{sumZakaz.toLocaleString()}
+														</td>
+														<td className='p-2 text-right font-semibold'>
+															{sumTolangan.toLocaleString()}
+														</td>
+														<td className='p-2' />
+														<td className='p-2' />
+														<td className='p-2' />
+														<td className='p-2' />
+														<td className='p-2' />
+													</tr>
+
+													{items.map((order: any) => {
+														const isKarzinka = order.is_karzinka;
+														const orderPath = isKarzinka
+															? `/order/${order.id}`
+															: `/order/show/${order.id}`;
+														const tolangan = tolovSummasi(order as OrderResponse);
+														const index = ++rowIndex;
+														return (
+															<tr
+																key={order.id}
+																className='border-b border-gray-100 group hover:bg-blue-50/30 transition-colors'
+															>
+																<td className='p-2 text-gray-500 font-mono'>{index}</td>
+																<td className='p-2 text-gray-600 whitespace-nowrap'>
+																	{order.created_time
+																		? new Date(order.created_time).toLocaleString(
+																				'uz-UZ',
+																				{
+																					day: '2-digit',
+																					month: '2-digit',
+																					year: 'numeric',
+																					hour: '2-digit',
+																					minute: '2-digit',
+																				},
+																			)
+																		: order.date
+																			? new Date(order.date).toLocaleString(
+																					'uz-UZ',
+																					{
+																						day: '2-digit',
+																						month: '2-digit',
+																						year: 'numeric',
+																						hour: '2-digit',
+																						minute: '2-digit',
+																					},
+																				)
+																			: '—'}
+																</td>
+																<td className='p-2'>
+																	<span className='font-medium text-gray-800'>
+																		{order.client_detail?.full_name ||
+																			`ID: ${order.client}`}
+																	</span>
+																</td>
+																<td className='p-2 text-gray-600'>
+																	{order.created_by_detail?.full_name ??
+																		order.employee ??
+																		'—'}
+																</td>
+																<td className='p-2 text-right font-medium text-blue-700'>
+																	{parseFloat(
+																		order.all_product_summa || '0',
+																	).toLocaleString()}
+																</td>
+																<td className='p-2 text-right text-gray-700'>
+																	{tolangan.toLocaleString()}
+																</td>
+																<td className='p-2 text-right text-gray-700'>
+																	{parseFloat(
+																		order.total_debt_today_client || '0',
+																	).toLocaleString()}
+																</td>
+																<td className='p-2 text-right text-gray-700'>
+																	{parseFloat(
+																		order.total_debt_client || '0',
+																	).toLocaleString()}
+																</td>
+																<td className='p-2 group-hover:bg-blue-50/30 transition-colors'>
+																	{isKarzinka ? (
+																		<span className='px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full border border-yellow-300'>
+																			Korzinkada
+																		</span>
+																	) : (
+																		<span className='px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full border border-green-300 inline-flex items-center gap-1'>
+																			<CheckCircle2 size={12} />
+																			Yakunlangan
+																		</span>
+																	)}
+																</td>
+																<td className='p-2 text-center group-hover:bg-blue-50/30 transition-colors'>
+																	<button
+																		onClick={() => navigate(orderPath)}
+																		className={`inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 ${
+																			isKarzinka
+																				? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+																				: 'bg-green-500 hover:bg-green-600 text-white'
+																		}`}
+																		title={isKarzinka ? 'Davom etish' : "Ko'rish"}
+																	>
+																		{isKarzinka ? (
+																			<ArrowRight size={18} />
+																		) : (
+																			<Eye size={18} />
+																		)}
+																	</button>
+																</td>
+															</tr>
+														);
+													})}
+												</Fragment>
+											);
+										});
+									})()
 								)}
+								{/* overall totals row */}
+								<tr className='bg-blue-50'>
+									<td className='p-2 font-semibold'>Jami</td>
+									<td colSpan={2} />
+									<td className='p-2 text-right font-semibold text-blue-700'>
+										{overallTotals.totalZakaz.toLocaleString()}
+									</td>
+									<td className='p-2 text-right font-semibold'>
+										{overallTotals.totalTolangan.toLocaleString()}
+									</td>
+									<td className='p-2 text-right font-semibold'></td>
+									<td className='p-2 text-right font-semibold'></td>
+									<td colSpan={3} />
+								</tr>
 							</tbody>
 						</table>
 					</div>

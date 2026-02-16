@@ -303,35 +303,19 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
 	// order_filial yo'q bo'lsa, xabar ko'rsatish
 	if (user && !user.order_filial) {
 		return (
-			<Layout
-				onBack={onBack}
-				showBackButton={true}
-				selectedCustomer={selectedCustomer}
-				orderData={orderData}
-				isSaleStarted={isSaleStarted}
-				isCreatingOrder={isCreatingOrder}
-				onStartSaleClick={handleStartSaleClick}
-			>
+			<>
 				<div className='flex flex-col items-center justify-center h-full'>
 					<div className='bg-red-50 border border-red-200 rounded-lg p-6 max-w-md text-center'>
 						<h2 className='text-xl font-semibold text-red-800 mb-2'>Kirish huquqi yo'q</h2>
 						<p className='text-red-600'>Sizda kassaga kirish huquqi yo'q</p>
 					</div>
 				</div>
-			</Layout>
+			</>
 		);
 	}
 
 	return (
-		<Layout
-			onBack={onBack}
-			showBackButton={true}
-			selectedCustomer={selectedCustomer}
-			orderData={orderData}
-			isSaleStarted={isSaleStarted}
-			isCreatingOrder={isCreatingOrder}
-			onStartSaleClick={readOnly ? undefined : handleStartSaleClick}
-		>
+		<>
 			{/* Main Content Grid - Responsive */}
 			<div className='flex-1 flex flex-col md:flex-row gap-4 md:gap-0 overflow-x-hidden overflow-y-auto md:overflow-hidden min-h-0'>
 				{/* Left: Product List - only show if not readOnly */}
@@ -418,6 +402,6 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
 					/>
 				</>
 			)}
-		</Layout>
+		</>
 	);
 }
