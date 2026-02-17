@@ -8,6 +8,7 @@ import type { OrderResponse } from '../../services/orderService';
 import { orderService } from '../../services/orderService';
 import { userService } from '../../services/userService';
 import { showError, showSuccess } from '../../lib/toast';
+import clsx from 'clsx';
 
 interface DashboardProps {
 	onNewSale?: () => void;
@@ -371,7 +372,12 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 														return (
 															<tr
 																key={order.id}
-																className='border-b border-gray-100 group hover:bg-blue-50/30 transition-colors'
+																className={clsx(
+																	'border-b border-gray-100 group hover:bg-blue-50/30 transition-colors',
+																	{
+																		'bg-red-300': !order.order_status,
+																	},
+																)}
 															>
 																<td className='p-2 text-gray-500 font-mono'>{index}</td>
 																<td className='p-2 text-gray-600 whitespace-nowrap'>
@@ -458,7 +464,9 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																					? 'bg-yellow-500 hover:bg-yellow-600 text-white'
 																					: 'bg-green-500 hover:bg-green-600 text-white'
 																			}`}
-																			title={isKarzinka ? 'Davom etish' : "Ko'rish"}
+																			title={
+																				isKarzinka ? 'Davom etish' : "Ko'rish"
+																			}
 																		>
 																			{isKarzinka ? (
 																				<ArrowRight size={18} />
