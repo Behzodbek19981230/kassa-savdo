@@ -1,244 +1,298 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { Product } from '../../types';
+import { Product, OrderResponse } from '../../types';
 import { Input, Label } from '../ui/Input';
 import { Autocomplete } from '../ui/Autocomplete';
-import { showError } from '../../lib/toast';
 import { productService } from '../../services/productService';
+import { currencyService, Currency } from '../../services/currencyService';
 
 export interface ProductModalConfirmOptions {
-	skladId: number;
+    skladId: number;
 }
 
 interface ProductModalProps {
-	isOpen: boolean;
-	onClose: () => void;
-	product: Product | null;
-	exchangeRate: number;
-	skladlar: { id: number; name: string }[];
-	onConfirm: (
-		quantity: number,
-		priceInSum: number,
-		priceType: 'unit' | 'wholesale',
-		options: ProductModalConfirmOptions,
-	) => void;
+    isOpen: boolean;
+    onClose: () => void;
+    product: Product | null;
+    exchangeRate: number;
+    skladlar: { id: number; name: string }[];
+    orderData?: OrderResponse | null;
+    onConfirm: (
+        quantity: number,
+        priceInSum: number,
+        priceType: 'unit' | 'wholesale',
+        options: ProductModalConfirmOptions,
+    ) => void;
 }
-export function ProductModal({ isOpen, onClose, product, exchangeRate, skladlar, onConfirm }: ProductModalProps) {
-	const [quantity, setQuantity] = useState<string>('1');
-	const [price, setPrice] = useState<string>('0');
-	const [currency, setCurrency] = useState<'sum' | 'dollar'>('sum');
-	const [selectedSkladId, setSelectedSkladId] = useState<number | null>(null);
-	const [skladStockCount, setSkladStockCount] = useState<number | null>(null);
-	const [isLoadingStock, setIsLoadingStock] = useState(false);
+export function ProductModal({ isOpen, onClose, product, exchangeRate, skladlar, orderData, onConfirm }: ProductModalProps) {
+    const [quantity, setQuantity] = useState<string>('1');
+    const [price, setPrice] = useState<string>('0');
+    const [selectedSkladId, setSelectedSkladId] = useState<number | null>(null);
+    const [skladStockCount, setSkladStockCount] = useState<number | null>(null);
+    const [isLoadingStock, setIsLoadingStock] = useState(false);
+    const [currencies, setCurrencies] = useState<Currency[]>([]);
+    const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null);
+    const [errors, setErrors] = useState<{ sklad?: string; quantity?: string; price?: string; stock?: string }>({});
 
-	useEffect(() => {
-		if (product) {
-			const defaultPrice = product.unitPrice ?? product.price ?? 0;
-			setPrice(String(defaultPrice));
-			setQuantity('1');
-			setCurrency('sum');
-			setSelectedSkladId(null);
-			setSkladStockCount(null);
-		}
-	}, [product]);
+    // Currency ro'yxatini yuklash
+    useEffect(() => {
+        const loadCurrencies = async () => {
+            try {
+                const currencyList = await currencyService.getCurrencies();
+                setCurrencies(currencyList);
+            } catch (error) {
+                console.error('Failed to load currencies:', error);
+            }
+        };
+        loadCurrencies();
+    }, []);
 
-	// Sklad tanlanganda /api/v1/product-stock/ dan qoldiqni olish
-	useEffect(() => {
-		if (!product || selectedSkladId == null) {
-			setSkladStockCount(null);
-			return;
-		}
-		const productId = product.productId ?? Number(product.id);
-		if (!productId) return;
-		setIsLoadingStock(true);
-		productService
-			.getProductStock({ product: productId, sklad: selectedSkladId })
-			.then((res) => setSkladStockCount(res.count ?? 0))
-			.catch(() => setSkladStockCount(null))
-			.finally(() => setIsLoadingStock(false));
-	}, [product, selectedSkladId]);
+    // OrderData dan currency ni olish
+    useEffect(() => {
+        if (orderData?.currency && currencies.length > 0) {
+            const currency = currencies.find((c) => c.id === orderData.currency);
+            setSelectedCurrency(currency || null);
+        } else {
+            // Default currency - UZS
+            const uzsCurrency = currencies.find((c) => c.code === 'UZS');
+            setSelectedCurrency(uzsCurrency || null);
+        }
+    }, [orderData?.currency, currencies]);
 
-	// Valyuta o'zgarganda (So'm ↔ Dollar) — joriy summani konvertatsiya qilish
-	const skladOptions = useMemo(
-		() =>
-			skladlar.map((s) => ({
-				id: String(s.id),
-				label: s.name,
-				value: String(s.id),
-			})),
-		[skladlar],
-	);
+    useEffect(() => {
+        if (product) {
+            const defaultPrice = product.unitPrice ?? product.price ?? 0;
+            setPrice(String(defaultPrice));
+            setQuantity('1');
+            setSelectedSkladId(null);
+            setSkladStockCount(null);
+            setErrors({}); // Errorlarni tozalash
+        }
+    }, [product]);
 
-	const handleCurrencyChange = (newCurrency: 'sum' | 'dollar') => {
-		const current = parseFloat(price) || 0;
-		if (newCurrency === 'dollar') {
-			setPrice((current / exchangeRate).toString()); // UZS → USD
-		} else {
-			setPrice((current * exchangeRate).toString()); // USD → UZS
-		}
-		setCurrency(newCurrency);
-	};
+    // Sklad tanlanganda /api/v1/product-stock/ dan qoldiqni olish
+    useEffect(() => {
+        if (!product || selectedSkladId == null) {
+            setSkladStockCount(null);
+            return;
+        }
+        const productId = product.productId ?? Number(product.id);
+        if (!productId) return;
+        setIsLoadingStock(true);
+        productService
+            .getProductStock({ product: productId, sklad: selectedSkladId })
+            .then((res) => setSkladStockCount(res.count ?? 0))
+            .catch(() => setSkladStockCount(null))
+            .finally(() => setIsLoadingStock(false));
+    }, [product, selectedSkladId]);
 
-	if (!isOpen || !product) return null;
+    const skladOptions = useMemo(
+        () =>
+            skladlar.map((s) => ({
+                id: String(s.id),
+                label: s.name,
+                value: String(s.id),
+            })),
+        [skladlar],
+    );
 
-	const handleConfirm = () => {
-		const qty = parseFloat(quantity);
-		const priceValue = parseFloat(price);
-		if (qty <= 0 || priceValue <= 0) {
-			showError("Miqdor va summasi 0 dan katta bo'lishi kerak");
-			return;
-		}
-		if (selectedSkladId == null) {
-			showError('Skladni tanlang (majburiy)');
-			return;
-		}
-		if (skladStockCount != null && qty > skladStockCount) {
-			showError(`Miqdor skladda qolgan sondan (${skladStockCount}) oshmasligi kerak`);
-			return;
-		}
-		const priceInSum = currency === 'dollar' ? priceValue * exchangeRate : priceValue;
-		onConfirm(qty, priceInSum, 'unit', {
-			skladId: Number(selectedSkladId),
-		});
-		onClose();
-	};
+    if (!isOpen || !product) return null;
 
-	const priceValue = parseFloat(price) || 0;
-	const priceInSum = currency === 'dollar' ? priceValue * exchangeRate : priceValue;
-	const total = parseFloat(quantity) * priceInSum;
+    const handleConfirm = () => {
+        const newErrors: { sklad?: string; quantity?: string; price?: string; stock?: string } = {};
+        const qty = parseFloat(quantity);
+        const priceValue = parseFloat(price);
 
-	return (
-		<div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
-			<div className='bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border-2 border-indigo-200'>
-				<div className='flex justify-between items-center p-5 border-b-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50'>
-					<h3 className='text-xl font-bold text-gray-900'>{product.name}</h3>
-					<button
-						onClick={onClose}
-						className='text-gray-500 hover:text-indigo-600 hover:bg-white p-2 rounded-xl transition-all duration-200'
-					>
-						<X size={24} />
-					</button>
-				</div>
+        // Sklad validation
+        if (selectedSkladId == null) {
+            newErrors.sklad = 'Skladni tanlang (majburiy)';
+        }
 
-				<div className='p-6 bg-white'>
-					<div className='flex justify-between text-sm text-indigo-600 bg-emerald-50/50 p-3 rounded-xl mb-5'>
-						<span className='font-medium'>Sotuvda bor:</span>
-						<span className='font-bold text-emerald-700'>
-							{product.stock.toLocaleString()} {product.unit}
-						</span>
-					</div>
+        // Quantity validation
+        if (!quantity || qty <= 0 || isNaN(qty)) {
+            newErrors.quantity = "Miqdor 0 dan katta bo'lishi kerak";
+        }
 
-					<div className='grid grid-cols-2 gap-5'>
-						{/* Valyuta: Dollar / So'm */}
-						<div>
-							<Label className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>Savdo</Label>
-							<div className='flex gap-4'>
-								<label className='flex items-center gap-2 cursor-pointer'>
-									<input
-										type='radio'
-										name='currency'
-										checked={currency === 'sum'}
-										onChange={() => handleCurrencyChange('sum')}
-										className='w-4 h-4 text-indigo-600 focus:ring-indigo-500'
-									/>
-									<span className='text-sm font-medium text-gray-700'>So&apos;m</span>
-								</label>
-								<label className='flex items-center gap-2 cursor-pointer'>
-									<input
-										type='radio'
-										name='currency'
-										checked={currency === 'dollar'}
-										onChange={() => handleCurrencyChange('dollar')}
-										className='w-4 h-4 text-indigo-600 focus:ring-indigo-500'
-									/>
-									<span className='text-sm font-medium text-gray-700'>Dollar</span>
-								</label>
-							</div>
-						</div>
+        // Price validation
+        if (!price || priceValue <= 0 || isNaN(priceValue)) {
+            newErrors.price = "Summasi 0 dan katta bo'lishi kerak";
+        }
 
-						{/* Sklad — majburiy */}
-						<div>
-							<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>Sklad</Label>
-							<Autocomplete
-								options={skladOptions}
-								value={selectedSkladId != null ? String(selectedSkladId) : ''}
-								onChange={(v) => setSelectedSkladId(v ? Number(v) : null)}
-								placeholder='Skladni qidirish...'
-								emptyMessage='Sklad topilmadi'
-							/>
-							{isLoadingStock && <p className='mt-1.5 text-xs text-indigo-500'>Qoldiq yuklanmoqda...</p>}
-							{!isLoadingStock && selectedSkladId != null && skladStockCount != null && (
-								<p className='mt-1.5 text-sm font-medium text-red-500'>
-									Qoldiq soni: <span className='font-bold'>{skladStockCount.toLocaleString()}</span>
-								</p>
-							)}
-						</div>
+        // Stock validation
+        if (skladStockCount != null && qty > skladStockCount) {
+            newErrors.stock = `Miqdor skladda qolgan sondan (${skladStockCount}) oshmasligi kerak`;
+        }
 
-						{/* Miqdori */}
-						<div>
-							<Label htmlFor='quantity' className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
-								Miqdori
-							</Label>
-							<div className='flex rounded-xl shadow-lg overflow-hidden border-2 border-indigo-200'>
-								<Input
-									id='quantity'
-									type='number'
-									value={quantity}
-									onChange={(e) => setQuantity(e.target.value)}
-									className='flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white'
-									autoFocus
-								/>
-								<div className='flex justify-between text-sm text-gray-600 bg-indigo-50/50 px-3 py-2 min-w-[3rem] items-center'>
-									{product?.unitCode ?? 'dona'}
-								</div>
-							</div>
-						</div>
+        // Agar errorlar bo'lsa, ko'rsatish va to'xtatish
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
 
-						{/* Summasi — 1-qatorda o'ngda */}
-						<div>
-							<Label htmlFor='price' className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
-								Summasi {currency === 'dollar' ? '(USD)' : '(UZS)'}
-							</Label>
-							<div className='flex rounded-xl shadow-lg overflow-hidden border-2 border-indigo-200'>
-								<Input
-									id='price'
-									type='number'
-									step='0.01'
-									value={price}
-									onChange={(e) => setPrice(e.target.value)}
-									className='flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white'
-									placeholder={currency === 'dollar' ? 'Narx (USD)' : 'Narx (UZS)'}
-								/>
-								<div className='flex justify-between text-sm text-gray-600 bg-indigo-50/50 px-3 py-2 min-w-[3rem] items-center'>
-									{currency === 'dollar' ? 'USD' : 'UZS'}
-								</div>
-							</div>
-						</div>
-					</div>
+        // Errorlar yo'q, tozalash va davom etish
+        setErrors({});
 
-					{/* Jami summa */}
-					<div className='mt-5 bg-emerald-50 p-3 rounded-xl border border-emerald-200'>
-						<div className='flex justify-between items-center'>
-							<span className='text-sm font-medium text-emerald-700'>Jami:</span>
-							<span className='text-xl font-bold text-emerald-900'>{total.toLocaleString()} UZS</span>
-						</div>
-					</div>
+        // Agar currency USD bo'lsa, UZS ga konvertatsiya qilish
+        const priceInSum = selectedCurrency?.code === 'USD' ? priceValue * exchangeRate : priceValue;
+        onConfirm(qty, priceInSum, 'unit', {
+            skladId: Number(selectedSkladId),
+        });
+        onClose();
+    };
 
-					{selectedSkladId == null && (
-						<p className='mt-3 text-sm text-rose-600 font-medium'>Skladni tanlang (majburiy)</p>
-					)}
+    const priceValue = parseFloat(price) || 0;
+    const priceInSum = selectedCurrency?.code === 'USD' ? priceValue * exchangeRate : priceValue;
+    const total = parseFloat(quantity) * priceInSum;
+    const currencyCode = selectedCurrency?.code || 'UZS';
 
-					<div className='flex justify-end pt-4'>
-						<button
-							onClick={handleConfirm}
-							disabled={selectedSkladId == null}
-							className='bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 font-bold flex items-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
-						>
-							<span className='mr-2'>✓</span> SAQLASH
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
+    return (
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+            <div className='bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border-2 border-indigo-200'>
+                <div className='flex justify-between items-center p-5 border-b-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50'>
+                    <div className='flex-1'>
+                        <h3 className='text-xl font-bold text-gray-900 mb-2'>{product.name}</h3>
+                        {/* Mahsulot ma'lumotlari */}
+                        <div className='flex flex-wrap gap-3 text-sm text-gray-600'>
+                            {product.branchCategoryName && (
+                                <div className='flex items-center gap-1'>
+                                    <span className='font-semibold text-indigo-600'>Kategoriya:</span>
+                                    <span>{product.branchCategoryName}</span>
+                                </div>
+                            )}
+                            {product.modelName && (
+                                <div className='flex items-center gap-1'>
+                                    <span className='font-semibold text-indigo-600'>Modeli:</span>
+                                    <span>{product.modelName}</span>
+                                </div>
+                            )}
+                            {product.typeName && (
+                                <div className='flex items-center gap-1'>
+                                    <span className='font-semibold text-indigo-600'>Model turi:</span>
+                                    <span>{product.typeName}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className='text-gray-500 hover:text-indigo-600 hover:bg-white p-2 rounded-xl transition-all duration-200 ml-4 shrink-0'
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <div className='p-6 bg-white'>
+
+                    <div className='grid grid-cols-2 gap-5'>
+                        {/* Sklad — majburiy */}
+                        <div>
+                            <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>Sklad</Label>
+                            <Autocomplete
+                                options={skladOptions}
+                                value={selectedSkladId != null ? String(selectedSkladId) : ''}
+                                onChange={(v) => {
+                                    setSelectedSkladId(v ? Number(v) : null);
+                                    if (errors.sklad) {
+                                        setErrors((prev) => ({ ...prev, sklad: undefined }));
+                                    }
+                                }}
+                                placeholder='Skladni qidirish...'
+                                emptyMessage='Sklad topilmadi'
+                            />
+                            {errors.sklad && (
+                                <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.sklad}</p>
+                            )}
+                            {isLoadingStock && <p className='mt-1.5 text-xs text-indigo-500'>Qoldiq yuklanmoqda...</p>}
+                            {!isLoadingStock && selectedSkladId != null && skladStockCount != null && (
+                                <p className='mt-1.5 text-sm font-medium text-red-500'>
+                                    Qoldiq soni: <span className='font-bold'>{skladStockCount.toLocaleString()}</span>
+                                </p>
+                            )}
+                            {errors.stock && (
+                                <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.stock}</p>
+                            )}
+                        </div>
+                        <div></div>
+
+                        {/* Miqdori */}
+                        <div>
+                            <Label htmlFor='quantity' className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
+                                Miqdori
+                            </Label>
+                            <div className={`flex rounded-xl shadow-lg overflow-hidden border-2 ${errors.quantity ? 'border-red-500' : 'border-indigo-200'}`}>
+                                <Input
+                                    id='quantity'
+                                    type='number'
+                                    value={quantity}
+                                    onChange={(e) => {
+                                        setQuantity(e.target.value);
+                                        if (errors.quantity) {
+                                            setErrors((prev) => ({ ...prev, quantity: undefined }));
+                                        }
+                                        if (errors.stock) {
+                                            setErrors((prev) => ({ ...prev, stock: undefined }));
+                                        }
+                                    }}
+                                    className='flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white'
+                                    autoFocus
+                                />
+                                <div className='flex justify-between text-sm text-gray-600 bg-indigo-50/50 px-3 py-2 min-w-[3rem] items-center'>
+                                    {product?.unitCode ?? 'dona'}
+                                </div>
+                            </div>
+                            {errors.quantity && (
+                                <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.quantity}</p>
+                            )}
+                        </div>
+
+                        {/* Summasi */}
+                        <div>
+                            <Label htmlFor='price' className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
+                                Summasi
+                            </Label>
+                            <div className={`flex rounded-xl shadow-lg overflow-hidden border-2 ${errors.price ? 'border-red-500' : 'border-indigo-200'}`}>
+                                <Input
+                                    id='price'
+                                    type='number'
+                                    step='0.01'
+                                    value={price}
+                                    onChange={(e) => {
+                                        setPrice(e.target.value);
+                                        if (errors.price) {
+                                            setErrors((prev) => ({ ...prev, price: undefined }));
+                                        }
+                                    }}
+                                    className='flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white'
+                                    placeholder={`Narx (${currencyCode})`}
+                                />
+                                <div className='flex justify-between text-sm text-gray-600 bg-indigo-50/50 px-3 py-2 min-w-[3rem] items-center'>
+                                    {currencyCode}
+                                </div>
+                            </div>
+                            {errors.price && (
+                                <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.price}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Jami summa */}
+                    <div className='mt-5 bg-emerald-50 p-3 rounded-xl border border-emerald-200'>
+                        <div className='flex justify-between items-center'>
+                            <span className='text-sm font-medium text-emerald-700'>Jami:</span>
+                            <span className='text-xl font-bold text-emerald-900'>{total.toLocaleString()} UZS</span>
+                        </div>
+                    </div>
+
+                    <div className='flex justify-end pt-4'>
+                        <button
+                            onClick={handleConfirm}
+                            className='bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 font-bold flex items-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]'
+                        >
+                            <span className='mr-2'>✓</span> SAQLASH
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }

@@ -19,6 +19,14 @@ export interface ProductImage {
     file: string;
 }
 
+export interface BranchCategoryDetail {
+    id: number;
+    product_branch: number;
+    name: string;
+    sorting: number;
+    is_delete: boolean;
+}
+
 export interface ProductResponse {
     id: number;
     date: string;
@@ -27,6 +35,8 @@ export interface ProductResponse {
     filial_detail: any;
     branch: number;
     branch_detail: BranchDetail;
+    branch_category?: number;
+    branch_category_detail?: BranchCategoryDetail;
     model: number;
     model_detail: any;
     type: number;
@@ -40,7 +50,7 @@ export interface ProductResponse {
     min_price: string;
     note: string;
     is_delete: boolean;
-    images: ProductImage[];
+    images: ProductImage | ProductImage[] | null;
 }
 
 export interface ProductsResponse {
@@ -108,5 +118,16 @@ export const productService = {
         return first != null
             ? { product: first.product, sklad: first.sklad, count: first.count ?? 0 }
             : { product: params.product, sklad: params.sklad, count: 0 };
+    },
+
+    // Mahsulot rasmlarini olish
+    getProductImages: async (id: number): Promise<ProductImage[]> => {
+        const queryParams = new URLSearchParams();
+        queryParams.append('product', id.toString());
+        const response = await api.get<{ results?: ProductImage[] } | ProductImage[]>(
+            `/v1/product-image?${queryParams.toString()}`
+        );
+        const data = response.data;
+        return Array.isArray(data) ? data : (data?.results ?? []);
     },
 };

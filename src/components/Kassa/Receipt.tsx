@@ -1,136 +1,185 @@
-import { QRCodeSVG } from 'qrcode.react';
 import { CartItem, Customer } from '../../types';
 
 interface ReceiptProps {
-	items: CartItem[];
-	totalAmount: number;
-	usdAmount: string;
-	usdRate: number;
-	customer?: Customer;
-	kassirName?: string;
-	orderNumber: string;
-	date: Date;
+    items: CartItem[];
+    totalAmount: number;
+    usdAmount: string;
+    usdRate: number;
+    customer?: Customer;
+    kassirName?: string;
+    orderNumber: string;
+    date: Date;
+    paidAmount?: number; // To'langan summa
+    remainingDebt?: number; // Qolgan qarz (agar mavjud bo'lsa)
 }
 
 export function Receipt({
-	items,
-	totalAmount,
-	usdAmount,
-	usdRate,
-	customer,
-	kassirName,
-	orderNumber,
-	date,
+    items,
+    totalAmount,
+    usdAmount,
+    usdRate,
+    customer,
+    kassirName,
+    orderNumber,
+    date,
+    paidAmount = 0,
+    remainingDebt,
 }: ReceiptProps) {
-	// derive some sums for the styled totals block
-	const paid = 0; // placeholder — PaymentModal already passes paid info if needed
-	const remaining = Math.max(0, totalAmount - paid);
+    const totalInUsd = totalAmount / usdRate;
+    const paidInUsd = paidAmount / usdRate;
+    const remaining = remainingDebt !== undefined ? remainingDebt : Math.max(0, totalAmount - paidAmount);
+    const remainingInUsd = remaining / usdRate;
 
-	return (
-		<div id='receipt-print' className='w-full bg-white px-8 py-6' style={{ fontFamily: 'Times New Roman, serif' }}>
-			<style>{`
-        @media print {
-          @page { size: A4; margin: 12mm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          #receipt-print { width: 100%; }
-        }
-        .receipt-table th, .receipt-table td { border: 1px solid #111827; padding: 6px 8px; }
-      `}</style>
+    // Format date as DD.MM.YYYY
+    const formattedDate = date.toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    }).replace(/\//g, '.');
 
-			{/* Header: logo + store info + date */}
-			<div className='flex items-start justify-between mb-4'>
-				<div className='w-1/4'>
-					<div className='border p-2 inline-block'>
-						<div className='text-center font-bold text-lg'>ELEGANT</div>
-						<div className='text-xs'>Fine Porcelain</div>
-					</div>
-				</div>
+    // Customer name or default
+    const customerName = customer?.name || 'Mijoz';
 
-				<div className='flex-1 text-center'>
-					<div className='text-xl font-extrabold'>{new Date().toLocaleDateString('uz-UZ')}</div>
-					<div className='text-2xl font-bold text-red-600'>Oygul apa Chirchiq</div>
-				</div>
+    return (
+        <div id='receipt-print' style={{ background: '#2b2b2b', fontFamily: '"Times New Roman", serif', margin: 0, padding: '40px 0' }}>
+            <style>{`
+				@media print {
+					body {
+						background: #fff;
+					}
+					#receipt-print {
+						background: #fff;
+						padding: 0;
+					}
+					.page {
+						box-shadow: none;
+						width: 100%;
+					}
+				}
+			`}</style>
+            <div className='page' style={{ width: '900px', margin: 'auto', background: '#fff', padding: '40px 50px' }}>
+                {/* Date */}
+                <div className='date' style={{ textAlign: 'center', fontSize: '22px', fontWeight: 'bold' }}>
+                    {formattedDate}
+                </div>
 
-				<div className='w-1/4 text-right text-sm'>
-					<div className='text-green-700 font-semibold'>Dollar kursi:</div>
-					<div className='text-green-700 text-lg font-bold'>{usdRate.toLocaleString()} so'm</div>
-				</div>
-			</div>
+                {/* Client */}
+                <div className='client' style={{ textAlign: 'center', fontSize: '22px', fontWeight: 'bold', color: 'red', marginTop: '5px' }}>
+                    {customerName}
+                </div>
 
-			{/* Store / contact info row */}
-			<div className='mb-4 text-sm text-gray-700 grid grid-cols-3 gap-4'>
-				<div>
-					<div className='font-semibold'>Do'kon:</div>
-					<div>Supermarket 1-2</div>
-					<div>Firma: Elegant</div>
-				</div>
-				<div className='text-center'>
-					<div className='font-semibold'>Manzil:</div>
-					<div>Toshkent viloyati, Chirchiq shahri</div>
-				</div>
-				<div className='text-right'>
-					<div className='font-semibold'>Telefon:</div>
-					<div>+99899-793-62-87</div>
-				</div>
-			</div>
+                <hr style={{ margin: '20px 0 30px' }} />
 
-			{/* Items table */}
-			<div className='mb-6 overflow-x-auto'>
-				<table className='w-full receipt-table border-collapse text-sm'>
-					<thead>
-						<tr className='bg-gray-100'>
-							<th className='text-left'>№</th>
-							<th className='text-left'>MODEL</th>
-							<th className='text-left'>NOMI</th>
-							<th className='text-right'>SONI</th>
-							<th className='text-left'>TIP</th>
-							<th className='text-right'>NARXI ($)</th>
-							<th className='text-right'>UMUMIY NARXI ($)</th>
-						</tr>
-					</thead>
-					<tbody>
-						{items.map((it, i) => (
-							<tr key={it.id}>
-								<td style={{ width: 30 }}>{i + 1}</td>
-								<td>{(it as any).modelName || '-'}</td>
-								<td>{it.name}</td>
-								<td className='text-right'>{it.quantity}</td>
-								<td>{it.unit || '-'}</td>
-								<td className='text-right'>{(it.price / usdRate).toFixed(0)}</td>
-								<td className='text-right'>{(it.totalPrice / usdRate).toFixed(0)}</td>
-							</tr>
-						))}
-						<tr>
-							<td colSpan={6} className='text-right font-semibold'>
-								Jami
-							</td>
-							<td className='text-right font-bold'>{(totalAmount / usdRate).toFixed(2)}</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
+                {/* TOP INFO */}
+                <div className='info' style={{ display: 'flex', justifyContent: 'space-between', gap: '40px', fontSize: '15px' }}>
+                    {/* LEFT */}
+                    <div className='info-left' style={{ width: '48%' }}>
+                        <div className='row' style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span className='label' style={{ fontWeight: 'bold' }}>Do'kon:</span>
+                            <span className='value' style={{ textAlign: 'right' }}>Elegant</span>
+                        </div>
 
-			{/* Totals summary styled similar to the sample */}
-			<div className='grid grid-cols-3 gap-6 mb-8'>
-				<div className='col-span-2'>
-					<div className='text-sm text-yellow-700 font-semibold'>Ostaka ($):</div>
-					<div className='text-2xl font-bold text-yellow-600'>{(totalAmount / usdRate).toFixed(2)} $</div>
-					<div className='mt-2 text-sm text-gray-600'>Olingan tavarlar summasi ($): 160,00 $</div>
-				</div>
+                        <div className='row' style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span className='label' style={{ fontWeight: 'bold' }}>Firma:</span>
+                            <span className='value' style={{ textAlign: 'right' }}>Elegant</span>
+                        </div>
 
-				<div className='text-right'>
-					<div className='text-sm text-blue-600'>To'langan summa dollarda ($):</div>
-					<div className='text-lg font-bold text-blue-600'>0,00 $</div>
-				</div>
-			</div>
+                        <div className='row' style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span className='label' style={{ fontWeight: 'bold' }}>Telefon nomer1:</span>
+                            <span className='value' style={{ textAlign: 'right' }}>+99899-811-00-23</span>
+                        </div>
 
-			<div className='text-lg font-bold text-rose-600'>Qolgan qarz ($): {(remaining / usdRate).toFixed(2)} $</div>
+                        <div className='row' style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span className='label' style={{ fontWeight: 'bold' }}></span>
+                            <span className='value' style={{ textAlign: 'right' }}>+99890-812-94-44</span>
+                        </div>
+                    </div>
 
-			{/* Footer small print */}
-			<div className='mt-8 text-sm text-gray-600 border-t pt-4'>
-				<div>Manzil: Toshkent viloyati, Chirchiq</div>
-				<div>Telefon: +99899-811-00-23, +99890-812-94-44</div>
-			</div>
-		</div>
-	);
+                    {/* RIGHT */}
+                    <div className='info-right' style={{ width: '48%' }}>
+                        <div className='row' style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span className='label' style={{ fontWeight: 'bold' }}>Supermarket 1-2 Do'kon</span>
+                            <span className='value' style={{ textAlign: 'right' }}></span>
+                        </div>
+
+                        <div className='row' style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span className='label green' style={{ fontWeight: 'bold', color: 'green' }}>Dollar kursi:</span>
+                            <span className='value green' style={{ textAlign: 'right', color: 'green', fontWeight: 'bold' }}>
+                                {usdRate.toLocaleString()} so'm
+                            </span>
+                        </div>
+
+                        <div className='row' style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span className='label' style={{ fontWeight: 'bold' }}>Manzil:</span>
+                            <span className='value' style={{ textAlign: 'right' }}>Toshkent viloyati, Chirchiq shahri</span>
+                        </div>
+
+                        <div className='row' style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span className='label' style={{ fontWeight: 'bold' }}>Telefon:</span>
+                            <span className='value' style={{ textAlign: 'right' }}>+99899-793-62-87</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* TABLE */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '25px', fontSize: '14px' }}>
+                    <thead>
+                        <tr>
+                            <th style={{ border: '1px solid #000', padding: '6px', textAlign: 'center', background: '#f5f5f5', fontWeight: 'bold' }}>№</th>
+                            <th style={{ border: '1px solid #000', padding: '6px', textAlign: 'center', background: '#f5f5f5', fontWeight: 'bold' }}>MODEL</th>
+                            <th style={{ border: '1px solid #000', padding: '6px', textAlign: 'center', background: '#f5f5f5', fontWeight: 'bold' }}>NOMI</th>
+                            <th style={{ border: '1px solid #000', padding: '6px', textAlign: 'center', background: '#f5f5f5', fontWeight: 'bold' }}>SONI</th>
+                            <th style={{ border: '1px solid #000', padding: '6px', textAlign: 'center', background: '#f5f5f5', fontWeight: 'bold' }}>TIP</th>
+                            <th style={{ border: '1px solid #000', padding: '6px', textAlign: 'center', background: '#f5f5f5', fontWeight: 'bold' }}>NARXI ($)</th>
+                            <th style={{ border: '1px solid #000', padding: '6px', textAlign: 'center', background: '#f5f5f5', fontWeight: 'bold' }}>UMUMIY NARXI ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((it, i) => {
+                            const priceInUsd = (it.price / usdRate).toFixed(0);
+                            const totalPriceInUsd = (it.totalPrice / usdRate).toFixed(0);
+                            return (
+                                <tr key={it.id}>
+                                    <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'center' }}>{i + 1}</td>
+                                    <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'center' }}>{(it as any).modelName || '-'}</td>
+                                    <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'center' }}>{it.name}</td>
+                                    <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'center' }}>{it.quantity}</td>
+                                    <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'center' }}>{it.unit || it.unitCode || '-'}</td>
+                                    <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'center' }}>{priceInUsd}</td>
+                                    <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'center' }}>{totalPriceInUsd}</td>
+                                </tr>
+                            );
+                        })}
+                        <tr>
+                            <td colSpan={6} style={{ border: '1px solid #000', padding: '6px', textAlign: 'center' }}>
+                                <b>Jami</b>
+                            </td>
+                            <td style={{ border: '1px solid #000', padding: '6px', textAlign: 'center' }}>
+                                <b>{totalInUsd.toFixed(2)}</b>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                {/* SUMMARY */}
+                <div className='summary' style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', fontSize: '16px' }}>
+                    <div className='summary-left' style={{ width: '60%' }}>
+                        <div className='orange' style={{ color: 'orange', fontWeight: 'bold', fontSize: '18px' }}>
+                            Ostatka ($): {totalInUsd.toFixed(2)} $
+                        </div>
+                        <div>Olingan tovarlar summasi ($): {totalInUsd.toFixed(2)} $</div>
+                        <div>Jami to'langan summa ($): {paidInUsd.toFixed(2)} $</div>
+                    </div>
+
+                    <div className='summary-right' style={{ width: '38%', textAlign: 'right' }}>
+                        To'langan summa dollarda ($): {paidInUsd.toFixed(2)} $
+                    </div>
+                </div>
+
+                <div className='red' style={{ color: 'red', fontWeight: 'bold', fontSize: '20px', marginTop: '20px' }}>
+                    Qolgan qarz ($): {remainingInUsd.toFixed(2)} $
+                </div>
+            </div>
+        </div>
+    );
 }

@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Star, RotateCcw } from 'lucide-react';
+import { Search, Star, RotateCcw, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Product } from '../../types';
 import { Input } from '../ui/Input';
-import { productService, Branch } from '../../services/productService';
+import { productService, Branch, ProductImage } from '../../services/productService';
 import { Autocomplete } from '../ui/Autocomplete';
 
 interface ProductListProps {
@@ -36,6 +36,10 @@ export function ProductList({
     const [branches, setBranches] = useState<Branch[]>([]);
     const [isLoadingBranches, setIsLoadingBranches] = useState(false);
     const [searchInput, setSearchInput] = useState(appliedSearch);
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+    const [selectedProductImages, setSelectedProductImages] = useState<ProductImage[]>([]);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [isLoadingImages, setIsLoadingImages] = useState(false);
 
     useEffect(() => {
         setSearchInput(appliedSearch);
@@ -112,6 +116,25 @@ export function ProductList({
         onBranchChange?.(null);
         onModelChange?.(null);
         onTypeChange?.(null);
+    };
+
+    // Image click handler
+    const handleImageClick = async (product: Product) => {
+        if (!product.productId) return;
+
+        setIsImageModalOpen(true);
+        setIsLoadingImages(true);
+        setCurrentImageIndex(0);
+
+        try {
+            const images = await productService.getProductImages(product.productId);
+            setSelectedProductImages(images);
+        } catch (error) {
+            console.error('Failed to load product images:', error);
+            setSelectedProductImages([]);
+        } finally {
+            setIsLoadingImages(false);
+        }
     };
 
     return (
@@ -194,20 +217,35 @@ export function ProductList({
                             className='w-full text-left p-4 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 border-2 border-transparent hover:border-blue-300 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex justify-between items-start group'
                         >
                             <div className='flex items-start space-x-3 flex-1 min-w-0'>
-                                {product.isFavorite && (
-                                    <Star
-                                        size={16}
-                                        className='text-orange-400 mt-0.5 flex-shrink-0'
-                                        fill='currentColor'
-                                    />
-                                )}
-                                {product.image && (
-                                    <img
-                                        src={product.image}
-                                        alt={product.name}
-                                        className='w-12 h-12 object-cover rounded-lg flex-shrink-0'
-                                    />
-                                )}
+                                {/* Product Image */}
+                                <div className='relative flex-shrink-0'>
+                                    {product.image ? (
+                                        <img
+                                            src={product.image}
+                                            alt={product.name}
+                                            className='w-16 h-16 object-cover rounded-lg border-2 border-gray-200 group-hover:border-blue-300 transition-colors cursor-pointer'
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleImageClick(product);
+                                            }}
+                                            onError={(e) => {
+                                                // Agar rasm yuklanmasa, placeholder ko'rsatish
+                                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"%3E%3Crect fill="%23e5e7eb" width="64" height="64"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-size="24"%3E%3F%3C/text%3E%3C/svg%3E';
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className='w-16 h-16 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center'>
+                                            <span className='text-gray-400 text-xs'>Rasm</span>
+                                        </div>
+                                    )}
+                                    {product.isFavorite && (
+                                        <Star
+                                            size={14}
+                                            className='absolute -top-1 -right-1 text-orange-400 bg-white rounded-full p-0.5'
+                                            fill='currentColor'
+                                        />
+                                    )}
+                                </div>
                                 <div className='flex-1 min-w-0'>
                                     <div className='flex flex-wrap gap-2 mt-1.5'>
                                         {product.branchName && (
@@ -244,6 +282,107 @@ export function ProductList({
                     ))
                 )}
             </div>
+
+            {/* Image Modal */}
+            {isImageModalOpen && (
+                <div
+                    className='fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4'
+                    onClick={() => setIsImageModalOpen(false)}
+                >
+                    <div
+                        className='bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col'
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className='flex justify-between items-center p-4 border-b border-gray-200'>
+                            <h3 className='text-lg font-semibold text-gray-900'>
+                                Mahsulot rasmlari ({currentImageIndex + 1} / {selectedProductImages.length})
+                            </h3>
+                            <button
+                                onClick={() => setIsImageModalOpen(false)}
+                                className='text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors'
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {/* Image Container */}
+                        <div className='flex-1 flex items-center justify-center p-6 bg-gray-50 relative min-h-[400px]'>
+                            {isLoadingImages ? (
+                                <div className='flex flex-col items-center gap-3'>
+                                    <Loader2 className='w-8 h-8 animate-spin text-blue-600' />
+                                    <p className='text-sm text-gray-500'>Rasmlar yuklanmoqda...</p>
+                                </div>
+                            ) : selectedProductImages.length > 0 ? (
+                                <>
+                                    {/* Previous Button */}
+                                    {selectedProductImages.length > 1 && (
+                                        <button
+                                            onClick={() =>
+                                                setCurrentImageIndex((prev) =>
+                                                    prev === 0 ? selectedProductImages.length - 1 : prev - 1
+                                                )
+                                            }
+                                            className='absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all z-10'
+                                        >
+                                            <ChevronLeft size={24} className='text-gray-700' />
+                                        </button>
+                                    )}
+
+                                    {/* Main Image */}
+                                    <img
+                                        src={selectedProductImages[currentImageIndex]?.file}
+                                        alt={`Image ${currentImageIndex + 1}`}
+                                        className='max-w-full max-h-[70vh] object-contain rounded-lg'
+                                    />
+
+                                    {/* Next Button */}
+                                    {selectedProductImages.length > 1 && (
+                                        <button
+                                            onClick={() =>
+                                                setCurrentImageIndex((prev) =>
+                                                    prev === selectedProductImages.length - 1 ? 0 : prev + 1
+                                                )
+                                            }
+                                            className='absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all z-10'
+                                        >
+                                            <ChevronRight size={24} className='text-gray-700' />
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
+                                <div className='text-center text-gray-500'>
+                                    <p>Rasmlar topilmadi</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Thumbnails */}
+                        {selectedProductImages.length > 1 && (
+                            <div className='p-4 border-t border-gray-200 bg-white'>
+                                <div className='flex gap-2 overflow-x-auto pb-2'>
+                                    {selectedProductImages.map((img, index) => (
+                                        <button
+                                            key={img.id}
+                                            onClick={() => setCurrentImageIndex(index)}
+                                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${index === currentImageIndex
+                                                ? 'border-blue-500 ring-2 ring-blue-200'
+                                                : 'border-gray-200 hover:border-gray-300'
+                                                }`}
+                                        >
+                                            <img
+                                                src={img.file}
+                                                alt={`Thumbnail ${index + 1}`}
+                                                className='w-full h-full object-cover'
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
