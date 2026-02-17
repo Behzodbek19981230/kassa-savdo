@@ -1,16 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService } from '../services/authService';
-import { userService, User } from '../services/userService';
+import { userService } from '../services/userService';
 import { showSuccess, showError } from '../lib/toast';
-
-export interface Kassir {
-    id: number;
-    username: string;
-    full_name: string;
-    email: string;
-    phone_number: string;
-    avatar: string | null;
-}
+import { Kassir, User } from '../types';
+import { STORAGE_KEYS, ROUTES } from '../constants';
 
 interface AuthContextType {
     token: string | null;
@@ -42,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         // localStorage dan token va kassir ma'lumotlarini yuklash
-        const savedToken = localStorage.getItem('auth_token');
-        const savedKassir = localStorage.getItem('kassir');
+        const savedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+        const savedKassir = localStorage.getItem(STORAGE_KEYS.KASSIR);
 
         if (savedToken) {
             setToken(savedToken);
@@ -65,8 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (!userData.order_filial) {
                 // order_filial yo'q bo'lsa, logout qilish va login ga yo'naltirish
                 logout();
-                if (window.location.pathname !== '/login') {
-                    window.location.href = '/login';
+                if (window.location.pathname !== ROUTES.LOGIN) {
+                    window.location.href = ROUTES.LOGIN;
                 }
                 showError('Sizda kassaga kirish huquqi yo\'q');
                 return;
@@ -84,11 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 avatar: userData.avatar,
             };
             setKassir(kassirData);
-            localStorage.setItem('kassir', JSON.stringify(kassirData));
+            localStorage.setItem(STORAGE_KEYS.KASSIR, JSON.stringify(kassirData));
         } catch (error) {
             console.error('Failed to load user data:', error);
             // Faqat login sahifasida bo'lmasa error ko'rsatish
-            if (window.location.pathname !== '/login') {
+            if (window.location.pathname !== ROUTES.LOGIN) {
                 showError('Foydalanuvchi ma\'lumotlarini yuklashda xatolik');
             }
         }
@@ -109,8 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // Access va refresh tokenlarni saqlash
             setToken(response.access);
-            localStorage.setItem('auth_token', response.access);
-            localStorage.setItem('refresh_token', response.refresh);
+            localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.access);
+            localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.refresh);
 
             // Login dan keyin user ma'lumotlarini yuklash va order_filial tekshiruvi
             const userData = await userService.getCurrentUser();
@@ -133,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 avatar: userData.avatar,
             };
             setKassir(kassirData);
-            localStorage.setItem('kassir', JSON.stringify(kassirData));
+            localStorage.setItem(STORAGE_KEYS.KASSIR, JSON.stringify(kassirData));
 
             showSuccess('Muvaffaqiyatli kirildi');
             return true;

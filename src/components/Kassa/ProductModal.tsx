@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { Product } from './types';
+import { Product } from '../../types';
 import { Input, Label } from '../ui/Input';
 import { Autocomplete } from '../ui/Autocomplete';
 import { showError } from '../../lib/toast';

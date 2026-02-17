@@ -1,72 +1,23 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { LoginPage } from './pages/LoginPage';
-import { IndexPage } from './pages/IndexPage';
-import { OrderPage } from './pages/OrderPage';
-import { StatistikaPage } from './pages/StatistikaPage';
-import { Layout } from './components/Layout';
-import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from './components/ui/Toaster';
+import { publicRoutes, privateRoutes } from './config/routes';
+import { ROUTES } from './constants';
 
 export function App() {
-	return (
-		<>
-			<BrowserRouter>
-				<Routes>
-					<Route path='/login' element={<LoginPage />} />
-					<Route
-						path='/'
-						element={
-							<ProtectedRoute>
-								<Layout>
-									<IndexPage />
-								</Layout>
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path='/order'
-						element={
-							<ProtectedRoute>
-								<Layout>
-									<OrderPage />
-								</Layout>
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path='/order/:id'
-						element={
-							<ProtectedRoute>
-								<Layout>
-									<OrderPage />
-								</Layout>
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path='/order/show/:id'
-						element={
-							<ProtectedRoute>
-								<Layout>
-									<OrderPage />
-								</Layout>
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path='/statistika'
-						element={
-							<ProtectedRoute>
-								<Layout>
-									<StatistikaPage />
-								</Layout>
-							</ProtectedRoute>
-						}
-					/>
-					<Route path='*' element={<Navigate to='/' replace />} />
-				</Routes>
-			</BrowserRouter>
-			<Toaster />
-		</>
-	);
+    return (
+        <>
+            <BrowserRouter>
+                <Routes>
+                    {publicRoutes.map((route) => (
+                        <Route key={route.path} path={route.path} element={route.element} />
+                    ))}
+                    {privateRoutes.map((route) => (
+                        <Route key={route.path} path={route.path} element={route.element} />
+                    ))}
+                    <Route path='*' element={<Navigate to={ROUTES.HOME} replace />} />
+                </Routes>
+            </BrowserRouter>
+            <Toaster />
+        </>
+    );
 }

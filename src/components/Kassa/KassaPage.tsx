@@ -5,21 +5,22 @@ import { ProductList } from './ProductList';
 import { Cart } from './Cart';
 import { ProductModal } from './ProductModal';
 import { PaymentModal } from './PaymentModal';
-import { Layout } from '../Layout';
-import { Product, CartItem, Customer } from './types';
+import { OrderLayout } from './OrderLayout';
+import { Product, CartItem, Customer } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-import { orderService, OrderResponse } from '../../services/orderService';
+import { orderService } from '../../services/orderService';
+import { OrderResponse } from '../../types';
 import { productService, ProductResponse } from '../../services/productService';
 import { skladService, Sklad } from '../../services/skladService';
-import { showError, showSuccess, showLoading } from '../../lib/toast';
+import { showError, showSuccess } from '../../lib/toast';
+import { USD_RATE, ROUTES } from '../../constants';
 import type { ProductModalConfirmOptions } from './ProductModal';
 
 interface KassaPageProps {
-	onBack: () => void;
 	orderId?: number;
 	readOnly?: boolean;
 }
-export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps) {
+export function KassaPage({ orderId, readOnly = false }: KassaPageProps) {
 	const navigate = useNavigate();
 	const { user } = useAuth();
 	const [cart, setCart] = useState<CartItem[]>([]);
@@ -167,7 +168,7 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
 		if (selectedCustomer) {
 			setIsSaleStarted(true);
 			// Order ID bilan sahifaga yo'naltirish
-			navigate(`/order/${newOrderId}`);
+			navigate(ROUTES.ORDER_EDIT(newOrderId));
 		}
 	};
 
@@ -297,7 +298,6 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
 	};
 	const totalAmount =
 		(orderId ?? orderData?.id) ? totalAmountFromCart : cart.reduce((sum, item) => sum + item.totalPrice, 0);
-	const USD_RATE = 12180;
 	const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : USD_RATE;
 
 	// order_filial yo'q bo'lsa, xabar ko'rsatish
@@ -314,67 +314,59 @@ export function KassaPage({ onBack, orderId, readOnly = false }: KassaPageProps)
 		);
 	}
 
+	// Left sidebar content
+	const leftSidebarContent = (
+		<div className={`h-full ${!isSaleStarted ? 'opacity-50 pointer-events-none' : ''}`}>
+			{isLoadingProducts ? (
+				<div className='flex flex-col items-center justify-center h-full min-h-[200px]'>
+					<Loader2 className='w-8 h-8 animate-spin text-blue-600 mb-4' />
+					<p className='text-sm text-gray-500'>Mahsulotlar yuklanmoqda...</p>
+				</div>
+			) : (
+				<ProductList
+					products={products}
+					appliedSearch={searchQuery}
+					onSearchSubmit={(value) => setSearchQuery(value)}
+					onProductClick={handleProductClick}
+					selectedBranch={selectedBranch}
+					selectedModel={selectedModel}
+					selectedType={selectedType}
+					onBranchChange={handleBranchChange}
+					onModelChange={handleModelChange}
+					onTypeChange={handleTypeChange}
+				/>
+			)}
+		</div>
+	);
+
+	// Main content (Cart)
+	const mainContent = (
+		<Cart
+			items={cart}
+			onUpdateQuantity={readOnly ? () => {} : handleUpdateQuantity}
+			onRemoveItem={readOnly ? () => {} : handleRemoveItem}
+			totalItems={totalAmount}
+			orderData={orderData}
+			selectedCustomer={selectedCustomer}
+			onCustomerChange={readOnly ? undefined : handleCustomerChange}
+			onPayment={readOnly ? undefined : () => setIsPaymentModalOpen(true)}
+			isSaleStarted={isSaleStarted}
+			orderId={orderId}
+			onOrderUpdate={readOnly ? undefined : (updatedOrder) => setOrderData(updatedOrder)}
+			onStartSaleClick={readOnly ? undefined : handleStartSaleClick}
+			isCreatingOrder={isCreatingOrder}
+			refreshCartTrigger={refreshCartTrigger}
+			onCartChange={(items, total) => {
+				setCartItemsForPayment(items);
+				setTotalAmountFromCart(total);
+			}}
+			readOnly={readOnly}
+		/>
+	);
+
 	return (
 		<>
-			{/* Main Content Grid - Responsive */}
-			<div className='flex-1 flex flex-col md:flex-row gap-4 md:gap-0 overflow-x-hidden overflow-y-auto md:overflow-hidden min-h-0'>
-				{/* Left: Product List - only show if not readOnly */}
-				{!readOnly && (
-					<div
-						className={`w-full md:w-1/2 md:min-w-[220px] md:max-w-lg h-[340px] md:h-auto md:border-r border-blue-200/50 bg-white md:bg-transparent ${!isSaleStarted ? 'opacity-50 pointer-events-none' : ''}`}
-						style={{ minHeight: '340px' }}
-					>
-						{isLoadingProducts ? (
-							<div className='flex flex-col items-center justify-center h-full min-h-[200px]'>
-								<Loader2 className='w-8 h-8 animate-spin text-blue-600 mb-4' />
-								<p className='text-sm text-gray-500'>Mahsulotlar yuklanmoqda...</p>
-							</div>
-						) : (
-							<ProductList
-								products={products}
-								appliedSearch={searchQuery}
-								onSearchSubmit={(value) => setSearchQuery(value)}
-								onProductClick={handleProductClick}
-								selectedBranch={selectedBranch}
-								selectedModel={selectedModel}
-								selectedType={selectedType}
-								onBranchChange={handleBranchChange}
-								onModelChange={handleModelChange}
-								onTypeChange={handleTypeChange}
-							/>
-						)}
-					</div>
-				)}
-
-				{/* Center: Cart (100% readOnly mode da, aks holda flex-1) */}
-				<div
-					className={
-						readOnly ? 'w-full h-full' : 'flex-1 h-full min-w-0 md:min-w-[240px] max-w-full md:max-w-full'
-					}
-				>
-					<Cart
-						items={cart}
-						onUpdateQuantity={readOnly ? () => {} : handleUpdateQuantity}
-						onRemoveItem={readOnly ? () => {} : handleRemoveItem}
-						totalItems={totalAmount}
-						orderData={orderData}
-						selectedCustomer={selectedCustomer}
-						onCustomerChange={readOnly ? undefined : handleCustomerChange}
-						onPayment={readOnly ? undefined : () => setIsPaymentModalOpen(true)}
-						isSaleStarted={isSaleStarted}
-						orderId={orderId}
-						onOrderUpdate={readOnly ? undefined : (updatedOrder) => setOrderData(updatedOrder)}
-						onStartSaleClick={readOnly ? undefined : handleStartSaleClick}
-						isCreatingOrder={isCreatingOrder}
-						refreshCartTrigger={refreshCartTrigger}
-						onCartChange={(items, total) => {
-							setCartItemsForPayment(items);
-							setTotalAmountFromCart(total);
-						}}
-						readOnly={readOnly}
-					/>
-				</div>
-			</div>
+			<OrderLayout leftSidebar={leftSidebarContent} mainContent={mainContent} readOnly={readOnly} />
 
 			{/* Modals - only show if not readOnly */}
 			{!readOnly && (

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Star, RotateCcw } from 'lucide-react';
-import { Product } from './types';
+import { Product } from '../../types';
 import { Input } from '../ui/Input';
 import { productService, Branch } from '../../services/productService';
 import { Autocomplete } from '../ui/Autocomplete';
@@ -85,21 +85,21 @@ export function ProductList({
             { id: 'all', label: 'Barcha kategoriyalar', value: 'all' },
             ...branches.map((b) => ({ id: String(b.id), label: b.name, value: String(b.id) })),
         ],
-        [branches]
+        [branches],
     );
     const modelOptions = useMemo(
         () => [
             { id: 'all', label: 'Barcha modellar', value: 'all' },
             ...uniqueModels.map((m) => ({ id: String(m.id), label: m.name, value: String(m.id) })),
         ],
-        [uniqueModels]
+        [uniqueModels],
     );
     const typeOptions = useMemo(
         () => [
             { id: 'all', label: 'Barcha turlar', value: 'all' },
             ...uniqueTypes.map((t) => ({ id: String(t.id), label: t.name, value: String(t.id) })),
         ],
-        [uniqueTypes]
+        [uniqueTypes],
     );
 
     const handleSearchSubmit = () => {
@@ -115,36 +115,36 @@ export function ProductList({
     };
 
     return (
-        <div className="flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 border-r border-blue-200/50">
+        <div className='flex flex-col h-full min-h-0 bg-gradient-to-b from-white to-blue-50/30 overflow-hidden'>
             {/* Qidiruv — faqat submit da backend ga boradi; tugmalar faqat icon */}
-            <div className="p-3 border-b border-blue-200/50 bg-white/90 backdrop-blur-sm">
-                <div className="flex gap-2">
-                    <div className="relative flex-1">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search size={16} className="text-blue-600/70" />
+            <div className='p-3 border-b border-blue-200/50 bg-white/90 backdrop-blur-sm'>
+                <div className='flex gap-2'>
+                    <div className='relative flex-1'>
+                        <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+                            <Search size={16} className='text-blue-600/70' />
                         </div>
                         <Input
-                            type="text"
-                            placeholder="Mahsulot qidirish..."
+                            type='text'
+                            placeholder='Mahsulot qidirish...'
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleSearchSubmit())}
-                            className="pl-9 h-9 text-sm bg-white border-blue-200 focus:border-blue-400 focus:ring-blue-200"
+                            className='pl-9 h-9 text-sm bg-white border-blue-200 focus:border-blue-400 focus:ring-blue-200'
                         />
                     </div>
                     <button
-                        type="button"
+                        type='button'
                         onClick={handleSearchSubmit}
-                        title="Qidirish"
-                        className="h-9 w-9 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center shrink-0"
+                        title='Qidirish'
+                        className='h-9 w-9 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center shrink-0'
                     >
                         <Search size={18} />
                     </button>
                     <button
-                        type="button"
+                        type='button'
                         onClick={handleClear}
-                        title="Tozalash"
-                        className="h-9 w-9 rounded-lg border border-blue-200 bg-white hover:bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"
+                        title='Tozalash'
+                        className='h-9 w-9 rounded-lg border border-blue-200 bg-white hover:bg-blue-50 text-blue-600 flex items-center justify-center shrink-0'
                     >
                         <RotateCcw size={18} />
                     </button>
@@ -152,83 +152,87 @@ export function ProductList({
             </div>
 
             {/* Filterlar: bir qatorda 3 ta, butun width bo'yicha */}
-            <div className="p-2 grid grid-cols-3 gap-2 border-b border-blue-200/50 bg-white/80 backdrop-blur-sm">
+            <div className='p-2 grid grid-cols-3 gap-2 border-b border-blue-200/50 bg-white/80 backdrop-blur-sm'>
                 <Autocomplete
                     options={branchOptions}
                     value={selectedBranch?.toString() ?? 'all'}
                     onChange={(v) => onBranchChange?.(v === 'all' ? null : parseInt(v))}
                     placeholder={isLoadingBranches ? '...' : 'Kategoriya'}
                     className={`${filterAutocompleteClass} w-full min-w-0`}
-                    emptyMessage="Kategoriya topilmadi"
+                    emptyMessage='Kategoriya topilmadi'
                 />
                 <Autocomplete
                     options={modelOptions}
                     value={selectedModel?.toString() ?? 'all'}
                     onChange={(v) => onModelChange?.(v === 'all' ? null : parseInt(v))}
-                    placeholder="Model"
+                    placeholder='Model'
                     className={`${filterAutocompleteClass} w-full min-w-0`}
-                    emptyMessage="Model topilmadi"
+                    emptyMessage='Model topilmadi'
                 />
                 <Autocomplete
                     options={typeOptions}
                     value={selectedType?.toString() ?? 'all'}
                     onChange={(v) => onTypeChange?.(v === 'all' ? null : parseInt(v))}
-                    placeholder="Turi"
+                    placeholder='Turi'
                     className={`${filterAutocompleteClass} w-full min-w-0`}
-                    emptyMessage="Tur topilmadi"
+                    emptyMessage='Tur topilmadi'
                 />
             </div>
 
             {/* Ro'yxat */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            <div className='flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-2 min-h-0'>
                 {products.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                        <Search size={48} className="mb-4 opacity-50" />
-                        <p className="text-sm">Mahsulotlar topilmadi</p>
+                    <div className='flex flex-col items-center justify-center py-12 text-gray-500'>
+                        <Search size={48} className='mb-4 opacity-50' />
+                        <p className='text-sm'>Mahsulotlar topilmadi</p>
                     </div>
                 ) : (
                     products.map((product) => (
                         <button
                             key={product.id}
                             onClick={() => onProductClick(product)}
-                            className="w-full text-left p-4 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 border-2 border-transparent hover:border-blue-300 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex justify-between items-start group"
+                            className='w-full text-left p-4 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 border-2 border-transparent hover:border-blue-300 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex justify-between items-start group'
                         >
-                            <div className="flex items-start space-x-3 flex-1 min-w-0">
+                            <div className='flex items-start space-x-3 flex-1 min-w-0'>
                                 {product.isFavorite && (
-                                    <Star size={16} className="text-orange-400 mt-0.5 flex-shrink-0" fill="currentColor" />
+                                    <Star
+                                        size={16}
+                                        className='text-orange-400 mt-0.5 flex-shrink-0'
+                                        fill='currentColor'
+                                    />
                                 )}
                                 {product.image && (
                                     <img
                                         src={product.image}
                                         alt={product.name}
-                                        className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
+                                        className='w-12 h-12 object-cover rounded-lg flex-shrink-0'
                                     />
                                 )}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex flex-wrap gap-2 mt-1.5">
+                                <div className='flex-1 min-w-0'>
+                                    <div className='flex flex-wrap gap-2 mt-1.5'>
                                         {product.branchName && (
-                                            <span className="text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded">
+                                            <span className='text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded'>
                                                 Kategoriya: {product.branchName}
                                             </span>
                                         )}
                                         {product.modelName && (
-                                            <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded">
+                                            <span className='text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded'>
                                                 Modeli: {product.modelName}
                                             </span>
                                         )}
                                         {product.typeName && (
-                                            <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded">
+                                            <span className='text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded'>
                                                 Turi: {product.typeName}
                                             </span>
                                         )}
                                         {product.size !== undefined && product.size !== null && (
-                                            <span className="text-xs text-purple-600 font-medium bg-purple-50 px-2 py-0.5 rounded">
+                                            <span className='text-xs text-purple-600 font-medium bg-purple-50 px-2 py-0.5 rounded'>
                                                 O'lchami: {product.size}
                                                 {product.unitCode ? ` ${product.unitCode}` : ''}
                                             </span>
                                         )}
                                         {product.stock !== undefined && (
-                                            <span className="text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded">
+                                            <span className='text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded'>
                                                 Soni: {product.stock}
                                                 {product.unitCode ? ` ${product.unitCode}` : ''}
                                             </span>

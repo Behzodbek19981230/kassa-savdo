@@ -1,7 +1,5 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-
-// API base URL - environment variable dan olish yoki default qiymat
-const API_BASE_URL = (import.meta.env as { VITE_API_BASE_URL?: string }).VITE_API_BASE_URL || 'https://api-savdo.elegantchinni.uz/api';
+import { API_BASE_URL, STORAGE_KEYS } from '../constants';
 
 // Axios instance yaratish
 const api: AxiosInstance = axios.create({
@@ -9,13 +7,13 @@ const api: AxiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 30000, // 30 soniya
+    timeout: 30000,
 });
 
 // Request interceptor - har bir so'rovdan oldin token qo'shish
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
 
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -40,7 +38,7 @@ api.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
-            const refreshToken = localStorage.getItem('refresh_token');
+            const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
             // Refresh token mavjud bo'lsa, yangi access token olishga harakat qilish
             if (refreshToken) {
@@ -57,7 +55,7 @@ api.interceptors.response.use(
                     );
 
                     const newAccessToken = refreshResponse.data.access;
-                    localStorage.setItem('auth_token', newAccessToken);
+                    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, newAccessToken);
 
                     // Original so'rovni yangi token bilan qayta yuborish
                     if (originalRequest.headers) {
@@ -67,9 +65,9 @@ api.interceptors.response.use(
                     return api(originalRequest);
                 } catch (refreshError) {
                     // Refresh token ham yaroqsiz bo'lsa, logout qilish
-                    localStorage.removeItem('auth_token');
-                    localStorage.removeItem('refresh_token');
-                    localStorage.removeItem('kassir');
+                    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+                    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+                    localStorage.removeItem(STORAGE_KEYS.KASSIR);
 
                     // Faqat login sahifasida bo'lmasa, login sahifasiga yo'naltirish
                     if (window.location.pathname !== '/login') {
@@ -78,9 +76,9 @@ api.interceptors.response.use(
                 }
             } else {
                 // Refresh token yo'q bo'lsa, logout qilish
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('refresh_token');
-                localStorage.removeItem('kassir');
+                localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+                localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+                localStorage.removeItem(STORAGE_KEYS.KASSIR);
 
                 // Faqat login sahifasida bo'lmasa, login sahifasiga yo'naltirish
                 if (window.location.pathname !== '/login') {

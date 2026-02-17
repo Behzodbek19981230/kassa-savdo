@@ -3,9 +3,9 @@ import { X, Printer, Banknote, CreditCard, Smartphone, CheckCircle2, FileText, T
 import { useReactToPrint } from 'react-to-print';
 import { Input } from '../ui/Input';
 import { Receipt } from './Receipt';
-import { CartItem, Customer, Sale } from './types';
+import { CartItem, Customer, Sale, OrderResponse } from '../../types';
 import { useSales } from '../../contexts/SalesContext';
-import { orderService, OrderResponse } from '../../services/orderService';
+import { orderService } from '../../services/orderService';
 import { showSuccess, showError } from '../../lib/toast';
 import { useNavigate } from 'react-router-dom';
 

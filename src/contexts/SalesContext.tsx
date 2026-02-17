@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Sale } from '../components/Kassa/types';
-
-const USD_RATE = 12180;
+import { Sale } from '../types';
+import { USD_RATE } from '../constants';
 
 const MOCK_SALES: Sale[] = (() => {
 	const now = new Date();

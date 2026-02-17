@@ -1,4 +1,5 @@
 import api from './api';
+import { STORAGE_KEYS } from '../constants';
 
 export interface LoginRequest {
 	username: string;
@@ -32,8 +33,8 @@ export const authService = {
 	},
 
 	logout: () => {
-		localStorage.removeItem('auth_token');
-		localStorage.removeItem('refresh_token');
-		localStorage.removeItem('kassir');
+		localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+		localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+		localStorage.removeItem(STORAGE_KEYS.KASSIR);
 	},
 };

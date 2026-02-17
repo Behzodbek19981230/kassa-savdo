@@ -46,3 +46,9 @@
 [data-sonner-toaster] {
   z-index: 9999 !important;
 }
+
+/* Autocomplete ochiq bo'lganda boshqa scrolllarni o'chirish */
+body.autocomplete-open .flex-1.overflow-y-auto:not([data-autocomplete-list]) {
+  pointer-events: none !important;
+  user-select: none !important;
+}

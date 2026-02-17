@@ -1,6 +1,5 @@
-import { Trash2, Plus, User, Loader2, DollarSign, X } from 'lucide-react';
-import { CartItem, Customer } from './types';
-import { OrderResponse } from '../../services/orderService';
+import { Trash2, Plus, User, Loader2, DollarSign, X, Globe } from 'lucide-react';
+import { CartItem, Customer, OrderResponse } from '../../types';
 import { Autocomplete, AutocompleteOption } from '../ui/Autocomplete';
 import { useState, useEffect, useCallback } from 'react';
 import { clientService, Client } from '../../services/clientService';
@@ -9,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { CustomerModal } from './CustomerModal';
 import { orderService } from '../../services/orderService';
 import { useNavigate } from 'react-router-dom';
+import { currencyService, Currency } from '../../services/currencyService';
 
 interface CartProps {
 	items: CartItem[];
@@ -61,6 +61,10 @@ export function Cart({
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [cartItemsFromApi, setCartItemsFromApi] = useState<CartItem[]>([]);
 	const [isLoadingCart, setIsLoadingCart] = useState(false);
+	const [currencies, setCurrencies] = useState<Currency[]>([]);
+	const [selectedCurrencyId, setSelectedCurrencyId] = useState<number | null>(null);
+	const [isLoadingCurrencies, setIsLoadingCurrencies] = useState(false);
+	const [isUpdatingCurrency, setIsUpdatingCurrency] = useState(false);
 
 	// Order-history-product dan CartItem ga transform (Yangi API: product_detail qo'shildi)
 	const transformOrderProductToCartItem = useCallback((op: any): CartItem => {
@@ -146,6 +150,30 @@ export function Cart({
 			setCartItemsFromApi([]);
 		}
 	}, [orderId, orderData?.id, loadOrderProducts, refreshCartTrigger]);
+
+	// Currency ro'yxatini yuklash
+	useEffect(() => {
+		const loadCurrencies = async () => {
+			setIsLoadingCurrencies(true);
+			try {
+				const currencyList = await currencyService.getCurrencies();
+				setCurrencies(currencyList);
+			} catch (error) {
+				console.error('Failed to load currencies:', error);
+				showError('Valyutalarni yuklashda xatolik');
+			} finally {
+				setIsLoadingCurrencies(false);
+			}
+		};
+		loadCurrencies();
+	}, []);
+
+	// OrderData dan currency ni olish
+	useEffect(() => {
+		if (orderData?.currency) {
+			setSelectedCurrencyId(orderData.currency);
+		}
+	}, [orderData?.currency]);
 
 	// Order mavjud bo'lsa API dan kelgan ro'yxat, yo'q bo'lsa parent dan kelgan items
 	const displayItems = (orderId ?? orderData?.id) ? cartItemsFromApi : items;
@@ -514,6 +542,56 @@ export function Cart({
 									<div className='text-[10px] opacity-80 whitespace-nowrap'>
 										{selectedCustomer.phone}
 									</div>
+								)}
+							</div>
+						</div>
+					)}
+
+					{/* Currency selector - faqat orderData mavjud bo'lsa */}
+					{orderData && !readOnly && (
+						<div className='flex items-center gap-2 bg-white/20 px-3 py-2 rounded-xl backdrop-blur-sm shrink-0'>
+							<Globe className='w-4 h-4 text-white/90 shrink-0' />
+							<div className='min-w-[120px]'>
+								{isLoadingCurrencies ? (
+									<div className='flex items-center gap-2 text-white/80 text-xs'>
+										<Loader2 className='w-4 h-4 animate-spin' />
+										<span>Yuklanmoqda...</span>
+									</div>
+								) : (
+									<Autocomplete
+										options={currencies.map((c) => ({
+											id: String(c.id),
+											label: `${c.name} (${c.code})`,
+											value: String(c.id),
+										}))}
+										value={selectedCurrencyId?.toString() || ''}
+										onChange={async (value) => {
+											if (!orderData || !orderId) return;
+											const currencyId = value ? parseInt(value) : 0;
+											setIsUpdatingCurrency(true);
+											try {
+												const updatedOrder = await orderService.updateOrder(orderId, {
+													currency: currencyId,
+												});
+												setSelectedCurrencyId(currencyId);
+												onOrderUpdate?.(updatedOrder);
+												showSuccess('Valyuta muvaffaqiyatli yangilandi');
+											} catch (error: any) {
+												console.error('Failed to update currency:', error);
+												const errorMessage =
+													error?.response?.data?.detail ||
+													error?.message ||
+													'Valyutani yangilashda xatolik yuz berdi';
+												showError(errorMessage);
+											} finally {
+												setIsUpdatingCurrency(false);
+											}
+										}}
+										placeholder='Valyuta...'
+										emptyMessage='Valyuta topilmadi'
+										disabled={isUpdatingCurrency}
+										className='!h-8 !min-h-8 text-xs'
+									/>
 								)}
 							</div>
 						</div>

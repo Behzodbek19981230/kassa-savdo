@@ -28,6 +28,7 @@ export interface CreateOrderRequest {
     status_order_sklad?: boolean;
     driver_info?: string;
     is_karzinka?: boolean;
+    currency?: number;
 }
 
 export interface RegionDetail {
@@ -132,6 +133,7 @@ export interface OrderResponse {
     created_by_detail?: CreatedByDetail | null;
     order_filial?: number | null;
     order_filial_detail?: OrderFilialDetail | null;
+    currency?: number | null;
 }
 
 // Order service

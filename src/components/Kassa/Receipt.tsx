@@ -1,6 +1,5 @@
 import { QRCodeSVG } from 'qrcode.react';
-import { CartItem } from './types';
-import { Customer } from './types';
+import { CartItem, Customer } from '../../types';
 
 interface ReceiptProps {
 	items: CartItem[];
