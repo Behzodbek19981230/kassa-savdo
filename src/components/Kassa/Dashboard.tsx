@@ -1,11 +1,13 @@
-import { Plus, Eye, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Plus, Eye, Loader2, ArrowRight, CheckCircle2, Edit, Trash2, X } from 'lucide-react';
 import { useState, useMemo, Fragment } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useOrdersMySelf } from '../../hooks/useOrders';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import type { OrderResponse } from '../../services/orderService';
+import { orderService } from '../../services/orderService';
 import { userService } from '../../services/userService';
+import { showError, showSuccess } from '../../lib/toast';
 
 interface DashboardProps {
 	onNewSale?: () => void;
@@ -49,7 +51,11 @@ function tolovSummasi(order: OrderResponse): number {
 
 export function Dashboard({ onNewSale }: DashboardProps) {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const [filters, setFilters] = useState<ColumnFilters>(defaultFilters);
+	const [deletingOrderId, setDeletingOrderId] = useState<number | null>(null);
+	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+	const [orderToDelete, setOrderToDelete] = useState<any | null>(null);
 
 	// Barcha filterlar backend params orqali
 	const orderParams = useMemo(() => {
@@ -91,7 +97,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 		filters.sana,
 	]);
 
-	const { data: ordersData, isLoading, error } = useOrdersMySelf(orderParams);
+	const { data: ordersData, isLoading, error, refetch } = useOrdersMySelf(orderParams);
 
 	const { data: usersData } = useQuery({
 		queryKey: ['users-list'],
@@ -132,6 +138,42 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 
 	const setFilter = (key: keyof ColumnFilters, value: string | '' | 'karzinka' | 'yakunlangan') => {
 		setFilters((prev) => ({ ...prev, [key]: value }));
+	};
+
+	// Order ni tahrirlash
+	const handleEdit = (order: any) => {
+		const isKarzinka = order.is_karzinka;
+		const orderPath = isKarzinka ? `/order/${order.id}` : `/order/${order.id}`;
+		navigate(orderPath);
+	};
+
+	// Order ni o'chirish modalini ochish
+	const handleDeleteClick = (order: any) => {
+		setOrderToDelete(order);
+		setDeleteModalOpen(true);
+	};
+
+	// Order ni o'chirish
+	const handleDelete = async () => {
+		if (!orderToDelete) return;
+
+		setDeletingOrderId(orderToDelete.id);
+		try {
+			await orderService.deleteOrder(orderToDelete.id);
+			showSuccess("Savdo muvaffaqiyatli o'chirildi");
+			// Query ni invalidate qilish va refetch - ro'yxatni yangilash
+			queryClient.invalidateQueries({ queryKey: ['orders-my-self'] });
+			await refetch();
+			setDeleteModalOpen(false);
+			setOrderToDelete(null);
+		} catch (error: any) {
+			console.error('Failed to delete order:', error);
+			const errorMessage =
+				error?.response?.data?.detail || error?.message || "Savdoni o'chirishda xatolik yuz berdi";
+			showError(errorMessage);
+		} finally {
+			setDeletingOrderId(null);
+		}
 	};
 
 	return (
@@ -399,21 +441,41 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																	)}
 																</td>
 																<td className='p-2 text-center group-hover:bg-blue-50/30 transition-colors'>
-																	<button
-																		onClick={() => navigate(orderPath)}
-																		className={`inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 ${
-																			isKarzinka
-																				? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-																				: 'bg-green-500 hover:bg-green-600 text-white'
-																		}`}
-																		title={isKarzinka ? 'Davom etish' : "Ko'rish"}
-																	>
-																		{isKarzinka ? (
-																			<ArrowRight size={18} />
-																		) : (
-																			<Eye size={18} />
-																		)}
-																	</button>
+																	<div className='flex items-center justify-center gap-1'>
+																		{/* Edit button */}
+																		<button
+																			onClick={() => handleEdit(order)}
+																			className='inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 bg-blue-500 hover:bg-blue-600 text-white'
+																			title='Tahrirlash'
+																		>
+																			<Edit size={16} />
+																		</button>
+																		{/* View/Continue button */}
+																		<button
+																			onClick={() => navigate(orderPath)}
+																			className={`inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 ${
+																				isKarzinka
+																					? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+																					: 'bg-green-500 hover:bg-green-600 text-white'
+																			}`}
+																			title={isKarzinka ? 'Davom etish' : "Ko'rish"}
+																		>
+																			{isKarzinka ? (
+																				<ArrowRight size={18} />
+																			) : (
+																				<Eye size={18} />
+																			)}
+																		</button>
+																		{/* Delete button */}
+																		<button
+																			onClick={() => handleDeleteClick(order)}
+																			disabled={deletingOrderId === order.id}
+																			className='inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 disabled:cursor-not-allowed'
+																			title="O'chirish"
+																		>
+																			<Trash2 size={16} />
+																		</button>
+																	</div>
 																</td>
 															</tr>
 														);
@@ -442,6 +504,63 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 					</div>
 				)}
 			</div>
+
+			{/* Delete Confirmation Modal */}
+			{deleteModalOpen && (
+				<div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+					<div className='bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-red-200'>
+						<div className='flex justify-between items-center p-5 border-b-2 border-red-100 bg-gradient-to-r from-red-50 to-pink-50'>
+							<h3 className='text-xl font-bold text-gray-900'>Savdoni o'chirish</h3>
+							<button
+								onClick={() => {
+									setDeleteModalOpen(false);
+									setOrderToDelete(null);
+								}}
+								disabled={deletingOrderId !== null}
+								className='text-gray-500 hover:text-red-600 hover:bg-white p-2 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+							>
+								<X size={24} />
+							</button>
+						</div>
+
+						<div className='p-6 bg-white'>
+							<p className='text-gray-700 mb-6'>
+								Savdo #{orderToDelete?.id} ni o'chirishni tasdiqlaysizmi? Bu amalni qaytarib bo'lmaydi.
+							</p>
+
+							<div className='flex gap-3 justify-end'>
+								<button
+									onClick={() => {
+										setDeleteModalOpen(false);
+										setOrderToDelete(null);
+									}}
+									disabled={deletingOrderId !== null}
+									className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed'
+								>
+									Bekor qilish
+								</button>
+								<button
+									onClick={handleDelete}
+									disabled={deletingOrderId !== null}
+									className='px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+								>
+									{deletingOrderId !== null ? (
+										<>
+											<Loader2 className='w-4 h-4 animate-spin' />
+											<span>O'chirilmoqda...</span>
+										</>
+									) : (
+										<>
+											<Trash2 className='w-4 h-4' />
+											<span>Ha, o'chirish</span>
+										</>
+									)}
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, Star, RotateCcw, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Product } from '../../types';
 import { Input } from '../ui/Input';
@@ -16,6 +16,9 @@ interface ProductListProps {
     onBranchChange?: (branchId: number | null) => void;
     onModelChange?: (modelId: number | null) => void;
     onTypeChange?: (typeId: number | null) => void;
+    onScrollToBottom?: () => void;
+    hasMore?: boolean;
+    isLoadingMore?: boolean;
 }
 
 const filterAutocompleteClass =
@@ -32,6 +35,9 @@ export function ProductList({
     onBranchChange,
     onModelChange,
     onTypeChange,
+    onScrollToBottom,
+    hasMore = false,
+    isLoadingMore = false,
 }: ProductListProps) {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [isLoadingBranches, setIsLoadingBranches] = useState(false);
@@ -40,6 +46,7 @@ export function ProductList({
     const [selectedProductImages, setSelectedProductImages] = useState<ProductImage[]>([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isLoadingImages, setIsLoadingImages] = useState(false);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setSearchInput(appliedSearch);
@@ -137,6 +144,28 @@ export function ProductList({
         }
     };
 
+    // Scroll event handler
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container || !onScrollToBottom || !hasMore) return;
+
+        const handleScroll = () => {
+            const threshold = 100; // 100px qoldiqda yuklash
+            const scrollTop = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+
+            if (scrollHeight - scrollTop <= clientHeight + threshold && !isLoadingMore) {
+                onScrollToBottom();
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => {
+            container.removeEventListener('scroll', handleScroll);
+        };
+    }, [onScrollToBottom, hasMore, isLoadingMore]);
+
     return (
         <div className='flex flex-col h-full min-h-0 bg-gradient-to-b from-white to-blue-50/30 overflow-hidden'>
             {/* Qidiruv — faqat submit da backend ga boradi; tugmalar faqat icon */}
@@ -203,83 +232,101 @@ export function ProductList({
             </div>
 
             {/* Ro'yxat */}
-            <div className='flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-2 min-h-0'>
+            <div
+                ref={scrollContainerRef}
+                className='flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-2 min-h-0'
+            >
                 {products.length === 0 ? (
                     <div className='flex flex-col items-center justify-center py-12 text-gray-500'>
                         <Search size={48} className='mb-4 opacity-50' />
                         <p className='text-sm'>Mahsulotlar topilmadi</p>
                     </div>
                 ) : (
-                    products.map((product) => (
-                        <button
-                            key={product.id}
-                            onClick={() => onProductClick(product)}
-                            className='w-full text-left p-4 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 border-2 border-transparent hover:border-blue-300 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex justify-between items-start group'
-                        >
-                            <div className='flex items-start space-x-3 flex-1 min-w-0'>
-                                {/* Product Image */}
-                                <div className='relative flex-shrink-0'>
-                                    {product.image ? (
-                                        <img
-                                            src={product.image}
-                                            alt={product.name}
-                                            className='w-16 h-16 object-cover rounded-lg border-2 border-gray-200 group-hover:border-blue-300 transition-colors cursor-pointer'
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleImageClick(product);
-                                            }}
-                                            onError={(e) => {
-                                                // Agar rasm yuklanmasa, placeholder ko'rsatish
-                                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"%3E%3Crect fill="%23e5e7eb" width="64" height="64"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-size="24"%3E%3F%3C/text%3E%3C/svg%3E';
-                                            }}
-                                        />
-                                    ) : (
-                                        <div className='w-16 h-16 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center'>
-                                            <span className='text-gray-400 text-xs'>Rasm</span>
-                                        </div>
-                                    )}
-                                    {product.isFavorite && (
-                                        <Star
-                                            size={14}
-                                            className='absolute -top-1 -right-1 text-orange-400 bg-white rounded-full p-0.5'
-                                            fill='currentColor'
-                                        />
-                                    )}
-                                </div>
-                                <div className='flex-1 min-w-0'>
-                                    <div className='flex flex-wrap gap-2 mt-1.5'>
-                                        {product.branchName && (
-                                            <span className='text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded'>
-                                                Kategoriya: {product.branchName}
-                                            </span>
+                    <>
+                        {products.map((product) => (
+                            <button
+                                key={product.id}
+                                onClick={() => onProductClick(product)}
+                                className='w-full text-left p-4 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 border-2 border-transparent hover:border-blue-300 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex justify-between items-start group'
+                            >
+                                <div className='flex items-start space-x-3 flex-1 min-w-0'>
+                                    {/* Product Image */}
+                                    <div className='relative flex-shrink-0'>
+                                        {product.image ? (
+                                            <img
+                                                src={product.image}
+                                                alt={product.name}
+                                                className='w-16 h-16 object-cover rounded-lg border-2 border-gray-200 group-hover:border-blue-300 transition-colors cursor-pointer'
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleImageClick(product);
+                                                }}
+                                                onError={(e) => {
+                                                    // Agar rasm yuklanmasa, placeholder ko'rsatish
+                                                    (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"%3E%3Crect fill="%23e5e7eb" width="64" height="64"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-size="24"%3E%3F%3C/text%3E%3C/svg%3E';
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className='w-16 h-16 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center'>
+                                                <span className='text-gray-400 text-xs'>Rasm</span>
+                                            </div>
                                         )}
-                                        {product.modelName && (
-                                            <span className='text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded'>
-                                                Modeli: {product.modelName}
-                                            </span>
-                                        )}
-                                        {product.typeName && (
-                                            <span className='text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded'>
-                                                Turi: {product.typeName}
-                                            </span>
-                                        )}
-                                        {product.size !== undefined && product.size !== null && (
-                                            <span className='text-xs text-purple-600 font-medium bg-purple-50 px-2 py-0.5 rounded'>
-                                                O'lchami: {product.size}
-                                                {product.unitCode ? ` ${product.unitCode}` : ''}
-                                            </span>
-                                        )}
-                                        {product.stock !== undefined && (
-                                            <span className='text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded'>
-                                                Soni: {product.stock}
-                                                {product.unitCode ? ` ${product.unitCode}` : ''}
-                                            </span>
+                                        {product.isFavorite && (
+                                            <Star
+                                                size={14}
+                                                className='absolute -top-1 -right-1 text-orange-400 bg-white rounded-full p-0.5'
+                                                fill='currentColor'
+                                            />
                                         )}
                                     </div>
+                                    <div className='flex-1 min-w-0'>
+                                        <div className='flex flex-wrap gap-2 mt-1.5'>
+                                            {product.branchName && (
+                                                <span className='text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded'>
+                                                    Kategoriya: {product.branchName}
+                                                </span>
+                                            )}
+                                            {product.modelName && (
+                                                <span className='text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded'>
+                                                    Modeli: {product.modelName}
+                                                </span>
+                                            )}
+                                            {product.typeName && (
+                                                <span className='text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded'>
+                                                    Turi: {product.typeName}
+                                                </span>
+                                            )}
+                                            {product.size !== undefined && product.size !== null && (
+                                                <span className='text-xs text-purple-600 font-medium bg-purple-50 px-2 py-0.5 rounded'>
+                                                    O'lchami: {product.size}
+                                                    {product.unitCode ? ` ${product.unitCode}` : ''}
+                                                </span>
+                                            )}
+                                            {product.stock !== undefined && (
+                                                <span className='text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded'>
+                                                    Soni: {product.stock}
+                                                    {product.unitCode ? ` ${product.unitCode}` : ''}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
+                            </button>
+                        ))}
+                        {/* Loading indicator for pagination */}
+                        {isLoadingMore && (
+                            <div className='flex items-center justify-center py-4'>
+                                <Loader2 className='w-6 h-6 animate-spin text-blue-600 mr-2' />
+                                <span className='text-sm text-gray-500'>Yuklanmoqda...</span>
                             </div>
-                        </button>
-                    ))
+                        )}
+                        {/* End of list indicator */}
+                        {!hasMore && products.length > 0 && (
+                            <div className='flex items-center justify-center py-4'>
+                                <span className='text-sm text-gray-400'>Barcha mahsulotlar ko'rsatildi</span>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 

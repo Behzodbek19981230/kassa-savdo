@@ -73,6 +73,7 @@ export function Cart({
         // Avval eski strukturadan detail ma'lumotlarini olish (backward compatibility)
         // Agar ular null bo'lsa, product_detail ichidagi ID lardan foydalanish
         const branchDetail = op.branch_detail ?? null;
+        const branchCategoryDetail = op.branch_category_detail ?? productDetail?.branch_category_detail ?? null;
         const modelDetail = op.model_detail ?? null;
         const typeDetail = op.type_detail ?? null;
         const sizeDetail = op.size_detail ?? null;
@@ -112,6 +113,7 @@ export function Cart({
             totalPrice: quantity * price,
             image: productDetail?.images?.[0]?.file ?? op.product?.images?.[0]?.file ?? op.images?.[0]?.file,
             branchName: branchDetail?.name ?? undefined,
+            branchCategoryName: branchCategoryDetail?.name ?? undefined,
             modelName: modelDetail?.name ?? undefined,
             typeName: typeDetail?.name ?? undefined,
             size: sizeDetail?.size ?? undefined,
@@ -728,8 +730,25 @@ export function Cart({
 
                                 {/* Product Details */}
                                 <div className='flex-1 px-2 sm:px-3 min-w-0'>
-                                    <div className='font-semibold text-gray-900 text-xs sm:text-sm truncate'>
-                                        {item.name}
+                                    <div className='flex flex-wrap gap-3 text-sm text-gray-600'>
+                                        {item.branchCategoryName && (
+                                            <div className='flex items-center gap-1'>
+                                                <span className='font-semibold text-indigo-600'>Kategoriya:</span>
+                                                <span>{item.branchCategoryName}</span>
+                                            </div>
+                                        )}
+                                        {item.modelName && (
+                                            <div className='flex items-center gap-1'>
+                                                <span className='font-semibold text-indigo-600'>Modeli:</span>
+                                                <span>{item.modelName}</span>
+                                            </div>
+                                        )}
+                                        {item.typeName && (
+                                            <div className='flex items-center gap-1'>
+                                                <span className='font-semibold text-indigo-600'>Model turi:</span>
+                                                <span>{item.typeName}</span>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className='text-xs text-blue-600 font-medium mt-1'>
                                         {item.price.toLocaleString()} UZS

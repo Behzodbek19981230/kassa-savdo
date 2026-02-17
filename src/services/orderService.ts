@@ -266,18 +266,25 @@ export const orderService = {
         order_history?: number;
         count: number;
         product?: number;
-        unit_price?: number;
-        wholesale_price?: number;
         sklad?: number;
+        price_dollar?: number;
+        price_sum?: number;
     }): Promise<any> => {
         const requestData: any = {
             order_history: data.order_history,
             product: data.product,
             count: data.count,
-            unit_price: data.unit_price ?? 0,
-            wholesale_price: data.wholesale_price ?? 0,
             sklad: data.sklad ?? null,
         };
+        
+        // price_dollar va price_sum ni qo'shish
+        if (data.price_dollar != null) {
+            requestData.price_dollar = data.price_dollar;
+        }
+        if (data.price_sum != null) {
+            requestData.price_sum = data.price_sum;
+        }
+        
         const response = await api.post('/v1/order-history-product', requestData);
         return response.data;
     },

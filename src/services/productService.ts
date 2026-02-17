@@ -80,6 +80,7 @@ export const productService = {
     getProducts: async (params?: {
         page?: number;
         per_page?: number;
+        limit?: number;
         search?: string;
         filial?: number;
         branch?: number;
@@ -88,7 +89,8 @@ export const productService = {
     }): Promise<ProductsResponse> => {
         const queryParams = new URLSearchParams();
         if (params?.page) queryParams.append('page', params.page.toString());
-        if (params?.per_page) queryParams.append('per_page', params.per_page.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        else if (params?.per_page) queryParams.append('per_page', params.per_page.toString());
         if (params?.search) queryParams.append('search', params.search);
         if (params?.filial) queryParams.append('filial', params.filial.toString());
         if (params?.branch) queryParams.append('branch', params.branch.toString());

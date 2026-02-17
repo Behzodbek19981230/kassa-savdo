@@ -32,6 +32,9 @@ export function KassaPage({ orderId, readOnly = false }: KassaPageProps) {
     const [orderData, setOrderData] = useState<OrderResponse | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
     const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
     const [selectedModel, setSelectedModel] = useState<number | null>(null);
     const [selectedType, setSelectedType] = useState<number | null>(null);
@@ -135,10 +138,15 @@ export function KassaPage({ orderId, readOnly = false }: KassaPageProps) {
 
     // Mahsulotlarni /api/v1/product dan yuklash (har doim)
     const loadProducts = useCallback(
-        async (search?: string, branch?: number | null, model?: number | null, type?: number | null) => {
+        async (search?: string, branch?: number | null, model?: number | null, type?: number | null, page: number = 1, append: boolean = false) => {
             if (!user?.order_filial) return;
 
-            setIsLoadingProducts(true);
+            if (append) {
+                setIsLoadingMore(true);
+            } else {
+                setIsLoadingProducts(true);
+            }
+
             try {
                 const response = await productService.getProducts({
                     search: search || undefined,
@@ -146,25 +154,45 @@ export function KassaPage({ orderId, readOnly = false }: KassaPageProps) {
                     branch: branch ?? undefined,
                     model: model ?? undefined,
                     type: type ?? undefined,
-                    per_page: 100,
+                    page: page,
+                    limit: 50, // Limit 50 ga o'zgartirildi
                 });
 
                 const transformedProducts = response.results.filter((p) => !p.is_delete).map(transformProduct);
-                setProducts(transformedProducts);
+
+                if (append) {
+                    setProducts((prev) => [...prev, ...transformedProducts]);
+                } else {
+                    setProducts(transformedProducts);
+                }
+
+                // Pagination ma'lumotlarini yangilash
+                setHasMore(page < response.pagination.lastPage);
+                setCurrentPage(page);
             } catch (error) {
                 console.error('Failed to load products:', error);
                 showError('Mahsulotlarni yuklashda xatolik');
             } finally {
                 setIsLoadingProducts(false);
+                setIsLoadingMore(false);
             }
         },
         [user?.order_filial],
     );
 
+    // Keyingi sahifani yuklash
+    const loadMoreProducts = useCallback(() => {
+        if (isLoadingMore || !hasMore || !user?.order_filial) return;
+
+        loadProducts(searchQuery, selectedBranch, selectedModel, selectedType, currentPage + 1, true);
+    }, [isLoadingMore, hasMore, currentPage, searchQuery, selectedBranch, selectedModel, selectedType, loadProducts, user?.order_filial]);
+
     // Mahsulotlarni yuklash - component mount va filter o'zgarganda
     useEffect(() => {
-        loadProducts(searchQuery, selectedBranch, selectedModel, selectedType);
-    }, [loadProducts, searchQuery, selectedBranch, selectedModel, selectedType]);
+        setCurrentPage(1);
+        setHasMore(false);
+        loadProducts(searchQuery, selectedBranch, selectedModel, selectedType, 1, false);
+    }, [searchQuery, selectedBranch, selectedModel, selectedType]);
 
     const handleBranchChange = (branchId: number | null) => setSelectedBranch(branchId);
     const handleModelChange = (modelId: number | null) => setSelectedModel(modelId);
@@ -242,10 +270,17 @@ export function KassaPage({ orderId, readOnly = false }: KassaPageProps) {
                     product: selectedProduct.productId || 0,
                     order_history: currentOrderId,
                     count: quantity,
-                    unit_price: priceType === 'unit' ? priceInSum : 0,
-                    wholesale_price: priceType === 'wholesale' ? priceInSum : 0,
                     sklad: Number(_options.skladId),
                 };
+
+                // price_dollar va price_sum ni qo'shish
+                if (_options.priceDollar != null) {
+                    orderProductData.price_dollar = _options.priceDollar;
+                }
+                if (_options.priceSum != null) {
+                    orderProductData.price_sum = _options.priceSum;
+                }
+
                 await orderService.createOrderProduct(orderProductData);
             } catch (error: any) {
                 console.error('Failed to add product to order:', error);
@@ -345,6 +380,9 @@ export function KassaPage({ orderId, readOnly = false }: KassaPageProps) {
                     onBranchChange={handleBranchChange}
                     onModelChange={handleModelChange}
                     onTypeChange={handleTypeChange}
+                    onScrollToBottom={loadMoreProducts}
+                    hasMore={hasMore}
+                    isLoadingMore={isLoadingMore}
                 />
             )}
         </div>

@@ -27,6 +27,7 @@ export interface Product {
 	modelName?: string;
 	typeName?: string;
 	branchCategoryName?: string; // branch_category_detail.name
+    
 	size?: number | string;
 	unitCode?: string;
 	branchId?: number;

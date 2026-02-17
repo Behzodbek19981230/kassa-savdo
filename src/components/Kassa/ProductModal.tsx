@@ -8,6 +8,9 @@ import { currencyService, Currency } from '../../services/currencyService';
 
 export interface ProductModalConfirmOptions {
     skladId: number;
+    currencyId?: number;
+    priceDollar?: number;
+    priceSum?: number;
 }
 
 interface ProductModalProps {
@@ -47,17 +50,13 @@ export function ProductModal({ isOpen, onClose, product, exchangeRate, skladlar,
         loadCurrencies();
     }, []);
 
-    // OrderData dan currency ni olish
+    // Default currency - UZS (order-history dan emas, to'g'ridan-to'g'ri tanlash)
     useEffect(() => {
-        if (orderData?.currency && currencies.length > 0) {
-            const currency = currencies.find((c) => c.id === orderData.currency);
-            setSelectedCurrency(currency || null);
-        } else {
-            // Default currency - UZS
+        if (currencies.length > 0 && !selectedCurrency) {
             const uzsCurrency = currencies.find((c) => c.code === 'UZS');
-            setSelectedCurrency(uzsCurrency || null);
+            setSelectedCurrency(uzsCurrency || currencies[0] || null);
         }
-    }, [orderData?.currency, currencies]);
+    }, [currencies]);
 
     useEffect(() => {
         if (product) {
@@ -132,25 +131,47 @@ export function ProductModal({ isOpen, onClose, product, exchangeRate, skladlar,
         // Errorlar yo'q, tozalash va davom etish
         setErrors({});
 
-        // Agar currency USD bo'lsa, UZS ga konvertatsiya qilish
+        // Currency bo'yicha price_dollar va price_sum ni hisoblash (bitta mahsulot uchun)
+        let priceDollarPerUnit = 0;
+        let priceSumPerUnit = 0;
+
+        if (selectedCurrency?.code === 'USD') {
+            // Agar USD tanlangan bo'lsa
+            priceDollarPerUnit = priceValue;
+            priceSumPerUnit = priceValue * exchangeRate;
+        } else {
+            // Agar UZS yoki boshqa currency tanlangan bo'lsa
+            priceSumPerUnit = priceValue;
+            priceDollarPerUnit = priceValue / exchangeRate;
+        }
+
+        // Backend ga yuborishda miqdoriga ko'paytirilgan summalar (2 xona aniqlikda)
+        const priceDollar = parseFloat((priceDollarPerUnit * qty).toFixed(2));
+        const priceSum = parseFloat((priceSumPerUnit * qty).toFixed(2));
+
+        // Agar currency USD bo'lsa, UZS ga konvertatsiya qilish (backward compatibility)
         const priceInSum = selectedCurrency?.code === 'USD' ? priceValue * exchangeRate : priceValue;
+
         onConfirm(qty, priceInSum, 'unit', {
             skladId: Number(selectedSkladId),
+            currencyId: selectedCurrency?.id,
+            priceDollar: priceDollar,
+            priceSum: priceSum,
         });
         onClose();
     };
 
     const priceValue = parseFloat(price) || 0;
-    const priceInSum = selectedCurrency?.code === 'USD' ? priceValue * exchangeRate : priceValue;
-    const total = parseFloat(quantity) * priceInSum;
     const currencyCode = selectedCurrency?.code || 'UZS';
+
+    // Jami summa - tanlangan currency'da
+    const total = parseFloat(quantity) * priceValue;
 
     return (
         <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
             <div className='bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border-2 border-indigo-200'>
                 <div className='flex justify-between items-center p-5 border-b-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50'>
                     <div className='flex-1'>
-                        <h3 className='text-xl font-bold text-gray-900 mb-2'>{product.name}</h3>
                         {/* Mahsulot ma'lumotlari */}
                         <div className='flex flex-wrap gap-3 text-sm text-gray-600'>
                             {product.branchCategoryName && (
@@ -212,7 +233,26 @@ export function ProductModal({ isOpen, onClose, product, exchangeRate, skladlar,
                                 <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.stock}</p>
                             )}
                         </div>
-                        <div></div>
+                        {/* Currency selector */}
+                        <div>
+                            <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>Valyuta</Label>
+                            <Autocomplete
+                                options={currencies.map((c) => ({
+                                    id: String(c.id),
+                                    label: `${c.name} (${c.code})`,
+                                    value: String(c.id),
+                                }))}
+                                value={selectedCurrency?.id?.toString() || ''}
+                                onChange={(v) => {
+                                    const currencyId = v ? parseInt(v) : null;
+                                    const currency = currencies.find((c) => c.id === currencyId);
+                                    setSelectedCurrency(currency || null);
+                                }}
+                                placeholder='Valyuta tanlang...'
+                                emptyMessage='Valyuta topilmadi'
+                                className='!h-9 !min-h-9'
+                            />
+                        </div>
 
                         {/* Miqdori */}
                         <div>
@@ -248,7 +288,7 @@ export function ProductModal({ isOpen, onClose, product, exchangeRate, skladlar,
                         {/* Summasi */}
                         <div>
                             <Label htmlFor='price' className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
-                                Summasi
+                                Summasi (birlik summa)
                             </Label>
                             <div className={`flex rounded-xl shadow-lg overflow-hidden border-2 ${errors.price ? 'border-red-500' : 'border-indigo-200'}`}>
                                 <Input
@@ -279,7 +319,9 @@ export function ProductModal({ isOpen, onClose, product, exchangeRate, skladlar,
                     <div className='mt-5 bg-emerald-50 p-3 rounded-xl border border-emerald-200'>
                         <div className='flex justify-between items-center'>
                             <span className='text-sm font-medium text-emerald-700'>Jami:</span>
-                            <span className='text-xl font-bold text-emerald-900'>{total.toLocaleString()} UZS</span>
+                            <span className='text-xl font-bold text-emerald-900'>
+                                {total.toLocaleString()} {currencyCode}
+                            </span>
                         </div>
                     </div>
 
