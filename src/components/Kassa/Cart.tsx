@@ -1,4 +1,4 @@
-import { Trash2, Plus, User, Loader2, DollarSign, X } from 'lucide-react';
+import { Trash2, Plus, User, Loader2, DollarSign, X, Edit2 } from 'lucide-react';
 import { CartItem, Customer, OrderItem, OrderResponse } from '../../types';
 import { USD_RATE } from '../../constants';
 import { Autocomplete, AutocompleteOption } from '../ui/Autocomplete';
@@ -7,7 +7,9 @@ import { clientService, Client } from '../../services/clientService';
 import { showError, showSuccess } from '../../lib/toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { CustomerModal } from './CustomerModal';
+import { ProductModal } from './ProductModal';
 import { orderService } from '../../services/orderService';
+import { skladService } from '../../services/skladService';
 import { useNavigate } from 'react-router-dom';
 
 interface CartProps {
@@ -60,6 +62,10 @@ export function Cart({
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [cartItemsFromApi, setCartItemsFromApi] = useState<CartItem[]>([]);
+	const [orderProductsRaw, setOrderProductsRaw] = useState<any[]>([]);
+	const [skladlar, setSkladlar] = useState<{ id: number; name: string }[]>([]);
+	const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+	const [productForModal, setProductForModal] = useState<any | null>(null);
 	const [isLoadingCart, setIsLoadingCart] = useState(false);
 
 	// Order-history-product dan CartItem ga transform (Yangi API: product_detail qo'shildi)
@@ -127,6 +133,7 @@ export function Cart({
 		try {
 			const list = await orderService.getOrderProducts(orderHistoryId);
 			const filtered = (list || []).filter((p: any) => !p.is_delete);
+			setOrderProductsRaw(filtered);
 			setCartItemsFromApi(filtered.map(transformOrderProductToCartItem));
 		} catch (error) {
 			console.error('Failed to load order products:', error);
@@ -181,6 +188,67 @@ export function Cart({
 		onRemoveItem(id);
 	};
 
+	// Edit order-history-product - open modal with product info
+	const handleEditOrderProduct = (cartItemId: string) => {
+		const raw = orderProductsRaw.find((p) => String(p.id) === String(cartItemId));
+		if (!raw) return;
+		// build Product object for ProductModal
+		const productDetail = raw.product_detail ?? {};
+		const sizeDetail = raw.size_detail ?? {};
+		const nameParts = [raw.branch_detail?.name, raw.model_detail?.name, raw.type_detail?.name, sizeDetail.size]
+			.filter(Boolean)
+			.join(' ');
+		const productFor = {
+			id: String(raw.id),
+			productId: productDetail.id ?? raw.product,
+			name: nameParts || `Mahsulot #${productDetail.id ?? raw.product}`,
+			price: parseFloat(raw.unit_price ?? raw.real_price ?? raw.price_sum ?? '0') || 0,
+			stock: productDetail.count ?? raw.count ?? 0,
+			unit: sizeDetail.unit_code ?? sizeDetail.unit_detail?.code ?? 'dona',
+			unitCode: sizeDetail.unit_code ?? sizeDetail.unit_detail?.code ?? 'dona',
+			branchName: raw.branch_detail?.name,
+			modelName: raw.model_detail?.name,
+			typeName: raw.type_detail?.name,
+			branchCategoryName: raw.branch_category_detail?.name,
+			size: sizeDetail.size,
+			branchId: productDetail.branch ?? raw.branch,
+			modelId: productDetail.model ?? raw.model,
+			typeId: productDetail.type ?? raw.type,
+			sizeId: productDetail.size ?? raw.size,
+			unitPrice: parseFloat(productDetail.unit_price ?? raw.unit_price ?? '0') || 0,
+			wholesalePrice: parseFloat(productDetail.wholesale_price ?? raw.wholesale_price ?? '0') || 0,
+		};
+		setProductForModal(productFor);
+		setIsProductModalOpen(true);
+	};
+
+	const handleConfirmEditOrderProduct = async (
+		quantity: number,
+		priceInSum: number,
+		_priceType: 'unit' | 'wholesale',
+		options: { skladId: number; currencyId?: number; priceDollar?: number; priceSum?: number },
+	) => {
+		// find corresponding raw record by matching productForModal id
+		if (!productForModal) return;
+		const rawId = Number(productForModal.id);
+		try {
+			await orderService.updateOrderProduct(rawId, {
+				count: quantity,
+				sklad: options.skladId,
+				price_sum: options.priceSum,
+				price_dollar: options.priceDollar,
+			});
+			showSuccess('Mahsulot muvaffaqiyatli yangilandi');
+			setIsProductModalOpen(false);
+			setProductForModal(null);
+			await loadOrderProducts();
+		} catch (error: any) {
+			console.error('Failed to update order product:', error);
+			const errorMessage = error?.response?.data?.detail || error?.message || 'Mahsulotni yangilashda xatolik';
+			showError(errorMessage);
+		}
+	};
+
 	// Parent ga refetch kerak bo'lsa (masalan mahsulot qo'shgandan keyin) — expose refetch
 	// Parent Cart ni refetch qilishi uchun key yoki loadOrderProducts ni prop qilib berish mumkin.
 	// Hozircha orderData/orderId o'zgarganda avtomatik load qilinadi.
@@ -206,6 +274,19 @@ export function Cart({
 	useEffect(() => {
 		searchClients('');
 	}, [searchClients]);
+
+	// Skladlarni yuklash (ProductModal uchun)
+	useEffect(() => {
+		const filialId = orderData?.order_filial ?? user?.order_filial ?? undefined;
+		if (!filialId) {
+			setSkladlar([]);
+			return;
+		}
+		skladService
+			.getSkladlar({ filial: filialId })
+			.then(setSkladlar)
+			.catch(() => setSkladlar([]));
+	}, [orderData?.order_filial, user?.order_filial]);
 
 	// Qidiruv o'zgarganda API ga so'rov yuborish
 	useEffect(() => {
@@ -572,6 +653,20 @@ export function Cart({
 				initialData={editingCustomer}
 			/>
 
+			{/* Product Edit Modal (order-history-product tahrirlash) */}
+			<ProductModal
+				isOpen={isProductModalOpen}
+				onClose={() => {
+					setIsProductModalOpen(false);
+					setProductForModal(null);
+				}}
+				product={productForModal}
+				exchangeRate={exchangeRate}
+				skladlar={skladlar}
+				orderData={orderData}
+				onConfirm={handleConfirmEditOrderProduct}
+			/>
+
 			{/* Delete Confirmation Modal */}
 			{isDeleteModalOpen && (
 				<div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
@@ -689,12 +784,23 @@ export function Cart({
 									</div>
 								</div>
 								{!readOnly && (
-									<button
-										onClick={() => handleRemoveItem(item.id)}
-										className='text-white bg-gradient-to-br from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 p-1.5 sm:p-2 rounded-xl hover:shadow-lg transition-all duration-200 transform hover:scale-105 shrink-0'
-									>
-										<Trash2 size={16} className='sm:w-4 sm:h-4' />
-									</button>
+									<>
+										{(orderId ?? orderData?.id) && (
+											<button
+												onClick={() => handleEditOrderProduct(item.id)}
+												className='text-white bg-gradient-to-br from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 p-1.5 sm:p-2 rounded-xl hover:shadow-lg transition-all duration-200 transform hover:scale-105 shrink-0 mr-1'
+												title='Tahrirlash'
+											>
+												<Edit2 size={16} className='sm:w-4 sm:h-4' />
+											</button>
+										)}
+										<button
+											onClick={() => handleRemoveItem(item.id)}
+											className='text-white bg-gradient-to-br from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 p-1.5 sm:p-2 rounded-xl hover:shadow-lg transition-all duration-200 transform hover:scale-105 shrink-0'
+										>
+											<Trash2 size={16} className='sm:w-4 sm:h-4' />
+										</button>
+									</>
 								)}
 							</div>
 						</div>
