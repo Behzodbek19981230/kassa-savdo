@@ -8,7 +8,7 @@ import { showError, showSuccess } from '../../lib/toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { CustomerModal } from './CustomerModal';
 import { ProductModal } from './ProductModal';
-import { orderService } from '../../services/orderService';
+import { orderService, vozvratOrderService } from '../../services/orderService';
 import { skladService } from '../../services/skladService';
 import { useNavigate } from 'react-router-dom';
 
@@ -32,6 +32,8 @@ interface CartProps {
     onCartChange?: (items: CartItem[], totalAmount: number) => void;
     /** Read-only mode - faqat ko'rish uchun */
     readOnly?: boolean;
+    /** Vozvrat order mode */
+    isVozvratOrder?: boolean;
 }
 export function Cart({
     items,
@@ -50,6 +52,7 @@ export function Cart({
     refreshCartTrigger = 0,
     onCartChange,
     readOnly = false,
+    isVozvratOrder = false,
 }: CartProps) {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -131,18 +134,25 @@ export function Cart({
         if (!orderHistoryId) return;
         setIsLoadingCart(true);
         try {
-            const list = await orderService.getOrderProducts(orderHistoryId);
+            let list;
+            if (isVozvratOrder) {
+                // Vozvrat order productlarini yuklash
+                list = await vozvratOrderService.getVozvratOrderProducts(orderHistoryId);
+            } else {
+                // Oddiy order productlarini yuklash
+                list = await orderService.getOrderProducts(orderHistoryId);
+            }
             const filtered = (list || []).filter((p: any) => !p.is_delete);
             setOrderProductsRaw(filtered);
             setCartItemsFromApi(filtered.map(transformOrderProductToCartItem));
         } catch (error) {
             console.error('Failed to load order products:', error);
-            showError('Savdo mahsulotlarini yuklashda xatolik');
+            showError('Mahsulotlarni yuklashda xatolik');
             setCartItemsFromApi([]);
         } finally {
             setIsLoadingCart(false);
         }
-    }, [orderId, orderData?.id, transformOrderProductToCartItem]);
+    }, [orderId, orderData?.id, transformOrderProductToCartItem, isVozvratOrder]);
 
     useEffect(() => {
         if (orderId ?? orderData?.id) {
@@ -511,7 +521,7 @@ export function Cart({
                 <div className='flex items-center gap-3 flex-wrap'>
                     {/* Savdo va Order ID */}
                     <h2 className='text-xl sm:text-2xl font-bold text-white flex items-center shrink-0'>
-                        Savdo{' '}
+                        {isVozvratOrder ? 'Tovar qaytarish' : 'Savdo'}{' '}
                         {orderData && (
                             <span className='ml-2 sm:ml-3 text-white/80 font-semibold bg-white/20 px-2 sm:px-3 py-1 rounded-xl text-base sm:text-lg'>
                                 #{orderData.id}
@@ -552,13 +562,13 @@ export function Cart({
                         </div>
                     )}
 
-                    {/* Savdoni boshlash knopkasi - faqat readOnly emas bo'lsa ko'rsatish */}
+                    {/* Savdoni boshlash / Qaytarishni boshlash knopkasi - faqat readOnly emas bo'lsa ko'rsatish */}
                     {!readOnly && !orderData && selectedCustomer && !isSaleStarted && onStartSaleClick && (
                         <button
                             onClick={onStartSaleClick}
                             disabled={isCreatingOrder}
                             className='flex items-center justify-center gap-2 bg-green-500/80 hover:bg-green-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
-                            title='Savdoni boshlash'
+                            title={isVozvratOrder ? 'Qaytarishni boshlash' : 'Savdoni boshlash'}
                         >
                             {isCreatingOrder ? (
                                 <>
@@ -569,8 +579,10 @@ export function Cart({
                             ) : (
                                 <>
                                     <Plus size={18} />
-                                    <span className='hidden sm:inline'>Savdoni boshlash</span>
-                                    <span className='sm:hidden'>Boshlash</span>
+                                    <span className='hidden sm:inline'>
+                                        {isVozvratOrder ? 'Qaytarishni boshlash' : 'Savdoni boshlash'}
+                                    </span>
+                                    <span className='sm:hidden'>{isVozvratOrder ? 'Qaytarish' : 'Boshlash'}</span>
                                 </>
                             )}
                         </button>
@@ -610,32 +622,37 @@ export function Cart({
                     {/* To'lov va Bekor qilish knopkalari - faqat readOnly emas bo'lsa ko'rsatish */}
                     {!readOnly && orderData && (
                         <>
-                            <button
-                                onClick={() => setIsDeleteModalOpen(true)}
-                                disabled={isDeleting}
-                                className='flex items-center justify-center gap-2 bg-red-500/80 hover:bg-red-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
-                                title='Savdoni bekor qilish'
-                            >
-                                {isDeleting ? (
-                                    <>
-                                        <Loader2 className='w-4 h-4 animate-spin' />
-                                        <span className='hidden sm:inline'>Bekor qilinmoqda...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Trash2 size={16} />
-                                        <span className='hidden sm:inline'>Bekor qilish</span>
-                                    </>
-                                )}
-                            </button>
+                            {!isVozvratOrder && (
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(true)}
+                                    disabled={isDeleting}
+                                    className='flex items-center justify-center gap-2 bg-red-500/80 hover:bg-red-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
+                                    title='Savdoni bekor qilish'
+                                >
+                                    {isDeleting ? (
+                                        <>
+                                            <Loader2 className='w-4 h-4 animate-spin' />
+                                            <span className='hidden sm:inline'>Bekor qilinmoqda...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 size={16} />
+                                            <span className='hidden sm:inline'>Bekor qilish</span>
+                                        </>
+                                    )}
+                                </button>
+                            )}
                             <button
                                 onClick={onPayment}
                                 disabled={!isSaleStarted || totalAmount === 0}
-                                className='flex items-center justify-center gap-2 bg-green-500/80 hover:bg-green-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
-                                title="To'lov"
+                                className={`flex items-center justify-center gap-2 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap ${isVozvratOrder
+                                    ? 'bg-red-500/80 hover:bg-red-500'
+                                    : 'bg-green-500/80 hover:bg-green-500'
+                                    }`}
+                                title={isVozvratOrder ? 'Qaytarish' : "To'lov"}
                             >
                                 <DollarSign size={16} />
-                                <span className='hidden sm:inline'>To'lov</span>
+                                <span className='hidden sm:inline'>{isVozvratOrder ? 'Qaytarish' : "To'lov"}</span>
                             </button>
                         </>
                     )}
@@ -665,6 +682,7 @@ export function Cart({
                 skladlar={skladlar}
                 orderData={orderData}
                 orderProductId={productForModal?.id ? Number(productForModal.id) : null}
+                isVozvratOrder={isVozvratOrder}
                 onConfirm={handleConfirmEditOrderProduct}
             />
 

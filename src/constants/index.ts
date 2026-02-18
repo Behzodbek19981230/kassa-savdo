@@ -18,6 +18,8 @@ export const ROUTES = {
 	ORDER_UPDATE: (id: number | string) => `/order/update/${id}`,
 	ORDER_VIEW: (id: number | string) => `/order/show/${id}`,
 	STATISTICS: '/statistika',
+	DEBT_REPAYMENT: '/qarzlar',
+	VOZVRAT_ORDER: '/tovar-qaytarish',
 } as const;
 
 // Local Storage Keys

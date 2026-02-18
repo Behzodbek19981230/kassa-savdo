@@ -137,6 +137,54 @@ export interface OrderHistoryDetail {
 	currency_detail: any | null;
 }
 
+/* ================= DEBT REPAYMENT ================= */
+
+export interface DebtRepayment {
+	id?: number;
+	filial: number;
+	client: number;
+	employee: number;
+	exchange_rate: number;
+	date: string;
+	note: string;
+	old_total_debt_client: number;
+	total_debt_client: number;
+	summa_total_dollar: number;
+	summa_dollar: number;
+	summa_naqt: number;
+	summa_kilik: number;
+	summa_terminal: number;
+	summa_transfer: number;
+	discount_amount: number;
+	zdacha_dollar: number;
+	zdacha_som: number;
+	is_delete: boolean;
+	debt_status: boolean;
+}
+
+/* ================= VOZVRAT ORDER ================= */
+
+export interface VozvratOrder {
+	id?: number;
+	filial: number;
+	client: number;
+	employee: number;
+	exchange_rate: number;
+	date: string;
+	note: string;
+	old_total_debt_client: number;
+	total_debt_client: number;
+	summa_total_dollar: number;
+	summa_dollar: number;
+	summa_naqt: number;
+	summa_kilik: number;
+	summa_terminal: number;
+	summa_transfer: number;
+	discount_amount: number;
+	is_delete: boolean;
+	is_vazvrat_status: boolean;
+}
+
 export interface ClientDetail {
 	id: number;
 	telegram_id: string | null;

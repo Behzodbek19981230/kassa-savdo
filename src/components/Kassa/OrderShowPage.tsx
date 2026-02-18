@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Banknote, CreditCard } from 'lucide-react';
 import { orderService } from '../../services/orderService';
 import { OrderResponse } from '../../types';
 import { showError } from '../../lib/toast';
@@ -204,49 +204,97 @@ export function OrderShowPage() {
                     </div>
 
                     {/* To'lov usullari */}
-                    <div className='bg-gradient-to-br from-violet-50 to-purple-50 p-2 rounded border border-violet-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
-                        <p className='text-[10px] font-semibold text-violet-600 mb-2 uppercase tracking-wide'>To'lov usullari</p>
-                        <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
+                    <div className='md:col-span-2 lg:col-span-3 xl:col-span-5'>
+                        <p className='text-[10px] font-semibold text-gray-600 mb-2 uppercase tracking-wide'>To'lov usullari</p>
+                        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2'>
                             {Number(order_history.summa_naqt || 0) > 0 && (
-                                <div className='bg-white p-2 rounded border border-violet-100'>
-                                    <p className='text-[10px] text-gray-500 mb-0.5'>Naqd</p>
-                                    <p className='font-bold text-gray-800 text-xs'>
-                                        {Number(order_history.summa_naqt).toLocaleString()} UZS
-                                    </p>
+                                <div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
+                                    <div className='bg-gradient-to-r from-lime-500 to-green-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+                                        <div className='flex items-center space-x-1.5'>
+                                            <div className='bg-lime-100 p-1 rounded'>
+                                                <Banknote className='text-lime-700 w-3 h-3' />
+                                            </div>
+                                            <span className='font-medium text-[10px] sm:text-xs'>Naqd</span>
+                                        </div>
+                                    </div>
+                                    <div className='p-1.5 sm:p-2 bg-white'>
+                                        <div className='text-right'>
+                                            <p className='font-semibold text-sm text-gray-800'>
+                                                {Number(order_history.summa_naqt).toLocaleString()}
+                                            </p>
+                                            <span className='text-[10px] font-medium text-gray-500'>UZS</span>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                             {Number(order_history.summa_dollar || 0) > 0 && (
-                                <div className='bg-white p-2 rounded border border-violet-100'>
-                                    <p className='text-[10px] text-gray-500 mb-0.5'>USD naqd</p>
-                                    <p className='font-bold text-gray-800 text-xs'>
-                                        {Number(order_history.summa_dollar).toFixed(2)} USD
-                                    </p>
-                                    <p className='text-[10px] text-gray-600 mt-0.5'>
-                                        ({Number(order_history.summa_dollar) * usdRate} UZS)
-                                    </p>
+                                <div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
+                                    <div className='bg-gradient-to-r from-green-700 to-emerald-800 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+                                        <div className='flex items-center space-x-1.5'>
+                                            <div className='bg-green-100 p-1 rounded'>
+                                                <Banknote className='text-green-700 w-3 h-3' />
+                                            </div>
+                                            <span className='font-medium text-[10px] sm:text-xs'>US dollar naqd</span>
+                                        </div>
+                                    </div>
+                                    <div className='p-1.5 sm:p-2 bg-white'>
+                                        <div className='text-right'>
+                                            <p className='font-semibold text-sm text-gray-800'>
+                                                {Number(order_history.summa_dollar).toFixed(2)}
+                                            </p>
+                                            <span className='text-[10px] font-medium text-gray-500'>USD</span>
+                                            <p className='text-[10px] text-gray-600 mt-0.5'>
+                                                ({Number(order_history.summa_dollar) * usdRate} UZS)
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                             {Number(order_history.summa_transfer || 0) > 0 && (
-                                <div className='bg-white p-2 rounded border border-violet-100'>
-                                    <p className='text-[10px] text-gray-500 mb-0.5'>Transfer</p>
-                                    <p className='font-bold text-gray-800 text-xs'>
-                                        {Number(order_history.summa_transfer).toLocaleString()} UZS
-                                    </p>
+                                <div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
+                                    <div className='bg-gradient-to-r from-blue-400 to-cyan-500 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+                                        <div className='flex items-center space-x-1.5'>
+                                            <div className='bg-blue-100 p-1 rounded'>
+                                                <CreditCard className='text-blue-700 w-3 h-3' />
+                                            </div>
+                                            <span className='font-medium text-[10px] sm:text-xs'>Plastik perevod</span>
+                                        </div>
+                                    </div>
+                                    <div className='p-1.5 sm:p-2 bg-white'>
+                                        <div className='text-right'>
+                                            <p className='font-semibold text-sm text-gray-800'>
+                                                {Number(order_history.summa_transfer).toLocaleString()}
+                                            </p>
+                                            <span className='text-[10px] font-medium text-gray-500'>UZS</span>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                             {Number(order_history.summa_terminal || 0) > 0 && (
-                                <div className='bg-white p-2 rounded border border-violet-100'>
-                                    <p className='text-[10px] text-gray-500 mb-0.5'>Terminal</p>
-                                    <p className='font-bold text-gray-800 text-xs'>
-                                        {Number(order_history.summa_terminal).toLocaleString()} UZS
-                                    </p>
+                                <div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
+                                    <div className='bg-gradient-to-r from-blue-400 to-cyan-500 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+                                        <div className='flex items-center space-x-1.5'>
+                                            <div className='bg-blue-100 p-1 rounded'>
+                                                <CreditCard className='text-blue-700 w-3 h-3' />
+                                            </div>
+                                            <span className='font-medium text-[10px] sm:text-xs'>Terminal</span>
+                                        </div>
+                                    </div>
+                                    <div className='p-1.5 sm:p-2 bg-white'>
+                                        <div className='text-right'>
+                                            <p className='font-semibold text-sm text-gray-800'>
+                                                {Number(order_history.summa_terminal).toLocaleString()}
+                                            </p>
+                                            <span className='text-[10px] font-medium text-gray-500'>UZS</span>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
-                        <div className='mt-2 pt-2 border-t border-violet-200'>
+                        <div className='mt-2 pt-2 border-t border-gray-200'>
                             <div className='flex justify-between items-center'>
                                 <span className='text-xs font-semibold text-gray-700'>Jami to'landi:</span>
-                                <span className='font-bold text-sm text-violet-700'>
+                                <span className='font-bold text-sm text-indigo-700'>
                                     {(
                                         Number(order_history.summa_naqt || 0) +
                                         Number(order_history.summa_dollar || 0) * usdRate +

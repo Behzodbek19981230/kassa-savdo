@@ -3,6 +3,8 @@ import { LoginPage } from '../pages/LoginPage';
 import { IndexPage } from '../pages/IndexPage';
 import { OrderPage } from '../pages/OrderPage';
 import { StatistikaPage } from '../pages/StatistikaPage';
+import { DebtRepaymentPage } from '../pages/DebtRepaymentPage';
+import { VozvratOrderPage } from '../pages/VozvratOrderPage';
 import { Layout } from '../components/Layout';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { ROUTES } from '../constants';
@@ -79,6 +81,76 @@ export const privateRoutes: RouteConfig[] = [
             <ProtectedRoute>
                 <Layout>
                     <StatistikaPage />
+                </Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: ROUTES.DEBT_REPAYMENT,
+        element: (
+            <ProtectedRoute>
+                <Layout>
+                    <DebtRepaymentPage />
+                </Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: ROUTES.VOZVRAT_ORDER,
+        element: (
+            <ProtectedRoute>
+                <Layout>
+                    <VozvratOrderPage />
+                </Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/tovar-qaytarish',
+        element: (
+            <ProtectedRoute>
+                <Layout>
+                    <VozvratOrderPage />
+                </Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/tovar-qaytarish/new',
+        element: (
+            <ProtectedRoute>
+                <Layout>
+                    <VozvratOrderPage />
+                </Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/tovar-qaytarish/:id',
+        element: (
+            <ProtectedRoute>
+                <Layout>
+                    <VozvratOrderPage />
+                </Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/tovar-qaytarish/show/:id',
+        element: (
+            <ProtectedRoute>
+                <Layout>
+                    <VozvratOrderPage />
+                </Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/tovar-qaytarish/update/:id',
+        element: (
+            <ProtectedRoute>
+                <Layout>
+                    <VozvratOrderPage />
                 </Layout>
             </ProtectedRoute>
         ),

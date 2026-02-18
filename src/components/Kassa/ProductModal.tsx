@@ -11,6 +11,7 @@ export interface ProductModalConfirmOptions {
     currencyId?: number;
     priceDollar?: number;
     priceSum?: number;
+    vozvratOrderId?: number; // Vozvrat order ID (agar vozvrat order bo'lsa)
 }
 
 interface ProductModalProps {
@@ -21,6 +22,7 @@ interface ProductModalProps {
     skladlar: { id: number; name: string }[];
     orderData?: OrderResponse | null;
     orderProductId?: number | null; // order-product-history id (tahrirlash uchun)
+    isVozvratOrder?: boolean; // Vozvrat order uchun
     onConfirm: (
         quantity: number,
         priceInSum: number,
@@ -36,6 +38,7 @@ export function ProductModal({
     skladlar,
     orderData,
     orderProductId,
+    isVozvratOrder = false,
     onConfirm,
 }: ProductModalProps) {
     const [quantity, setQuantity] = useState<string>('1');
@@ -114,8 +117,12 @@ export function ProductModal({
         }
     }, [product, orderProductId, isOpen, orderData, exchangeRate]);
 
-    // Sklad tanlanganda /api/v1/product-stock/ dan qoldiqni olish
+    // Sklad tanlanganda /api/v1/product-stock/ dan qoldiqni olish - faqat vozvrat order bo'lsa
     useEffect(() => {
+        if (!isVozvratOrder) {
+            setSkladStockCount(null);
+            return;
+        }
         if (!product || selectedSkladId == null) {
             setSkladStockCount(null);
             return;
@@ -128,7 +135,7 @@ export function ProductModal({
             .then((res) => setSkladStockCount(res.count ?? 0))
             .catch(() => setSkladStockCount(null))
             .finally(() => setIsLoadingStock(false));
-    }, [product, selectedSkladId]);
+    }, [product, selectedSkladId, isVozvratOrder]);
 
     const skladOptions = useMemo(
         () =>
@@ -153,7 +160,7 @@ export function ProductModal({
         }
 
         // Quantity validation
-        if (!quantity || qty <= 0 || isNaN(qty)) {
+        if ((!quantity || qty <= 0 || isNaN(qty)) && !isVozvratOrder) {
             newErrors.quantity = "Miqdor 0 dan katta bo'lishi kerak";
         }
 
@@ -162,10 +169,7 @@ export function ProductModal({
         //     newErrors.price = "Summasi 0 dan katta bo'lishi kerak";
         // }
 
-        // Stock validation
-        if (skladStockCount != null && qty > skladStockCount) {
-            newErrors.stock = `Miqdor skladda qolgan sondan (${skladStockCount}) oshmasligi kerak`;
-        }
+
 
         // Agar errorlar bo'lsa, ko'rsatish va to'xtatish
         if (Object.keys(newErrors).length > 0) {
@@ -264,13 +268,13 @@ export function ProductModal({
                                 emptyMessage='Sklad topilmadi'
                             />
                             {errors.sklad && <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.sklad}</p>}
-                            {isLoadingStock && <p className='mt-1.5 text-xs text-indigo-500'>Qoldiq yuklanmoqda...</p>}
-                            {!isLoadingStock && selectedSkladId != null && skladStockCount != null && (
+                            {isVozvratOrder && isLoadingStock && <p className='mt-1.5 text-xs text-indigo-500'>Qoldiq yuklanmoqda...</p>}
+                            {isVozvratOrder && !isLoadingStock && selectedSkladId != null && skladStockCount != null && (
                                 <p className='mt-1.5 text-sm font-medium text-red-500'>
                                     Qoldiq soni: <span className='font-bold'>{skladStockCount.toLocaleString()}</span>
                                 </p>
                             )}
-                            {errors.stock && <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.stock}</p>}
+                            {isVozvratOrder && errors.stock && <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.stock}</p>}
                         </div>
                         {/* Currency selector - statik */}
                         <div>

@@ -264,6 +264,7 @@ export const orderService = {
     // Order-history-product yaratish
     createOrderProduct: async (data: {
         order_history?: number;
+        vozvrat_order?: number;
         count: number;
         product?: number;
         sklad?: number;
@@ -271,22 +272,38 @@ export const orderService = {
         price_sum?: number;
     }): Promise<any> => {
         const requestData: any = {
-            order_history: data.order_history,
             product: data.product,
             count: data.count,
             sklad: data.sklad ?? null,
         };
         
-        // price_dollar va price_sum ni qo'shish
-        if (data.price_dollar != null) {
-            requestData.price_dollar = data.price_dollar;
+        // Vozvrat order bo'lsa, alohida endpoint ishlatish
+        if (data.vozvrat_order != null) {
+            requestData.vozvrat_order = data.vozvrat_order;
+            // price_dollar va price_sum ni qo'shish
+            if (data.price_dollar != null) {
+                requestData.price_dollar = data.price_dollar;
+            }
+            if (data.price_sum != null) {
+                requestData.price_sum = data.price_sum;
+            }
+            const response = await api.post('/v1/order-history-product/vozvrat', requestData);
+            return response.data;
+        } else if (data.order_history != null) {
+            // Oddiy order uchun
+            requestData.order_history = data.order_history;
+            // price_dollar va price_sum ni qo'shish
+            if (data.price_dollar != null) {
+                requestData.price_dollar = data.price_dollar;
+            }
+            if (data.price_sum != null) {
+                requestData.price_sum = data.price_sum;
+            }
+            const response = await api.post('/v1/order-history-product', requestData);
+            return response.data;
+        } else {
+            throw new Error('order_history yoki vozvrat_order kerak');
         }
-        if (data.price_sum != null) {
-            requestData.price_sum = data.price_sum;
-        }
-        
-        const response = await api.post('/v1/order-history-product', requestData);
-        return response.data;
     },
 
     // Order-history-product ro'yxatini olish (pagination + results struktura)
@@ -334,5 +351,168 @@ export const orderService = {
     }> => {
         const response = await api.get(`/v1/order-history/${orderHistoryId}/product-by-model`);
         return response.data;
+    },
+};
+
+// Debt Repayment service
+export interface DebtRepaymentRequest {
+    filial: number;
+    client: number;
+    employee: number;
+    exchange_rate: number;
+    date: string;
+    note?: string;
+    old_total_debt_client: number;
+    total_debt_client: number;
+    summa_total_dollar: number;
+    summa_dollar: number;
+    summa_naqt: number;
+    summa_kilik: number;
+    summa_terminal: number;
+    summa_transfer: number;
+    discount_amount: number;
+    zdacha_dollar: number;
+    zdacha_som: number;
+    is_delete?: boolean;
+    debt_status: boolean;
+}
+
+export const debtRepaymentService = {
+    // Qarz to'lovlarini olish
+    getDebtRepayments: async (params?: {
+        page?: number;
+        page_size?: number;
+        search?: string;
+        date_from?: string;
+        date_to?: string;
+        client?: number;
+        filial?: number;
+    }): Promise<{
+        count: number;
+        next: string | null;
+        previous: string | null;
+        results: any[];
+    }> => {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+        if (params?.search) queryParams.append('search', params.search);
+        if (params?.date_from) queryParams.append('date_from', params.date_from);
+        if (params?.date_to) queryParams.append('date_to', params.date_to);
+        if (params?.client) queryParams.append('client', params.client.toString());
+        if (params?.filial) queryParams.append('filial', params.filial.toString());
+
+        const response = await api.get(`/v1/debt-repayment?${queryParams.toString()}`);
+        return response.data;
+    },
+
+    // Qarz to'lovini id orqali olish
+    getDebtRepayment: async (id: number): Promise<any> => {
+        const response = await api.get(`/v1/debt-repayment/${id}`);
+        return response.data;
+    },
+
+    // Yangi qarz to'lovi yaratish
+    createDebtRepayment: async (data: DebtRepaymentRequest): Promise<any> => {
+        const response = await api.post('/v1/debt-repayment', data);
+        return response.data;
+    },
+
+    // Qarz to'lovini yangilash
+    updateDebtRepayment: async (id: number, data: Partial<DebtRepaymentRequest>): Promise<any> => {
+        const response = await api.patch(`/v1/debt-repayment/${id}`, data);
+        return response.data;
+    },
+
+    // Qarz to'lovini o'chirish
+    deleteDebtRepayment: async (id: number): Promise<void> => {
+        await api.delete(`/v1/debt-repayment/${id}`);
+    },
+};
+
+// Vozvrat Order service
+export interface VozvratOrderRequest {
+    filial: number;
+    client: number;
+    employee: number;
+    exchange_rate: number;
+    date: string;
+    note?: string;
+    old_total_debt_client: number;
+    total_debt_client: number;
+    summa_total_dollar: number;
+    summa_dollar: number;
+    summa_naqt: number;
+    summa_kilik: number;
+    summa_terminal: number;
+    summa_transfer: number;
+    discount_amount: number;
+    is_delete?: boolean;
+    is_vazvrat_status: boolean;
+    is_karzinka?: boolean;
+}
+
+export const vozvratOrderService = {
+    // Vozvrat orderlarni olish
+    getVozvratOrders: async (params?: {
+        page?: number;
+        page_size?: number;
+        search?: string;
+        date_from?: string;
+        date_to?: string;
+        client?: number;
+        filial?: number;
+    }): Promise<{
+        count: number;
+        next: string | null;
+        previous: string | null;
+        results: any[];
+        pagination?: { currentPage: number; lastPage: number; perPage: number; total: number };
+    }> => {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+        if (params?.search) queryParams.append('search', params.search);
+        if (params?.date_from) queryParams.append('date_from', params.date_from);
+        if (params?.date_to) queryParams.append('date_to', params.date_to);
+        if (params?.client) queryParams.append('client', params.client.toString());
+        if (params?.filial) queryParams.append('filial', params.filial.toString());
+
+        const response = await api.get(`/v1/vozvrat-order?${queryParams.toString()}`);
+        return response.data;
+    },
+
+    // Vozvrat orderni id orqali olish
+    getVozvratOrder: async (id: number): Promise<any> => {
+        const response = await api.get(`/v1/vozvrat-order/${id}`);
+        return response.data;
+    },
+
+    // Yangi vozvrat order yaratish
+    createVozvratOrder: async (data: VozvratOrderRequest): Promise<any> => {
+        const response = await api.post('/v1/vozvrat-order', data);
+        return response.data;
+    },
+
+    // Vozvrat orderni yangilash
+    updateVozvratOrder: async (id: number, data: Partial<VozvratOrderRequest>): Promise<any> => {
+        const response = await api.patch(`/v1/vozvrat-order/${id}`, data);
+        return response.data;
+    },
+
+    // Vozvrat orderni o'chirish
+    deleteVozvratOrder: async (id: number): Promise<void> => {
+        await api.delete(`/v1/vozvrat-order/${id}`);
+    },
+
+    // Vozvrat order productlarini olish (vozvrat_order filter bilan)
+    getVozvratOrderProducts: async (vozvratOrderId: number): Promise<any[]> => {
+        const response = await api.get<{ results?: any[]; pagination?: unknown }>(
+            `/v1/order-history-product?vozvrat_order=${vozvratOrderId}`
+        );
+        const data = response.data;
+        if (Array.isArray(data)) return data;
+        if (data?.results && Array.isArray(data.results)) return data.results;
+        return [];
     },
 };

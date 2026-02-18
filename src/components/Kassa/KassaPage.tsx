@@ -5,14 +5,16 @@ import { ProductList } from './ProductList';
 import { Cart } from './Cart';
 import { ProductModal } from './ProductModal';
 import { PaymentModal } from './PaymentModal';
+import { VozvratPaymentModal } from './VozvratPaymentModal';
 import { OrderLayout } from './OrderLayout';
 import { OrderPaymentFields } from './OrderPaymentFields';
 import { Product, CartItem, Customer } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-import { orderService } from '../../services/orderService';
+import { orderService, vozvratOrderService } from '../../services/orderService';
 import { OrderResponse } from '../../types';
 import { productService, ProductResponse, ProductImage } from '../../services/productService';
 import { skladService, Sklad } from '../../services/skladService';
+import { clientService } from '../../services/clientService';
 import { showError, showSuccess } from '../../lib/toast';
 import { USD_RATE, ROUTES } from '../../constants';
 import type { ProductModalConfirmOptions } from './ProductModal';
@@ -21,8 +23,9 @@ interface KassaPageProps {
     orderId?: number;
     readOnly?: boolean;
     updateMode?: boolean; // PaymentModal maydonlarini ko'rsatish uchun
+    isVozvratOrder?: boolean; // Vozvrat order uchun
 }
-export function KassaPage({ orderId, readOnly = false, updateMode = false }: KassaPageProps) {
+export function KassaPage({ orderId, readOnly = false, updateMode = false, isVozvratOrder = false }: KassaPageProps) {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -72,26 +75,58 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false }: Kas
         if (orderId) {
             setIsSaleStarted(true);
 
-            orderService
-                .getOrder(orderId)
-                .then((order) => {
-                    setOrderData(order);
-                    // Mijoz ma'lumotlarini set qilish
-                    if (order.client_detail) {
-                        setSelectedClientId(order.client);
-                        setSelectedCustomer({
-                            id: order.client_detail.id.toString(),
-                            name: order.client_detail.full_name,
-                            phone: order.client_detail.phone_number,
-                        });
-                    }
-                })
-                .catch((error) => {
-                    console.error('Failed to load order:', error);
-                    showError("Order ma'lumotlarini yuklashda xatolik");
-                });
+            if (isVozvratOrder) {
+                // Vozvrat order uchun faqat vozvrat API
+                vozvratOrderService
+                    .getVozvratOrder(orderId)
+                    .then((order) => {
+                        // Vozvrat order response ni OrderResponse formatiga o'zgartirish
+                        const orderResponse: OrderResponse = {
+                            ...order,
+                            order_filial: order.filial,
+                            order_filial_detail: order.filial_detail,
+                            created_time: order.date,
+                            all_product_summa: String(order.summa_total_dollar * USD_RATE),
+                            exchange_rate: String(order.exchange_rate),
+                        };
+                        setOrderData(orderResponse);
+                        // Mijoz ma'lumotlarini set qilish
+                        if (order.client_detail) {
+                            setSelectedClientId(order.client);
+                            setSelectedCustomer({
+                                id: order.client_detail.id.toString(),
+                                name: order.client_detail.full_name,
+                                phone: order.client_detail.phone_number,
+                            });
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Failed to load vozvrat order:', error);
+                        showError("Tovar qaytarish ma'lumotlarini yuklashda xatolik");
+                    });
+            } else {
+                // Oddiy order uchun
+                orderService
+                    .getOrder(orderId)
+                    .then((order) => {
+                        setOrderData(order);
+                        // Mijoz ma'lumotlarini set qilish
+                        if (order.client_detail) {
+                            setSelectedClientId(order.client);
+                            setSelectedCustomer({
+                                id: order.client_detail.id.toString(),
+                                name: order.client_detail.full_name,
+                                phone: order.client_detail.phone_number,
+                            });
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Failed to load order:', error);
+                        showError("Order ma'lumotlarini yuklashda xatolik");
+                    });
+            }
         }
-    }, [orderId]);
+    }, [orderId, isVozvratOrder]);
 
     // API response dan Product ga transform qilish
     const transformProduct = (productResponse: ProductResponse): Product => {
@@ -209,7 +244,11 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false }: Kas
         if (selectedCustomer) {
             setIsSaleStarted(true);
             // Order ID bilan sahifaga yo'naltirish
-            navigate(ROUTES.ORDER_EDIT(newOrderId));
+            if (isVozvratOrder) {
+                navigate(`/tovar-qaytarish/${newOrderId}`);
+            } else {
+                navigate(ROUTES.ORDER_EDIT(newOrderId));
+            }
         }
     };
 
@@ -222,18 +261,44 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false }: Kas
 
         setIsCreatingOrder(true);
         try {
-            const order = await orderService.createOrder({
-                client: selectedClientId,
-                employee: user?.id || 0,
-                exchange_rate: USD_RATE,
-                is_karzinka: true,
-            });
+            let order;
+            if (isVozvratOrder) {
+                // Vozvrat order yaratish
+                const client = await clientService.getClient(selectedClientId);
+                order = await vozvratOrderService.createVozvratOrder({
+                    filial: user?.order_filial || 0,
+                    client: selectedClientId,
+                    employee: user?.id || 0,
+                    exchange_rate: USD_RATE,
+                    date: new Date().toISOString().split('T')[0],
+                    note: '',
+                    old_total_debt_client: client.total_debt ? Number(client.total_debt) : 0,
+                    total_debt_client: client.total_debt ? Number(client.total_debt) : 0,
+                    summa_total_dollar: 0,
+                    summa_dollar: 0,
+                    summa_naqt: 0,
+                    summa_kilik: 0,
+                    summa_terminal: 0,
+                    summa_transfer: 0,
+                    discount_amount: 0,
+                    is_vazvrat_status: true,
+                    is_karzinka: true,
+                });
+            } else {
+                // Oddiy order yaratish
+                order = await orderService.createOrder({
+                    client: selectedClientId,
+                    employee: user?.id || 0,
+                    exchange_rate: USD_RATE,
+                    is_karzinka: true,
+                });
+            }
 
             handleStartSale(order.id);
-            showSuccess('Savdo muvaffaqiyatli yaratildi');
+            showSuccess(isVozvratOrder ? 'Tovar qaytarish muvaffaqiyatli yaratildi' : 'Savdo muvaffaqiyatli yaratildi');
         } catch (error: any) {
             const errorMessage =
-                error?.response?.data?.detail || error?.message || 'Savdo yaratishda xatolik yuz berdi';
+                error?.response?.data?.detail || error?.message || 'Yaratishda xatolik yuz berdi';
             showError(errorMessage);
         } finally {
             setIsCreatingOrder(false);
@@ -270,10 +335,18 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false }: Kas
             try {
                 const orderProductData: any = {
                     product: selectedProduct.productId || 0,
-                    order_history: currentOrderId,
                     count: quantity,
                     sklad: Number(_options.skladId),
                 };
+
+                // Vozvrat order yoki oddiy order bo'yicha field qo'shish
+                if (isVozvratOrder || _options.vozvratOrderId) {
+                    // Vozvrat order uchun - faqat vozvrat_order field, order_history ishlatilmaydi
+                    orderProductData.vozvrat_order = _options.vozvratOrderId || currentOrderId;
+                } else {
+                    // Oddiy order uchun - faqat order_history field
+                    orderProductData.order_history = currentOrderId;
+                }
 
                 // price_dollar va price_sum ni qo'shish
                 if (_options.priceDollar != null) {
@@ -419,12 +492,13 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false }: Kas
                 setTotalAmountFromCart(total);
             }}
             readOnly={readOnly}
+            isVozvratOrder={isVozvratOrder}
         />
     );
 
     return (
         <>
-            <OrderLayout leftSidebar={leftSidebarContent} mainContent={mainContent} readOnly={readOnly || updateMode} />
+            <OrderLayout leftSidebar={leftSidebarContent} mainContent={mainContent} readOnly={readOnly} updateMode={updateMode} />
 
             {/* Modals - only show if not readOnly */}
             {!readOnly && (
@@ -436,21 +510,36 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false }: Kas
                         exchangeRate={exchangeRate}
                         skladlar={skladlar}
                         orderData={orderData}
+                        isVozvratOrder={isVozvratOrder}
                         onConfirm={handleAddToCart}
+
                     />
 
-                    <PaymentModal
-                        isOpen={isPaymentModalOpen}
-                        onClose={() => setIsPaymentModalOpen(false)}
-                        onComplete={handlePaymentComplete}
-                        totalAmount={totalAmount}
-                        usdRate={USD_RATE}
-                        items={(orderId ?? orderData?.id) ? cartItemsForPayment : cart}
-                        customer={selectedCustomer || undefined}
-                        kassirName={user?.full_name || undefined}
-                        orderData={orderData}
-                        onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
-                    />
+                    {isVozvratOrder ? (
+                        <VozvratPaymentModal
+                            isOpen={isPaymentModalOpen}
+                            onClose={() => setIsPaymentModalOpen(false)}
+                            onComplete={handlePaymentComplete}
+                            totalAmount={(orderId ?? orderData?.id) ? (totalAmountFromCart / exchangeRate) : (cart.reduce((sum, item) => sum + (item.priceSum || 0), 0) / exchangeRate)}
+                            totalCount={(orderId ?? orderData?.id) ? cartItemsForPayment.reduce((sum, item) => sum + (item.quantity || 0), 0) : cart.reduce((sum, item) => sum + (item.quantity || 0), 0)}
+                            usdRate={exchangeRate}
+                            orderData={orderData}
+                            onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
+                        />
+                    ) : (
+                        <PaymentModal
+                            isOpen={isPaymentModalOpen}
+                            onClose={() => setIsPaymentModalOpen(false)}
+                            onComplete={handlePaymentComplete}
+                            totalAmount={totalAmount}
+                            usdRate={USD_RATE}
+                            items={(orderId ?? orderData?.id) ? cartItemsForPayment : cart}
+                            customer={selectedCustomer || undefined}
+                            kassirName={user?.full_name || undefined}
+                            orderData={orderData}
+                            onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
+                        />
+                    )}
                 </>
             )}
         </>
