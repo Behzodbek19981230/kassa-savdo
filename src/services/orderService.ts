@@ -322,4 +322,17 @@ export const orderService = {
     deleteOrderProduct: async (id: number): Promise<void> => {
         await api.delete(`/v1/order-history-product/${id}`);
     },
+
+    // Order-history product-by-model olish
+    getOrderProductsByModel: async (orderHistoryId: number): Promise<{
+        order_history: OrderResponse;
+        products: Array<{
+            model_id: number;
+            model: string;
+            product: any[];
+        }>;
+    }> => {
+        const response = await api.get(`/v1/order-history/${orderHistoryId}/product-by-model`);
+        return response.data;
+    },
 };
