@@ -7,11 +7,14 @@ export function OrderPage() {
 
     // Agar URL /order/show/:id bo'lsa, readOnly mode
     const isReadOnly = location.pathname.includes('/order/show/');
+    // Agar URL /order/update/:id bo'lsa, updateMode
+    const isUpdateMode = location.pathname.includes('/order/update/');
 
     return (
         <KassaPage
             orderId={id ? parseInt(id) : undefined}
             readOnly={isReadOnly}
+            updateMode={isUpdateMode}
         />
     );
 }

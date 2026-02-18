@@ -2,11 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { ProductList } from './ProductList';
-import { Cart } from './Cart';
 import { ProductModal } from './ProductModal';
 import { PaymentModal } from './PaymentModal';
 import { OrderLayout } from './OrderLayout';
-import { OrderPaymentFields } from './OrderPaymentFields';
 import { Product, CartItem, Customer } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService } from '../../services/orderService';
@@ -16,13 +14,14 @@ import { skladService, Sklad } from '../../services/skladService';
 import { showError, showSuccess } from '../../lib/toast';
 import { USD_RATE, ROUTES } from '../../constants';
 import type { ProductModalConfirmOptions } from './ProductModal';
+import { MainCartUpdate } from './MainCartUpdate';
 
-interface KassaPageProps {
+interface KassaUpdateProps {
     orderId?: number;
     readOnly?: boolean;
     updateMode?: boolean; // PaymentModal maydonlarini ko'rsatish uchun
 }
-export function KassaPage({ orderId, readOnly = false, updateMode = false }: KassaPageProps) {
+export function KassaUpdate({ orderId, readOnly = false, updateMode = false }: KassaUpdateProps) {
     const navigate = useNavigate();
     const { user } = useAuth();
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -391,36 +390,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false }: Kas
     );
 
     // Main content (Cart yoki OrderPaymentFields)
-    const mainContent = updateMode ? (
-        <OrderPaymentFields
-            orderData={orderData}
-            onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
-            totalAmount={totalAmount}
-            refreshTrigger={refreshCartTrigger}
-        />
-    ) : (
-        <Cart
-            items={cart}
-            onUpdateQuantity={readOnly ? () => { } : handleUpdateQuantity}
-            onRemoveItem={readOnly ? () => { } : handleRemoveItem}
-            totalItems={totalAmount}
-            orderData={orderData}
-            selectedCustomer={selectedCustomer}
-            onCustomerChange={readOnly ? undefined : handleCustomerChange}
-            onPayment={readOnly ? undefined : () => setIsPaymentModalOpen(true)}
-            isSaleStarted={isSaleStarted}
-            orderId={orderId}
-            onOrderUpdate={readOnly ? undefined : (updatedOrder) => setOrderData(updatedOrder)}
-            onStartSaleClick={readOnly ? undefined : handleStartSaleClick}
-            isCreatingOrder={isCreatingOrder}
-            refreshCartTrigger={refreshCartTrigger}
-            onCartChange={(items, total) => {
-                setCartItemsForPayment(items);
-                setTotalAmountFromCart(total);
-            }}
-            readOnly={readOnly}
-        />
-    );
+    const mainContent = <MainCartUpdate items={cart} onUpdateQuantity={handleUpdateQuantity} onRemoveItem={handleRemoveItem} totalItems={totalAmount} orderData={orderData} selectedCustomer={selectedCustomer} orderId={orderId} refreshCartTrigger={refreshCartTrigger} onCartChange={(items, total) => { setCartItemsForPayment(items); setTotalAmountFromCart(total); }} readOnly={readOnly} />
 
     return (
         <>
@@ -439,18 +409,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false }: Kas
                         onConfirm={handleAddToCart}
                     />
 
-                    <PaymentModal
-                        isOpen={isPaymentModalOpen}
-                        onClose={() => setIsPaymentModalOpen(false)}
-                        onComplete={handlePaymentComplete}
-                        totalAmount={totalAmount}
-                        usdRate={USD_RATE}
-                        items={(orderId ?? orderData?.id) ? cartItemsForPayment : cart}
-                        customer={selectedCustomer || undefined}
-                        kassirName={user?.full_name || undefined}
-                        orderData={orderData}
-                        onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
-                    />
+
                 </>
             )}
         </>

@@ -15,6 +15,7 @@ export const ROUTES = {
 	ORDER: '/order',
 	ORDER_CREATE: '/order',
 	ORDER_EDIT: (id: number | string) => `/order/${id}`,
+	ORDER_UPDATE: (id: number | string) => `/order/update/${id}`,
 	ORDER_VIEW: (id: number | string) => `/order/show/${id}`,
 	STATISTICS: '/statistika',
 } as const;

@@ -4,7 +4,6 @@ import { Product, OrderResponse } from '../../types';
 import { Input, Label } from '../ui/Input';
 import { Autocomplete } from '../ui/Autocomplete';
 import { productService } from '../../services/productService';
-import { currencyService, Currency } from '../../services/currencyService';
 import { orderService } from '../../services/orderService';
 
 export interface ProductModalConfirmOptions {
@@ -44,30 +43,15 @@ export function ProductModal({
     const [selectedSkladId, setSelectedSkladId] = useState<number | null>(null);
     const [skladStockCount, setSkladStockCount] = useState<number | null>(null);
     const [isLoadingStock, setIsLoadingStock] = useState(false);
-    const [currencies, setCurrencies] = useState<Currency[]>([]);
-    const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null);
     const [errors, setErrors] = useState<{ sklad?: string; quantity?: string; price?: string; stock?: string }>({});
 
-    // Currency ro'yxatini yuklash
-    useEffect(() => {
-        const loadCurrencies = async () => {
-            try {
-                const currencyList = await currencyService.getCurrencies();
-                setCurrencies(currencyList);
-            } catch (error) {
-                console.error('Failed to load currencies:', error);
-            }
-        };
-        loadCurrencies();
-    }, []);
-
-    // Default currency - UZS (order-history dan emas, to'g'ridan-to'g'ri tanlash)
-    useEffect(() => {
-        if (currencies.length > 0 && !selectedCurrency) {
-            const uzsCurrency = currencies.find((c) => c.code === 'UZS');
-            setSelectedCurrency(uzsCurrency || currencies[0] || null);
-        }
-    }, [currencies]);
+    // Statik valyutalar ro'yxati (API dan olmaydi)
+    const staticCurrencies = [
+        { id: 1, code: 'USD', name: 'US Dollar' },
+        { id: 2, code: 'UZS', name: "O'zbek so'mi" },
+    ];
+    const [selectedCurrency, setSelectedCurrency] = useState<{ id: number; code: string; name: string }>(staticCurrencies[0]); // Default USD
+    const currencyCode = selectedCurrency.code;
 
     // Order-product-history dan default qiymatlarni yuklash (tahrirlash uchun)
     useEffect(() => {
@@ -79,38 +63,27 @@ export function ProductModal({
                     const qty = orderProduct.given_count ?? orderProduct.count ?? 1;
                     setQuantity(String(qty));
 
-                    // Currency ni aniqlash (avval orderProduct.currency, keyin order_history_detail.currency, keyin orderData.currency)
-                    let currencyId = orderProduct.currency ?? orderProduct.order_history_detail?.currency ?? orderData?.currency ?? null;
-                    let selectedCurrencyObj: Currency | null = null;
-                    if (currencyId != null && currencies.length > 0) {
-                        selectedCurrencyObj = currencies.find((c) => c.id === Number(currencyId)) || null;
-                        if (selectedCurrencyObj) {
-                            setSelectedCurrency(selectedCurrencyObj);
-                        }
-                    }
+                    // Currency - default USD (statik, API dan olmaydi)
 
-                    // Price - valyutaga qarab to'g'ri summani ko'rsatish
+                    // Price - price_dollar yoki price_sum ga qarab to'g'ri summani ko'rsatish
                     let unitPrice = 0;
                     const count = orderProduct.count ?? qty;
 
-                    if (selectedCurrencyObj?.code === 'USD') {
-                        // Agar USD bo'lsa, price_dollar dan olish
-                        if (orderProduct.price_dollar != null && count > 0) {
-                            unitPrice = Number(orderProduct.price_dollar) / count;
-                        } else if (orderProduct.unit_price != null) {
-                            unitPrice = Number(orderProduct.unit_price);
-                        } else if (orderProduct.real_price != null) {
-                            unitPrice = Number(orderProduct.real_price);
-                        }
-                    } else {
-                        // Agar UZS yoki boshqa valyuta bo'lsa, price_sum dan olish
-                        if (orderProduct.price_sum != null && count > 0) {
-                            unitPrice = Number(orderProduct.price_sum) / count;
-                        } else if (orderProduct.unit_price != null) {
-                            unitPrice = Number(orderProduct.unit_price);
-                        } else if (orderProduct.real_price != null) {
-                            unitPrice = Number(orderProduct.real_price);
-                        }
+                    // Avval price_dollar ni tekshirish (default USD)
+                    if (orderProduct.price_dollar != null && count > 0) {
+                        unitPrice = Number(orderProduct.price_dollar) / count;
+                    }
+                    // Keyin price_sum ni tekshirish
+                    else if (orderProduct.price_sum != null && count > 0) {
+                        unitPrice = Number(orderProduct.price_sum) / count;
+                    }
+                    // Keyin unit_price
+                    else if (orderProduct.unit_price != null) {
+                        unitPrice = Number(orderProduct.unit_price);
+                    }
+                    // Keyin real_price
+                    else if (orderProduct.real_price != null) {
+                        unitPrice = Number(orderProduct.real_price);
                     }
                     setPrice(String(unitPrice));
 
@@ -139,7 +112,7 @@ export function ProductModal({
             setSkladStockCount(null);
             setErrors({}); // Errorlarni tozalash
         }
-    }, [product, orderProductId, isOpen, orderData, exchangeRate, currencies]);
+    }, [product, orderProductId, isOpen, orderData, exchangeRate]);
 
     // Sklad tanlanganda /api/v1/product-stock/ dan qoldiqni olish
     useEffect(() => {
@@ -234,7 +207,6 @@ export function ProductModal({
     };
 
     const priceValue = parseFloat(price) || 0;
-    const currencyCode = selectedCurrency?.code || 'UZS';
 
     // Jami summa - tanlangan currency'da
     const total = parseFloat(quantity) * priceValue;
@@ -300,11 +272,11 @@ export function ProductModal({
                             )}
                             {errors.stock && <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.stock}</p>}
                         </div>
-                        {/* Currency selector */}
+                        {/* Currency selector - statik */}
                         <div>
                             <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>Valyuta</Label>
                             <Autocomplete
-                                options={currencies.map((c) => ({
+                                options={staticCurrencies.map((c) => ({
                                     id: String(c.id),
                                     label: `${c.name} (${c.code})`,
                                     value: String(c.id),
@@ -312,8 +284,10 @@ export function ProductModal({
                                 value={selectedCurrency?.id?.toString() || ''}
                                 onChange={(v) => {
                                     const currencyId = v ? parseInt(v) : null;
-                                    const currency = currencies.find((c) => c.id === currencyId);
-                                    setSelectedCurrency(currency || null);
+                                    const currency = staticCurrencies.find((c) => c.id === currencyId);
+                                    if (currency) {
+                                        setSelectedCurrency(currency);
+                                    }
                                 }}
                                 placeholder='Valyuta tanlang...'
                                 emptyMessage='Valyuta topilmadi'

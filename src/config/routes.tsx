@@ -6,6 +6,7 @@ import { StatistikaPage } from '../pages/StatistikaPage';
 import { Layout } from '../components/Layout';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { ROUTES } from '../constants';
+import UpdateOrder from '@/pages/UpdateOrder';
 
 export interface RouteConfig {
     path: string;
@@ -58,6 +59,16 @@ export const privateRoutes: RouteConfig[] = [
             <ProtectedRoute>
                 <Layout>
                     <OrderPage />
+                </Layout>
+            </ProtectedRoute>
+        ),
+    },
+    {
+        path: '/order/update/:id',
+        element: (
+            <ProtectedRoute>
+                <Layout>
+                    <UpdateOrder />
                 </Layout>
             </ProtectedRoute>
         ),
