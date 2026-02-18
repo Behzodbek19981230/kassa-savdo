@@ -5,341 +5,405 @@ import { Input, Label } from '../ui/Input';
 import { Autocomplete } from '../ui/Autocomplete';
 import { productService } from '../../services/productService';
 import { currencyService, Currency } from '../../services/currencyService';
+import { orderService } from '../../services/orderService';
 
 export interface ProductModalConfirmOptions {
-	skladId: number;
-	currencyId?: number;
-	priceDollar?: number;
-	priceSum?: number;
+    skladId: number;
+    currencyId?: number;
+    priceDollar?: number;
+    priceSum?: number;
 }
 
 interface ProductModalProps {
-	isOpen: boolean;
-	onClose: () => void;
-	product: Product | null;
-	exchangeRate: number;
-	skladlar: { id: number; name: string }[];
-	orderData?: OrderResponse | null;
-	onConfirm: (
-		quantity: number,
-		priceInSum: number,
-		priceType: 'unit' | 'wholesale',
-		options: ProductModalConfirmOptions,
-	) => void;
+    isOpen: boolean;
+    onClose: () => void;
+    product: Product | null;
+    exchangeRate: number;
+    skladlar: { id: number; name: string }[];
+    orderData?: OrderResponse | null;
+    orderProductId?: number | null; // order-product-history id (tahrirlash uchun)
+    onConfirm: (
+        quantity: number,
+        priceInSum: number,
+        priceType: 'unit' | 'wholesale',
+        options: ProductModalConfirmOptions,
+    ) => void;
 }
 export function ProductModal({
-	isOpen,
-	onClose,
-	product,
-	exchangeRate,
-	skladlar,
-	orderData,
-	onConfirm,
+    isOpen,
+    onClose,
+    product,
+    exchangeRate,
+    skladlar,
+    orderData,
+    orderProductId,
+    onConfirm,
 }: ProductModalProps) {
-	const [quantity, setQuantity] = useState<string>('1');
-	const [price, setPrice] = useState<string>('0');
-	const [selectedSkladId, setSelectedSkladId] = useState<number | null>(null);
-	const [skladStockCount, setSkladStockCount] = useState<number | null>(null);
-	const [isLoadingStock, setIsLoadingStock] = useState(false);
-	const [currencies, setCurrencies] = useState<Currency[]>([]);
-	const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null);
-	const [errors, setErrors] = useState<{ sklad?: string; quantity?: string; price?: string; stock?: string }>({});
+    const [quantity, setQuantity] = useState<string>('1');
+    const [price, setPrice] = useState<string>('0');
+    const [selectedSkladId, setSelectedSkladId] = useState<number | null>(null);
+    const [skladStockCount, setSkladStockCount] = useState<number | null>(null);
+    const [isLoadingStock, setIsLoadingStock] = useState(false);
+    const [currencies, setCurrencies] = useState<Currency[]>([]);
+    const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null);
+    const [errors, setErrors] = useState<{ sklad?: string; quantity?: string; price?: string; stock?: string }>({});
 
-	// Currency ro'yxatini yuklash
-	useEffect(() => {
-		const loadCurrencies = async () => {
-			try {
-				const currencyList = await currencyService.getCurrencies();
-				setCurrencies(currencyList);
-			} catch (error) {
-				console.error('Failed to load currencies:', error);
-			}
-		};
-		loadCurrencies();
-	}, []);
+    // Currency ro'yxatini yuklash
+    useEffect(() => {
+        const loadCurrencies = async () => {
+            try {
+                const currencyList = await currencyService.getCurrencies();
+                setCurrencies(currencyList);
+            } catch (error) {
+                console.error('Failed to load currencies:', error);
+            }
+        };
+        loadCurrencies();
+    }, []);
 
-	// Default currency - UZS (order-history dan emas, to'g'ridan-to'g'ri tanlash)
-	useEffect(() => {
-		if (currencies.length > 0 && !selectedCurrency) {
-			const uzsCurrency = currencies.find((c) => c.code === 'UZS');
-			setSelectedCurrency(uzsCurrency || currencies[0] || null);
-		}
-	}, [currencies]);
+    // Default currency - UZS (order-history dan emas, to'g'ridan-to'g'ri tanlash)
+    useEffect(() => {
+        if (currencies.length > 0 && !selectedCurrency) {
+            const uzsCurrency = currencies.find((c) => c.code === 'UZS');
+            setSelectedCurrency(uzsCurrency || currencies[0] || null);
+        }
+    }, [currencies]);
 
-	useEffect(() => {
-		if (product) {
-			const defaultPrice = product.unitPrice ?? product.price ?? 0;
-			setPrice(String(defaultPrice));
-			setQuantity('1');
-			setSelectedSkladId(null);
-			setSkladStockCount(null);
-			setErrors({}); // Errorlarni tozalash
-		}
-	}, [product]);
+    // Order-product-history dan default qiymatlarni yuklash (tahrirlash uchun)
+    useEffect(() => {
+        if (orderProductId && isOpen) {
+            orderService
+                .getOrderProductById(orderProductId)
+                .then((orderProduct) => {
+                    // Quantity
+                    const qty = orderProduct.given_count ?? orderProduct.count ?? 1;
+                    setQuantity(String(qty));
 
-	// Sklad tanlanganda /api/v1/product-stock/ dan qoldiqni olish
-	useEffect(() => {
-		if (!product || selectedSkladId == null) {
-			setSkladStockCount(null);
-			return;
-		}
-		const productId = product.productId ?? Number(product.id);
-		if (!productId) return;
-		setIsLoadingStock(true);
-		productService
-			.getProductStock({ product: productId, sklad: selectedSkladId })
-			.then((res) => setSkladStockCount(res.count ?? 0))
-			.catch(() => setSkladStockCount(null))
-			.finally(() => setIsLoadingStock(false));
-	}, [product, selectedSkladId]);
+                    // Currency ni aniqlash (avval orderProduct.currency, keyin order_history_detail.currency, keyin orderData.currency)
+                    let currencyId = orderProduct.currency ?? orderProduct.order_history_detail?.currency ?? orderData?.currency ?? null;
+                    let selectedCurrencyObj: Currency | null = null;
+                    if (currencyId != null && currencies.length > 0) {
+                        selectedCurrencyObj = currencies.find((c) => c.id === Number(currencyId)) || null;
+                        if (selectedCurrencyObj) {
+                            setSelectedCurrency(selectedCurrencyObj);
+                        }
+                    }
 
-	const skladOptions = useMemo(
-		() =>
-			skladlar.map((s) => ({
-				id: String(s.id),
-				label: s.name,
-				value: String(s.id),
-			})),
-		[skladlar],
-	);
+                    // Price - valyutaga qarab to'g'ri summani ko'rsatish
+                    let unitPrice = 0;
+                    const count = orderProduct.count ?? qty;
 
-	if (!isOpen || !product) return null;
+                    if (selectedCurrencyObj?.code === 'USD') {
+                        // Agar USD bo'lsa, price_dollar dan olish
+                        if (orderProduct.price_dollar != null && count > 0) {
+                            unitPrice = Number(orderProduct.price_dollar) / count;
+                        } else if (orderProduct.unit_price != null) {
+                            unitPrice = Number(orderProduct.unit_price);
+                        } else if (orderProduct.real_price != null) {
+                            unitPrice = Number(orderProduct.real_price);
+                        }
+                    } else {
+                        // Agar UZS yoki boshqa valyuta bo'lsa, price_sum dan olish
+                        if (orderProduct.price_sum != null && count > 0) {
+                            unitPrice = Number(orderProduct.price_sum) / count;
+                        } else if (orderProduct.unit_price != null) {
+                            unitPrice = Number(orderProduct.unit_price);
+                        } else if (orderProduct.real_price != null) {
+                            unitPrice = Number(orderProduct.real_price);
+                        }
+                    }
+                    setPrice(String(unitPrice));
 
-	const handleConfirm = () => {
-		const newErrors: { sklad?: string; quantity?: string; price?: string; stock?: string } = {};
-		const qty = parseFloat(quantity);
-		const priceValue = parseFloat(price);
+                    // Sklad
+                    if (orderProduct.sklad != null) {
+                        setSelectedSkladId(Number(orderProduct.sklad));
+                    }
 
-		// Sklad validation
-		if (selectedSkladId == null) {
-			newErrors.sklad = 'Skladni tanlang (majburiy)';
-		}
+                    setErrors({});
+                })
+                .catch((error) => {
+                    console.error('Failed to load order product:', error);
+                    // Xatolik bo'lsa ham default qiymatlarni o'rnatish
+                    if (product) {
+                        const defaultPrice = product.unitPrice ?? product.price ?? 0;
+                        setPrice(String(defaultPrice));
+                        setQuantity('1');
+                    }
+                });
+        } else if (product && !orderProductId) {
+            // Yangi mahsulot qo'shish - default qiymatlar
+            const defaultPrice = product.unitPrice ?? product.price ?? 0;
+            setPrice(String(defaultPrice));
+            setQuantity('1');
+            setSelectedSkladId(null);
+            setSkladStockCount(null);
+            setErrors({}); // Errorlarni tozalash
+        }
+    }, [product, orderProductId, isOpen, orderData, exchangeRate, currencies]);
 
-		// Quantity validation
-		if (!quantity || qty <= 0 || isNaN(qty)) {
-			newErrors.quantity = "Miqdor 0 dan katta bo'lishi kerak";
-		}
+    // Sklad tanlanganda /api/v1/product-stock/ dan qoldiqni olish
+    useEffect(() => {
+        if (!product || selectedSkladId == null) {
+            setSkladStockCount(null);
+            return;
+        }
+        const productId = product.productId ?? Number(product.id);
+        if (!productId) return;
+        setIsLoadingStock(true);
+        productService
+            .getProductStock({ product: productId, sklad: selectedSkladId })
+            .then((res) => setSkladStockCount(res.count ?? 0))
+            .catch(() => setSkladStockCount(null))
+            .finally(() => setIsLoadingStock(false));
+    }, [product, selectedSkladId]);
 
-		// // Price validation
-		// if (!price || priceValue <= 0 || isNaN(priceValue)) {
-		//     newErrors.price = "Summasi 0 dan katta bo'lishi kerak";
-		// }
+    const skladOptions = useMemo(
+        () =>
+            skladlar.map((s) => ({
+                id: String(s.id),
+                label: s.name,
+                value: String(s.id),
+            })),
+        [skladlar],
+    );
 
-		// Stock validation
-		if (skladStockCount != null && qty > skladStockCount) {
-			newErrors.stock = `Miqdor skladda qolgan sondan (${skladStockCount}) oshmasligi kerak`;
-		}
+    if (!isOpen || !product) return null;
 
-		// Agar errorlar bo'lsa, ko'rsatish va to'xtatish
-		if (Object.keys(newErrors).length > 0) {
-			setErrors(newErrors);
-			return;
-		}
+    const handleConfirm = () => {
+        const newErrors: { sklad?: string; quantity?: string; price?: string; stock?: string } = {};
+        const qty = parseFloat(quantity);
+        const priceValue = parseFloat(price);
 
-		// Errorlar yo'q, tozalash va davom etish
-		setErrors({});
+        // Sklad validation
+        if (selectedSkladId == null) {
+            newErrors.sklad = 'Skladni tanlang (majburiy)';
+        }
 
-		// Currency bo'yicha price_dollar va price_sum ni hisoblash (bitta mahsulot uchun)
-		let priceDollarPerUnit = 0;
-		let priceSumPerUnit = 0;
+        // Quantity validation
+        if (!quantity || qty <= 0 || isNaN(qty)) {
+            newErrors.quantity = "Miqdor 0 dan katta bo'lishi kerak";
+        }
 
-		if (selectedCurrency?.code === 'USD') {
-			// Agar USD tanlangan bo'lsa
-			priceDollarPerUnit = priceValue;
-			priceSumPerUnit = priceValue * exchangeRate;
-		} else {
-			// Agar UZS yoki boshqa currency tanlangan bo'lsa
-			priceSumPerUnit = priceValue;
-			priceDollarPerUnit = priceValue / exchangeRate;
-		}
+        // // Price validation
+        // if (!price || priceValue <= 0 || isNaN(priceValue)) {
+        //     newErrors.price = "Summasi 0 dan katta bo'lishi kerak";
+        // }
 
-		// Backend ga yuborishda miqdoriga ko'paytirilgan summalar (2 xona aniqlikda)
-		const priceDollar = parseFloat((priceDollarPerUnit * qty).toFixed(2));
-		const priceSum = parseFloat((priceSumPerUnit * qty).toFixed(2));
+        // Stock validation
+        if (skladStockCount != null && qty > skladStockCount) {
+            newErrors.stock = `Miqdor skladda qolgan sondan (${skladStockCount}) oshmasligi kerak`;
+        }
 
-		// Agar currency USD bo'lsa, UZS ga konvertatsiya qilish (backward compatibility)
-		const priceInSum = selectedCurrency?.code === 'USD' ? priceValue * exchangeRate : priceValue;
+        // Agar errorlar bo'lsa, ko'rsatish va to'xtatish
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
 
-		onConfirm(qty, priceInSum, 'unit', {
-			skladId: Number(selectedSkladId),
-			currencyId: selectedCurrency?.id,
-			priceDollar: priceDollar,
-			priceSum: priceSum,
-		});
-		onClose();
-	};
+        // Errorlar yo'q, tozalash va davom etish
+        setErrors({});
 
-	const priceValue = parseFloat(price) || 0;
-	const currencyCode = selectedCurrency?.code || 'UZS';
+        // Currency bo'yicha price_dollar va price_sum ni hisoblash (bitta mahsulot uchun)
+        let priceDollarPerUnit = 0;
+        let priceSumPerUnit = 0;
 
-	// Jami summa - tanlangan currency'da
-	const total = parseFloat(quantity) * priceValue;
+        if (selectedCurrency?.code === 'USD') {
+            // Agar USD tanlangan bo'lsa
+            priceDollarPerUnit = priceValue;
+            priceSumPerUnit = priceValue * exchangeRate;
+        } else {
+            // Agar UZS yoki boshqa currency tanlangan bo'lsa
+            priceSumPerUnit = priceValue;
+            priceDollarPerUnit = priceValue / exchangeRate;
+        }
 
-	return (
-		<div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
-			<div className='bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border-2 border-indigo-200'>
-				<div className='flex justify-between items-center p-5 border-b-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50'>
-					<div className='flex-1'>
-						{/* Mahsulot ma'lumotlari */}
-						<div className='flex flex-wrap gap-3 text-sm text-gray-600'>
-							{product.branchCategoryName && (
-								<div className='flex items-center gap-1'>
-									<span className='font-semibold text-indigo-600'>Kategoriya:</span>
-									<span>{product.branchCategoryName}</span>
-								</div>
-							)}
-							{product.modelName && (
-								<div className='flex items-center gap-1'>
-									<span className='font-semibold text-indigo-600'>Modeli:</span>
-									<span>{product.modelName}</span>
-								</div>
-							)}
-							{product.typeName && (
-								<div className='flex items-center gap-1'>
-									<span className='font-semibold text-indigo-600'>Model turi:</span>
-									<span>{product.typeName}</span>
-								</div>
-							)}
-						</div>
-					</div>
-					<button
-						onClick={onClose}
-						className='text-gray-500 hover:text-indigo-600 hover:bg-white p-2 rounded-xl transition-all duration-200 ml-4 shrink-0'
-					>
-						<X size={24} />
-					</button>
-				</div>
+        // Backend ga yuborishda miqdoriga ko'paytirilgan summalar (2 xona aniqlikda)
+        const priceDollar = parseFloat((priceDollarPerUnit * qty).toFixed(2));
+        const priceSum = parseFloat((priceSumPerUnit * qty).toFixed(2));
 
-				<div className='p-6 bg-white'>
-					<div className='grid grid-cols-2 gap-5'>
-						{/* Sklad — majburiy */}
-						<div>
-							<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>Sklad</Label>
-							<Autocomplete
-								options={skladOptions}
-								value={selectedSkladId != null ? String(selectedSkladId) : ''}
-								onChange={(v) => {
-									setSelectedSkladId(v ? Number(v) : null);
-									if (errors.sklad) {
-										setErrors((prev) => ({ ...prev, sklad: undefined }));
-									}
-								}}
-								placeholder='Skladni qidirish...'
-								emptyMessage='Sklad topilmadi'
-							/>
-							{errors.sklad && <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.sklad}</p>}
-							{isLoadingStock && <p className='mt-1.5 text-xs text-indigo-500'>Qoldiq yuklanmoqda...</p>}
-							{!isLoadingStock && selectedSkladId != null && skladStockCount != null && (
-								<p className='mt-1.5 text-sm font-medium text-red-500'>
-									Qoldiq soni: <span className='font-bold'>{skladStockCount.toLocaleString()}</span>
-								</p>
-							)}
-							{errors.stock && <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.stock}</p>}
-						</div>
-						{/* Currency selector */}
-						<div>
-							<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>Valyuta</Label>
-							<Autocomplete
-								options={currencies.map((c) => ({
-									id: String(c.id),
-									label: `${c.name} (${c.code})`,
-									value: String(c.id),
-								}))}
-								value={selectedCurrency?.id?.toString() || ''}
-								onChange={(v) => {
-									const currencyId = v ? parseInt(v) : null;
-									const currency = currencies.find((c) => c.id === currencyId);
-									setSelectedCurrency(currency || null);
-								}}
-								placeholder='Valyuta tanlang...'
-								emptyMessage='Valyuta topilmadi'
-								className='!h-9 !min-h-9'
-							/>
-						</div>
+        // Agar currency USD bo'lsa, UZS ga konvertatsiya qilish (backward compatibility)
+        const priceInSum = selectedCurrency?.code === 'USD' ? priceValue * exchangeRate : priceValue;
 
-						{/* Miqdori */}
-						<div>
-							<Label htmlFor='quantity' className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
-								Miqdori
-							</Label>
-							<div
-								className={`flex rounded-xl shadow-lg overflow-hidden border-2 ${errors.quantity ? 'border-red-500' : 'border-indigo-200'}`}
-							>
-								<Input
-									id='quantity'
-									type='number'
-									value={quantity}
-									onChange={(e) => {
-										setQuantity(e.target.value);
-										if (errors.quantity) {
-											setErrors((prev) => ({ ...prev, quantity: undefined }));
-										}
-										if (errors.stock) {
-											setErrors((prev) => ({ ...prev, stock: undefined }));
-										}
-									}}
-									className='flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white'
-									autoFocus
-								/>
-								<div className='flex justify-between text-sm text-gray-600 bg-indigo-50/50 px-3 py-2 min-w-[3rem] items-center'>
-									{product?.unitCode ?? 'dona'}
-								</div>
-							</div>
-							{errors.quantity && (
-								<p className='mt-1.5 text-sm font-medium text-red-600'>{errors.quantity}</p>
-							)}
-						</div>
+        onConfirm(qty, priceInSum, 'unit', {
+            skladId: Number(selectedSkladId),
+            currencyId: selectedCurrency?.id,
+            priceDollar: priceDollar,
+            priceSum: priceSum,
+        });
+        onClose();
+    };
 
-						{/* Summasi */}
-						<div>
-							<Label htmlFor='price' className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
-								Summasi (birlik summa)
-							</Label>
-							<div
-								className={`flex rounded-xl shadow-lg overflow-hidden border-2 ${errors.price ? 'border-red-500' : 'border-indigo-200'}`}
-							>
-								<Input
-									id='price'
-									type='number'
-									step='0.01'
-									value={price}
-									onChange={(e) => {
-										setPrice(e.target.value);
-										if (errors.price) {
-											setErrors((prev) => ({ ...prev, price: undefined }));
-										}
-									}}
-									className='flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white'
-									placeholder={`Narx (${currencyCode})`}
-								/>
-								<div className='flex justify-between text-sm text-gray-600 bg-indigo-50/50 px-3 py-2 min-w-[3rem] items-center'>
-									{currencyCode}
-								</div>
-							</div>
-							{errors.price && <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.price}</p>}
-						</div>
-					</div>
+    const priceValue = parseFloat(price) || 0;
+    const currencyCode = selectedCurrency?.code || 'UZS';
 
-					{/* Jami summa */}
-					<div className='mt-5 bg-emerald-50 p-3 rounded-xl border border-emerald-200'>
-						<div className='flex justify-between items-center'>
-							<span className='text-sm font-medium text-emerald-700'>Jami:</span>
-							<span className='text-xl font-bold text-emerald-900'>
-								{total.toLocaleString()} {currencyCode}
-							</span>
-						</div>
-					</div>
+    // Jami summa - tanlangan currency'da
+    const total = parseFloat(quantity) * priceValue;
 
-					<div className='flex justify-end pt-4'>
-						<button
-							onClick={handleConfirm}
-							className='bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 font-bold flex items-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]'
-						>
-							<span className='mr-2'>✓</span> SAQLASH
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
+    return (
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+            <div className='bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border-2 border-indigo-200'>
+                <div className='flex justify-between items-center p-5 border-b-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50'>
+                    <div className='flex-1'>
+                        {/* Mahsulot ma'lumotlari */}
+                        <div className='flex flex-wrap gap-3 text-sm text-gray-600'>
+                            {product.branchCategoryName && (
+                                <div className='flex items-center gap-1'>
+                                    <span className='font-semibold text-indigo-600'>Kategoriya:</span>
+                                    <span>{product.branchCategoryName}</span>
+                                </div>
+                            )}
+                            {product.modelName && (
+                                <div className='flex items-center gap-1'>
+                                    <span className='font-semibold text-indigo-600'>Modeli:</span>
+                                    <span>{product.modelName}</span>
+                                </div>
+                            )}
+                            {product.typeName && (
+                                <div className='flex items-center gap-1'>
+                                    <span className='font-semibold text-indigo-600'>Model turi:</span>
+                                    <span>{product.typeName}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className='text-gray-500 hover:text-indigo-600 hover:bg-white p-2 rounded-xl transition-all duration-200 ml-4 shrink-0'
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <div className='p-6 bg-white'>
+                    <div className='grid grid-cols-2 gap-5'>
+                        {/* Sklad — majburiy */}
+                        <div>
+                            <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>Sklad</Label>
+                            <Autocomplete
+                                options={skladOptions}
+                                value={selectedSkladId != null ? String(selectedSkladId) : ''}
+                                onChange={(v) => {
+                                    setSelectedSkladId(v ? Number(v) : null);
+                                    if (errors.sklad) {
+                                        setErrors((prev) => ({ ...prev, sklad: undefined }));
+                                    }
+                                }}
+                                placeholder='Skladni qidirish...'
+                                emptyMessage='Sklad topilmadi'
+                            />
+                            {errors.sklad && <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.sklad}</p>}
+                            {isLoadingStock && <p className='mt-1.5 text-xs text-indigo-500'>Qoldiq yuklanmoqda...</p>}
+                            {!isLoadingStock && selectedSkladId != null && skladStockCount != null && (
+                                <p className='mt-1.5 text-sm font-medium text-red-500'>
+                                    Qoldiq soni: <span className='font-bold'>{skladStockCount.toLocaleString()}</span>
+                                </p>
+                            )}
+                            {errors.stock && <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.stock}</p>}
+                        </div>
+                        {/* Currency selector */}
+                        <div>
+                            <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>Valyuta</Label>
+                            <Autocomplete
+                                options={currencies.map((c) => ({
+                                    id: String(c.id),
+                                    label: `${c.name} (${c.code})`,
+                                    value: String(c.id),
+                                }))}
+                                value={selectedCurrency?.id?.toString() || ''}
+                                onChange={(v) => {
+                                    const currencyId = v ? parseInt(v) : null;
+                                    const currency = currencies.find((c) => c.id === currencyId);
+                                    setSelectedCurrency(currency || null);
+                                }}
+                                placeholder='Valyuta tanlang...'
+                                emptyMessage='Valyuta topilmadi'
+                                className='!h-9 !min-h-9'
+                            />
+                        </div>
+
+                        {/* Miqdori */}
+                        <div>
+                            <Label htmlFor='quantity' className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
+                                Miqdori
+                            </Label>
+                            <div
+                                className={`flex rounded-xl shadow-lg overflow-hidden border-2 ${errors.quantity ? 'border-red-500' : 'border-indigo-200'}`}
+                            >
+                                <Input
+                                    id='quantity'
+                                    type='number'
+                                    value={quantity}
+                                    onChange={(e) => {
+                                        setQuantity(e.target.value);
+                                        if (errors.quantity) {
+                                            setErrors((prev) => ({ ...prev, quantity: undefined }));
+                                        }
+                                        if (errors.stock) {
+                                            setErrors((prev) => ({ ...prev, stock: undefined }));
+                                        }
+                                    }}
+                                    className='flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white'
+                                    autoFocus
+                                />
+                                <div className='flex justify-between text-sm text-gray-600 bg-indigo-50/50 px-3 py-2 min-w-[3rem] items-center'>
+                                    {product?.unitCode ?? 'dona'}
+                                </div>
+                            </div>
+                            {errors.quantity && (
+                                <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.quantity}</p>
+                            )}
+                        </div>
+
+                        {/* Summasi */}
+                        <div>
+                            <Label htmlFor='price' className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
+                                Summasi (birlik summa)
+                            </Label>
+                            <div
+                                className={`flex rounded-xl shadow-lg overflow-hidden border-2 ${errors.price ? 'border-red-500' : 'border-indigo-200'}`}
+                            >
+                                <Input
+                                    id='price'
+                                    type='number'
+                                    step='0.01'
+                                    value={price}
+                                    onChange={(e) => {
+                                        setPrice(e.target.value);
+                                        if (errors.price) {
+                                            setErrors((prev) => ({ ...prev, price: undefined }));
+                                        }
+                                    }}
+                                    className='flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white'
+                                    placeholder={`Narx (${currencyCode})`}
+                                />
+                                <div className='flex justify-between text-sm text-gray-600 bg-indigo-50/50 px-3 py-2 min-w-[3rem] items-center'>
+                                    {currencyCode}
+                                </div>
+                            </div>
+                            {errors.price && <p className='mt-1.5 text-sm font-medium text-red-600'>{errors.price}</p>}
+                        </div>
+                    </div>
+
+                    {/* Jami summa */}
+                    <div className='mt-5 bg-emerald-50 p-3 rounded-xl border border-emerald-200'>
+                        <div className='flex justify-between items-center'>
+                            <span className='text-sm font-medium text-emerald-700'>Jami:</span>
+                            <span className='text-xl font-bold text-emerald-900'>
+                                {total.toLocaleString()} {currencyCode}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className='flex justify-end pt-4'>
+                        <button
+                            onClick={handleConfirm}
+                            className='bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 font-bold flex items-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]'
+                        >
+                            <span className='mr-2'>✓</span> SAQLASH
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }

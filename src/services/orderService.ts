@@ -300,8 +300,20 @@ export const orderService = {
         return [];
     },
 
+    // Order-history-product ni id orqali olish
+    getOrderProductById: async (id: number): Promise<any> => {
+        const response = await api.get(`/v1/order-history-product/${id}`);
+        return response.data;
+    },
+
     // Order-history-product yangilash
-    updateOrderProduct: async (id: number, data: { count?: number }): Promise<any> => {
+    updateOrderProduct: async (id: number, data: { 
+        count?: number; 
+        sklad?: number; 
+        price_sum?: number; 
+        price_dollar?: number;
+        currency?: number;
+    }): Promise<any> => {
         const response = await api.patch(`/v1/order-history-product/${id}`, data);
         return response.data;
     },

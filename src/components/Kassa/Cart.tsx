@@ -237,6 +237,7 @@ export function Cart({
 				sklad: options.skladId,
 				price_sum: options.priceSum,
 				price_dollar: options.priceDollar,
+				currency: options.currencyId,
 			});
 			showSuccess('Mahsulot muvaffaqiyatli yangilandi');
 			setIsProductModalOpen(false);
@@ -664,6 +665,7 @@ export function Cart({
 				exchangeRate={exchangeRate}
 				skladlar={skladlar}
 				orderData={orderData}
+				orderProductId={productForModal?.id ? Number(productForModal.id) : null}
 				onConfirm={handleConfirmEditOrderProduct}
 			/>
 
