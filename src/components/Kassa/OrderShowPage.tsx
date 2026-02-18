@@ -62,12 +62,12 @@ export function OrderShowPage() {
     return (
         <div className='h-full overflow-y-auto p-4 sm:p-6'>
             {/* Order History Ma'lumotlari */}
-            <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6'>
-                <div className='flex items-center justify-between mb-6 pb-4 border-b border-gray-200'>
-                    <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>
+            <div className='bg-white rounded-lg shadow-md p-3 sm:p-4 mb-4'>
+                <div className='flex items-center justify-between mb-3 pb-2 border-b border-gray-200'>
+                    <h2 className='text-lg sm:text-xl font-bold text-gray-800'>
                         Order #{order_history.id}
                     </h2>
-                    <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    <div className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                         order_history.order_status 
                             ? 'bg-green-100 text-green-700' 
                             : 'bg-yellow-100 text-yellow-700'
@@ -76,36 +76,36 @@ export function OrderShowPage() {
                     </div>
                 </div>
                 
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6'>
+                <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3'>
                     {/* Mijoz ma'lumotlari */}
-                    <div className='bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200'>
-                        <p className='text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide'>Mijoz</p>
-                        <p className='font-bold text-gray-800 text-lg mb-1'>
+                    <div className='bg-gradient-to-br from-blue-50 to-indigo-50 p-2 rounded border border-blue-200'>
+                        <p className='text-[10px] font-semibold text-blue-600 mb-1 uppercase tracking-wide'>Mijoz</p>
+                        <p className='font-bold text-gray-800 text-sm mb-0.5'>
                             {order_history.client_detail?.full_name || 'Noma\'lum'}
                         </p>
-                        <p className='text-sm text-gray-600 mb-1'>
-                            📞 {order_history.client_detail?.phone_number || 'Noma\'lum'}
+                        <p className='text-xs text-gray-600'>
+                            {order_history.client_detail?.phone_number || ''}
                         </p>
                         {order_history.client_detail?.total_debt && Number(order_history.client_detail.total_debt) > 0 && (
-                            <p className='text-xs text-red-600 font-semibold'>
-                                Qarz: {Number(order_history.client_detail.total_debt).toLocaleString()} UZS
+                            <p className='text-[10px] text-red-600 font-semibold mt-0.5'>
+                                Qarz: {Number(order_history.client_detail.total_debt).toLocaleString()}
                             </p>
                         )}
                     </div>
 
                     {/* Sana va vaqt */}
-                    <div className='bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200'>
-                        <p className='text-xs font-semibold text-purple-600 mb-2 uppercase tracking-wide'>Sana va vaqt</p>
+                    <div className='bg-gradient-to-br from-purple-50 to-pink-50 p-2 rounded border border-purple-200'>
+                        <p className='text-[10px] font-semibold text-purple-600 mb-1 uppercase tracking-wide'>Sana va vaqt</p>
                         {order_history.created_time ? (
                             <>
-                                <p className='font-bold text-gray-800 text-lg'>
+                                <p className='font-bold text-gray-800 text-sm'>
                                     {new Date(order_history.created_time).toLocaleDateString('ru-RU', {
                                         year: 'numeric',
                                         month: '2-digit',
                                         day: '2-digit',
                                     }).replace(/\//g, '.')}
                                 </p>
-                                <p className='text-sm text-gray-600 mt-1'>
+                                <p className='text-xs text-gray-600 mt-0.5'>
                                     {new Date(order_history.created_time).toLocaleTimeString('ru-RU', {
                                         hour: '2-digit',
                                         minute: '2-digit',
@@ -114,54 +114,54 @@ export function OrderShowPage() {
                                 </p>
                             </>
                         ) : (
-                            <p className='font-bold text-gray-800 text-lg'>Noma'lum</p>
+                            <p className='font-bold text-gray-800 text-sm'>Noma'lum</p>
                         )}
                     </div>
 
                     {/* Kassir */}
-                    <div className='bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200'>
-                        <p className='text-xs font-semibold text-green-600 mb-2 uppercase tracking-wide'>Kassir</p>
-                        <p className='font-bold text-gray-800 text-lg mb-1'>
+                    <div className='bg-gradient-to-br from-green-50 to-emerald-50 p-2 rounded border border-green-200'>
+                        <p className='text-[10px] font-semibold text-green-600 mb-1 uppercase tracking-wide'>Kassir</p>
+                        <p className='font-bold text-gray-800 text-sm mb-0.5'>
                             {order_history.created_by_detail?.full_name || 'Noma\'lum'}
                         </p>
-                        <p className='text-sm text-gray-600'>
-                            📞 {order_history.created_by_detail?.phone_number || ''}
+                        <p className='text-xs text-gray-600'>
+                            {order_history.created_by_detail?.phone_number || ''}
                         </p>
                     </div>
 
                     {/* Filial */}
-                    <div className='bg-gradient-to-br from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200'>
-                        <p className='text-xs font-semibold text-amber-600 mb-2 uppercase tracking-wide'>Filial</p>
-                        <p className='font-bold text-gray-800 text-lg'>
+                    <div className='bg-gradient-to-br from-amber-50 to-orange-50 p-2 rounded border border-amber-200'>
+                        <p className='text-[10px] font-semibold text-amber-600 mb-1 uppercase tracking-wide'>Filial</p>
+                        <p className='font-bold text-gray-800 text-sm'>
                             {order_history.order_filial_detail?.name || 'Noma\'lum'}
                         </p>
                     </div>
 
                     {/* Valyuta kursi */}
-                    <div className='bg-gradient-to-br from-cyan-50 to-teal-50 p-4 rounded-lg border border-cyan-200'>
-                        <p className='text-xs font-semibold text-cyan-600 mb-2 uppercase tracking-wide'>Valyuta kursi</p>
-                        <p className='font-bold text-gray-800 text-lg'>
+                    <div className='bg-gradient-to-br from-cyan-50 to-teal-50 p-2 rounded border border-cyan-200'>
+                        <p className='text-[10px] font-semibold text-cyan-600 mb-1 uppercase tracking-wide'>Valyuta kursi</p>
+                        <p className='font-bold text-gray-800 text-sm'>
                             1 USD = {Number(usdRate).toLocaleString()} UZS
                         </p>
                     </div>
 
                     {/* Status */}
-                    <div className='bg-gradient-to-br from-gray-50 to-slate-50 p-4 rounded-lg border border-gray-200'>
-                        <p className='text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide'>Status</p>
-                        <div className='space-y-1'>
-                            <div className='flex items-center gap-2'>
-                                <span className={`w-2 h-2 rounded-full ${
+                    <div className='bg-gradient-to-br from-gray-50 to-slate-50 p-2 rounded border border-gray-200'>
+                        <p className='text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wide'>Status</p>
+                        <div className='space-y-0.5'>
+                            <div className='flex items-center gap-1.5'>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
                                     order_history.status_order_dukon ? 'bg-green-500' : 'bg-gray-300'
                                 }`}></span>
-                                <span className='text-sm text-gray-700'>
+                                <span className='text-xs text-gray-700'>
                                     Dukon: {order_history.status_order_dukon ? 'Tayyor' : 'Kutilmoqda'}
                                 </span>
                             </div>
-                            <div className='flex items-center gap-2'>
-                                <span className={`w-2 h-2 rounded-full ${
+                            <div className='flex items-center gap-1.5'>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
                                     order_history.status_order_sklad ? 'bg-green-500' : 'bg-gray-300'
                                 }`}></span>
-                                <span className='text-sm text-gray-700'>
+                                <span className='text-xs text-gray-700'>
                                     Sklad: {order_history.status_order_sklad ? 'Tayyor' : 'Kutilmoqda'}
                                 </span>
                             </div>
@@ -169,84 +169,84 @@ export function OrderShowPage() {
                     </div>
 
                     {/* Jami summa */}
-                    <div className='bg-gradient-to-br from-indigo-50 to-blue-50 p-4 rounded-lg border-2 border-indigo-300'>
-                        <p className='text-xs font-semibold text-indigo-600 mb-2 uppercase tracking-wide'>Jami summa</p>
-                        <p className='font-bold text-indigo-700 text-xl mb-1'>
+                    <div className='bg-gradient-to-br from-indigo-50 to-blue-50 p-2 rounded border-2 border-indigo-300'>
+                        <p className='text-[10px] font-semibold text-indigo-600 mb-1 uppercase tracking-wide'>Jami summa</p>
+                        <p className='font-bold text-indigo-700 text-base mb-0.5'>
                             {Number(order_history.all_product_summa || 0).toLocaleString()} UZS
                         </p>
-                        <p className='text-sm font-semibold text-indigo-600'>
+                        <p className='text-xs font-semibold text-indigo-600'>
                             {(Number(order_history.all_product_summa || 0) / usdRate).toFixed(2)} USD
                         </p>
                     </div>
 
                     {/* Chegirma */}
-                    <div className='bg-gradient-to-br from-rose-50 to-red-50 p-4 rounded-lg border border-rose-200'>
-                        <p className='text-xs font-semibold text-rose-600 mb-2 uppercase tracking-wide'>Chegirma</p>
-                        <p className='font-bold text-rose-700 text-xl'>
+                    <div className='bg-gradient-to-br from-rose-50 to-red-50 p-2 rounded border border-rose-200'>
+                        <p className='text-[10px] font-semibold text-rose-600 mb-1 uppercase tracking-wide'>Chegirma</p>
+                        <p className='font-bold text-rose-700 text-base'>
                             {Number(order_history.discount_amount || 0).toLocaleString()} UZS
                         </p>
                         {Number(order_history.discount_amount || 0) > 0 && (
-                            <p className='text-xs text-rose-600 mt-1'>
+                            <p className='text-[10px] text-rose-600 mt-0.5'>
                                 {((Number(order_history.discount_amount) / Number(order_history.all_product_summa || 1)) * 100).toFixed(1)}%
                             </p>
                         )}
                     </div>
 
                     {/* To'lanishi kerak */}
-                    <div className='bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-lg border-2 border-emerald-300'>
-                        <p className='text-xs font-semibold text-emerald-600 mb-2 uppercase tracking-wide'>To'lanishi kerak</p>
-                        <p className='font-bold text-emerald-700 text-xl mb-1'>
+                    <div className='bg-gradient-to-br from-emerald-50 to-green-50 p-2 rounded border-2 border-emerald-300'>
+                        <p className='text-[10px] font-semibold text-emerald-600 mb-1 uppercase tracking-wide'>To'lanishi kerak</p>
+                        <p className='font-bold text-emerald-700 text-base mb-0.5'>
                             {(Number(order_history.all_product_summa || 0) - Number(order_history.discount_amount || 0)).toLocaleString()} UZS
                         </p>
-                        <p className='text-sm font-semibold text-emerald-600'>
+                        <p className='text-xs font-semibold text-emerald-600'>
                             {((Number(order_history.all_product_summa || 0) - Number(order_history.discount_amount || 0)) / usdRate).toFixed(2)} USD
                         </p>
                     </div>
 
                     {/* To'lov usullari */}
-                    <div className='bg-gradient-to-br from-violet-50 to-purple-50 p-4 rounded-lg border border-violet-200 md:col-span-2 lg:col-span-3'>
-                        <p className='text-xs font-semibold text-violet-600 mb-3 uppercase tracking-wide'>To'lov usullari</p>
-                        <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
+                    <div className='bg-gradient-to-br from-violet-50 to-purple-50 p-2 rounded border border-violet-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+                        <p className='text-[10px] font-semibold text-violet-600 mb-2 uppercase tracking-wide'>To'lov usullari</p>
+                        <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
                             {Number(order_history.summa_naqt || 0) > 0 && (
-                                <div className='bg-white p-3 rounded border border-violet-100'>
-                                    <p className='text-xs text-gray-500 mb-1'>Naqd</p>
-                                    <p className='font-bold text-gray-800'>
+                                <div className='bg-white p-2 rounded border border-violet-100'>
+                                    <p className='text-[10px] text-gray-500 mb-0.5'>Naqd</p>
+                                    <p className='font-bold text-gray-800 text-xs'>
                                         {Number(order_history.summa_naqt).toLocaleString()} UZS
                                     </p>
                                 </div>
                             )}
                             {Number(order_history.summa_dollar || 0) > 0 && (
-                                <div className='bg-white p-3 rounded border border-violet-100'>
-                                    <p className='text-xs text-gray-500 mb-1'>USD naqd</p>
-                                    <p className='font-bold text-gray-800'>
+                                <div className='bg-white p-2 rounded border border-violet-100'>
+                                    <p className='text-[10px] text-gray-500 mb-0.5'>USD naqd</p>
+                                    <p className='font-bold text-gray-800 text-xs'>
                                         {Number(order_history.summa_dollar).toFixed(2)} USD
                                     </p>
-                                    <p className='text-xs text-gray-600 mt-1'>
+                                    <p className='text-[10px] text-gray-600 mt-0.5'>
                                         ({Number(order_history.summa_dollar) * usdRate} UZS)
                                     </p>
                                 </div>
                             )}
                             {Number(order_history.summa_transfer || 0) > 0 && (
-                                <div className='bg-white p-3 rounded border border-violet-100'>
-                                    <p className='text-xs text-gray-500 mb-1'>Transfer</p>
-                                    <p className='font-bold text-gray-800'>
+                                <div className='bg-white p-2 rounded border border-violet-100'>
+                                    <p className='text-[10px] text-gray-500 mb-0.5'>Transfer</p>
+                                    <p className='font-bold text-gray-800 text-xs'>
                                         {Number(order_history.summa_transfer).toLocaleString()} UZS
                                     </p>
                                 </div>
                             )}
                             {Number(order_history.summa_terminal || 0) > 0 && (
-                                <div className='bg-white p-3 rounded border border-violet-100'>
-                                    <p className='text-xs text-gray-500 mb-1'>Terminal</p>
-                                    <p className='font-bold text-gray-800'>
+                                <div className='bg-white p-2 rounded border border-violet-100'>
+                                    <p className='text-[10px] text-gray-500 mb-0.5'>Terminal</p>
+                                    <p className='font-bold text-gray-800 text-xs'>
                                         {Number(order_history.summa_terminal).toLocaleString()} UZS
                                     </p>
                                 </div>
                             )}
                         </div>
-                        <div className='mt-3 pt-3 border-t border-violet-200'>
+                        <div className='mt-2 pt-2 border-t border-violet-200'>
                             <div className='flex justify-between items-center'>
-                                <span className='text-sm font-semibold text-gray-700'>Jami to'landi:</span>
-                                <span className='font-bold text-lg text-violet-700'>
+                                <span className='text-xs font-semibold text-gray-700'>Jami to'landi:</span>
+                                <span className='font-bold text-sm text-violet-700'>
                                     {(
                                         Number(order_history.summa_naqt || 0) +
                                         Number(order_history.summa_dollar || 0) * usdRate +
@@ -260,21 +260,21 @@ export function OrderShowPage() {
 
                     {/* Qaytim */}
                     {(Number(order_history.zdacha_dollar || 0) > 0 || Number(order_history.zdacha_som || 0) > 0) && (
-                        <div className='bg-gradient-to-br from-yellow-50 to-amber-50 p-4 rounded-lg border border-yellow-200 md:col-span-2 lg:col-span-3'>
-                            <p className='text-xs font-semibold text-yellow-600 mb-3 uppercase tracking-wide'>Qaytim</p>
-                            <div className='grid grid-cols-2 gap-3'>
+                        <div className='bg-gradient-to-br from-yellow-50 to-amber-50 p-2 rounded border border-yellow-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+                            <p className='text-[10px] font-semibold text-yellow-600 mb-2 uppercase tracking-wide'>Qaytim</p>
+                            <div className='grid grid-cols-2 gap-2'>
                                 {Number(order_history.zdacha_dollar || 0) > 0 && (
-                                    <div className='bg-white p-3 rounded border border-yellow-100'>
-                                        <p className='text-xs text-gray-500 mb-1'>Qaytim dollarda</p>
-                                        <p className='font-bold text-gray-800'>
+                                    <div className='bg-white p-2 rounded border border-yellow-100'>
+                                        <p className='text-[10px] text-gray-500 mb-0.5'>Qaytim dollarda</p>
+                                        <p className='font-bold text-gray-800 text-xs'>
                                             {Number(order_history.zdacha_dollar).toFixed(2)} USD
                                         </p>
                                     </div>
                                 )}
                                 {Number(order_history.zdacha_som || 0) > 0 && (
-                                    <div className='bg-white p-3 rounded border border-yellow-100'>
-                                        <p className='text-xs text-gray-500 mb-1'>Qaytim so'mda</p>
-                                        <p className='font-bold text-gray-800'>
+                                    <div className='bg-white p-2 rounded border border-yellow-100'>
+                                        <p className='text-[10px] text-gray-500 mb-0.5'>Qaytim so'mda</p>
+                                        <p className='font-bold text-gray-800 text-xs'>
                                             {Number(order_history.zdacha_som).toLocaleString()} UZS
                                         </p>
                                     </div>
@@ -285,21 +285,21 @@ export function OrderShowPage() {
 
                     {/* Qarz ma'lumotlari */}
                     {(Number(order_history.total_debt_client || 0) > 0 || Number(order_history.total_debt_today_client || 0) > 0) && (
-                        <div className='bg-gradient-to-br from-red-50 to-pink-50 p-4 rounded-lg border border-red-200 md:col-span-2 lg:col-span-3'>
-                            <p className='text-xs font-semibold text-red-600 mb-3 uppercase tracking-wide'>Qarz ma'lumotlari</p>
-                            <div className='grid grid-cols-2 gap-3'>
+                        <div className='bg-gradient-to-br from-red-50 to-pink-50 p-2 rounded border border-red-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+                            <p className='text-[10px] font-semibold text-red-600 mb-2 uppercase tracking-wide'>Qarz ma'lumotlari</p>
+                            <div className='grid grid-cols-2 gap-2'>
                                 {Number(order_history.total_debt_client || 0) > 0 && (
-                                    <div className='bg-white p-3 rounded border border-red-100'>
-                                        <p className='text-xs text-gray-500 mb-1'>Umumiy qarz</p>
-                                        <p className='font-bold text-red-700'>
+                                    <div className='bg-white p-2 rounded border border-red-100'>
+                                        <p className='text-[10px] text-gray-500 mb-0.5'>Umumiy qarz</p>
+                                        <p className='font-bold text-red-700 text-xs'>
                                             {Number(order_history.total_debt_client).toLocaleString()} UZS
                                         </p>
                                     </div>
                                 )}
                                 {Number(order_history.total_debt_today_client || 0) > 0 && (
-                                    <div className='bg-white p-3 rounded border border-red-100'>
-                                        <p className='text-xs text-gray-500 mb-1'>Bugungi qarz</p>
-                                        <p className='font-bold text-red-700'>
+                                    <div className='bg-white p-2 rounded border border-red-100'>
+                                        <p className='text-[10px] text-gray-500 mb-0.5'>Bugungi qarz</p>
+                                        <p className='font-bold text-red-700 text-xs'>
                                             {Number(order_history.total_debt_today_client).toLocaleString()} UZS
                                         </p>
                                     </div>
@@ -310,12 +310,12 @@ export function OrderShowPage() {
 
                     {/* Foyda */}
                     {Number(order_history.all_profit_dollar || 0) > 0 && (
-                        <div className='bg-gradient-to-br from-lime-50 to-green-50 p-4 rounded-lg border border-lime-200'>
-                            <p className='text-xs font-semibold text-lime-600 mb-2 uppercase tracking-wide'>Foyda</p>
-                            <p className='font-bold text-lime-700 text-xl'>
+                        <div className='bg-gradient-to-br from-lime-50 to-green-50 p-2 rounded border border-lime-200'>
+                            <p className='text-[10px] font-semibold text-lime-600 mb-1 uppercase tracking-wide'>Foyda</p>
+                            <p className='font-bold text-lime-700 text-base'>
                                 {Number(order_history.all_profit_dollar).toFixed(2)} USD
                             </p>
-                            <p className='text-sm text-lime-600 mt-1'>
+                            <p className='text-xs text-lime-600 mt-0.5'>
                                 {(Number(order_history.all_profit_dollar) * usdRate).toLocaleString()} UZS
                             </p>
                         </div>
@@ -323,28 +323,24 @@ export function OrderShowPage() {
 
                     {/* Izoh */}
                     {order_history.note && (
-                        <div className='bg-gradient-to-br from-slate-50 to-gray-50 p-4 rounded-lg border border-slate-200 md:col-span-2 lg:col-span-3'>
-                            <p className='text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wide'>Izoh</p>
-                            <p className='text-gray-800 whitespace-pre-wrap'>{order_history.note}</p>
+                        <div className='bg-gradient-to-br from-slate-50 to-gray-50 p-2 rounded border border-slate-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+                            <p className='text-[10px] font-semibold text-slate-600 mb-1 uppercase tracking-wide'>Izoh</p>
+                            <p className='text-xs text-gray-800 whitespace-pre-wrap'>{order_history.note}</p>
                         </div>
                     )}
 
                     {/* Yetkazib beruvchi */}
                     {order_history.driver_info && (
-                        <div className='bg-gradient-to-br from-teal-50 to-cyan-50 p-4 rounded-lg border border-teal-200 md:col-span-2 lg:col-span-3'>
-                            <p className='text-xs font-semibold text-teal-600 mb-2 uppercase tracking-wide'>Yetkazib beruvchi</p>
-                            <p className='text-gray-800 whitespace-pre-wrap'>{order_history.driver_info}</p>
+                        <div className='bg-gradient-to-br from-teal-50 to-cyan-50 p-2 rounded border border-teal-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+                            <p className='text-[10px] font-semibold text-teal-600 mb-1 uppercase tracking-wide'>Yetkazib beruvchi</p>
+                            <p className='text-xs text-gray-800 whitespace-pre-wrap'>{order_history.driver_info}</p>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Productlar - Bitta table */}
+            {/* Productlar - Model bo'yicha guruhlangan */}
             <div className='bg-white rounded-lg shadow-md overflow-hidden'>
-                <div className='bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-3 sm:p-4'>
-                    <h3 className='text-lg sm:text-xl font-bold'>Mahsulotlar</h3>
-                </div>
-                
                 <div className='overflow-x-auto'>
                     <table className='w-full border-collapse text-sm'>
                         <thead>
@@ -353,92 +349,160 @@ export function OrderShowPage() {
                                     #
                                 </th>
                                 <th className='px-3 py-2 sm:px-4 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap'>
+                                    Joyi
+                                </th>
+                                <th className='px-3 py-2 sm:px-4 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap'>
                                     Model
                                 </th>
                                 <th className='px-3 py-2 sm:px-4 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap'>
-                                    Branch
+                                    Nomi
                                 </th>
                                 <th className='px-3 py-2 sm:px-4 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap'>
-                                    Type
+                                    O'lchami
                                 </th>
                                 <th className='px-3 py-2 sm:px-4 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap'>
-                                    Size
+                                    Tip
                                 </th>
                                 <th className='px-3 py-2 sm:px-4 sm:py-3 text-right text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap'>
-                                    Miqdor
+                                    Soni
                                 </th>
                                 <th className='px-3 py-2 sm:px-4 sm:py-3 text-right text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap'>
-                                    Narx (USD)
+                                    Berilgan soni
                                 </th>
                                 <th className='px-3 py-2 sm:px-4 sm:py-3 text-right text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap'>
-                                    Narx (UZS)
+                                    Narxi ($)
                                 </th>
                                 <th className='px-3 py-2 sm:px-4 sm:py-3 text-right text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap'>
-                                    Jami (UZS)
+                                    Asl Narxi ($)
+                                </th>
+                                <th className='px-3 py-2 sm:px-4 sm:py-3 text-right text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap'>
+                                    Foyda ($)
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className='divide-y divide-gray-200'>
-                            {products.flatMap((group, groupIndex) =>
-                                group.product.map((product, productIndex) => {
-                                    const globalIndex = products
-                                        .slice(0, groupIndex)
-                                        .reduce((sum, g) => sum + g.product.length, 0) + productIndex + 1;
-                                    return (
-                                        <tr 
-                                            key={product.id} 
-                                            className='hover:bg-gray-50 transition-colors'
-                                        >
-                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-600'>
-                                                {globalIndex}
-                                            </td>
-                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-medium text-gray-800'>
+                        <tbody>
+                            {products.map((group, groupIndex) => {
+                                let productIndex = 0;
+                                const groupTotal = {
+                                    count: 0,
+                                    given_count: 0,
+                                    price_dollar: 0,
+                                    real_price: 0,
+                                    profit: 0,
+                                };
+
+                                return (
+                                    <>
+                                        {/* Model Header */}
+                                        <tr key={`header-${group.model_id}`} className='bg-blue-100 border-b border-blue-200'>
+                                            <td colSpan={11} className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-blue-800'>
                                                 {group.model}
                                             </td>
-                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800'>
-                                                {product.branch_detail?.name || '-'}
+                                        </tr>
+                                        
+                                        {/* Products */}
+                                        {group.product.map((product) => {
+                                            productIndex++;
+                                            const realPrice = Number(product.real_price || 0);
+                                            const priceDollar = Number(product.price_dollar || 0);
+                                            const count = Number(product.count || 0);
+                                            const profit = (priceDollar - realPrice) * count;
+
+                                            groupTotal.count += count;
+                                            groupTotal.given_count += Number(product.given_count || 0);
+                                            groupTotal.price_dollar += priceDollar * count;
+                                            groupTotal.real_price += realPrice * count;
+                                            groupTotal.profit += profit;
+
+                                            return (
+                                                <tr key={product.id} className='border-b border-gray-100 hover:bg-gray-50 transition-colors'>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-600'>
+                                                        {productIndex}
+                                                    </td>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800'>
+                                                        {product.sklad_detail?.name || 'Ombor'}
+                                                    </td>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800'>
+                                                        {group.model}
+                                                    </td>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800'>
+                                                        {product.branch_category_detail?.name || product.type_detail?.name || '-'}
+                                                    </td>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800'>
+                                                        {product.size_detail?.size || '-'}
+                                                    </td>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800'>
+                                                        {product.type_detail?.name || '-'}
+                                                    </td>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800 text-right'>
+                                                        {count}
+                                                    </td>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800 text-right'>
+                                                        {product.given_count || 0}
+                                                    </td>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800 text-right'>
+                                                        {priceDollar.toFixed(2)}
+                                                    </td>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800 text-right'>
+                                                        {realPrice.toFixed(2)}
+                                                    </td>
+                                                    <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-semibold text-green-600 text-right'>
+                                                        {profit.toFixed(2)}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                        
+                                        {/* Group Total */}
+                                        <tr className='bg-gray-100 border-b-2 border-gray-300'>
+                                            <td colSpan={6} className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-semibold text-gray-700'>
+                                                Jami:
                                             </td>
-                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800'>
-                                                {product.type_detail?.name || '-'}
+                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-semibold text-gray-700 text-right'>
+                                                {groupTotal.count}
                                             </td>
-                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800'>
-                                                {product.size_detail?.size || '-'}
+                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-semibold text-gray-700 text-right'>
+                                                {groupTotal.given_count}
                                             </td>
-                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800 text-right'>
-                                                {product.count || 0}
+                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-semibold text-gray-700 text-right'>
+                                                {groupTotal.price_dollar.toFixed(2)}
                                             </td>
-                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800 text-right'>
-                                                {Number(product.price_dollar || 0).toFixed(2)}
+                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-semibold text-gray-700 text-right'>
+                                                {groupTotal.real_price.toFixed(2)}
                                             </td>
-                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm text-gray-800 text-right'>
-                                                {Number(product.unit_price || 0).toLocaleString()}
-                                            </td>
-                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-semibold text-gray-900 text-right'>
-                                                {Number(product.price_sum || 0).toLocaleString()}
+                                            <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-green-600 text-right'>
+                                                {groupTotal.profit.toFixed(2)}
                                             </td>
                                         </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                        <tfoot className='bg-gray-50 border-t-2 border-gray-300'>
-                            <tr>
-                                <td colSpan={8} className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-semibold text-gray-700 text-right'>
+                                    </>
+                                );
+                            })}
+                            
+                            {/* Grand Total */}
+                            <tr className='bg-gray-300 border-t-2 border-gray-400'>
+                                <td colSpan={6} className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-gray-800'>
                                     Jami:
                                 </td>
-                                <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-indigo-600 text-right'>
-                                    {products.reduce(
-                                        (total, group) =>
-                                            total +
-                                            group.product.reduce(
-                                                (sum, p) => sum + Number(p.price_sum || 0),
-                                                0
-                                            ),
-                                        0
-                                    ).toLocaleString()}
+                                <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-gray-800 text-right'>
+                                    {products.reduce((sum, g) => sum + g.product.reduce((s, p) => s + Number(p.count || 0), 0), 0)}
+                                </td>
+                                <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-gray-800 text-right'>
+                                    {products.reduce((sum, g) => sum + g.product.reduce((s, p) => s + Number(p.given_count || 0), 0), 0)}
+                                </td>
+                                <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-gray-800 text-right'>
+                                    {products.reduce((sum, g) => sum + g.product.reduce((s, p) => s + Number(p.price_dollar || 0) * Number(p.count || 0), 0), 0).toFixed(2)}
+                                </td>
+                                <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-gray-800 text-right'>
+                                    {products.reduce((sum, g) => sum + g.product.reduce((s, p) => s + Number(p.real_price || 0) * Number(p.count || 0), 0), 0).toFixed(2)}
+                                </td>
+                                <td className='px-3 py-2 sm:px-4 sm:py-3 text-sm font-bold text-green-700 text-right'>
+                                    {products.reduce((sum, g) => sum + g.product.reduce((s, p) => {
+                                        const profit = (Number(p.price_dollar || 0) - Number(p.real_price || 0)) * Number(p.count || 0);
+                                        return s + profit;
+                                    }, 0), 0).toFixed(2)}
                                 </td>
                             </tr>
-                        </tfoot>
+                        </tbody>
                     </table>
                 </div>
             </div>
