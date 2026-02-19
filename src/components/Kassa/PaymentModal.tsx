@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X, Printer, Banknote, CreditCard, CheckCircle2, FileText, Truck, Loader2 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { Input } from '../ui/Input';
+import NumberInput from '../ui/NumberInput';
 import { Receipt } from './Receipt';
 import { CartItem, Customer, Sale, OrderResponse } from '../../types';
 import { useSales } from '../../contexts/SalesContext';
@@ -36,7 +37,12 @@ export function PaymentModal({
 }: PaymentModalProps) {
 	const { addSale } = useSales();
 	const [paidAmount, setPaidAmount] = useState(0);
-	const [selectedMethods, setSelectedMethods] = useState<{ [key: string]: number }>({});
+	const [selectedMethods, setSelectedMethods] = useState<{ [key: string]: string }>({
+		usd: '0',
+		cash: '0',
+		card: '0',
+		terminal: '0',
+	});
 	const receiptRef = useRef<HTMLDivElement>(null);
 	const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
 	const [note, setNote] = useState('');
@@ -44,9 +50,9 @@ export function PaymentModal({
 	const [isVozvrat, setIsVozvrat] = useState(false);
 	const [orderStatusChecked, setOrderStatusChecked] = useState(true);
 	const [isCompleting, setIsCompleting] = useState(false);
-	const [discountAmount, setDiscountAmount] = useState<string>('0');
-	const [zdachaDollar, setZdachaDollar] = useState<string>('0');
-	const [zdachaSom, setZdachaSom] = useState<string>('0');
+	const [discountAmount, setDiscountAmount] = useState<string>('');
+	const [zdachaDollar, setZdachaDollar] = useState<string>('');
+	const [zdachaSom, setZdachaSom] = useState<string>('');
 	const router = useNavigate();
 	// OrderData o'zgarganda note va driverInfo ni yangilash
 	useEffect(() => {
@@ -55,9 +61,9 @@ export function PaymentModal({
 			setDriverInfo(orderData.driver_info || '');
 			setOrderStatusChecked(orderData.order_status ?? true);
 			setIsVozvrat(orderData.is_debtor_product ?? false);
-			setDiscountAmount(orderData.discount_amount || '0');
-			setZdachaDollar(orderData.zdacha_dollar || '0');
-			setZdachaSom(orderData.zdacha_som || '0');
+			if (Number(orderData.discount_amount ?? 0) > 0) setDiscountAmount(String(orderData.discount_amount ?? ''));
+			if (Number(orderData.zdacha_dollar ?? 0) > 0) setZdachaDollar(String(orderData.zdacha_dollar ?? ''));
+			if (Number(orderData.zdacha_som ?? 0) > 0) setZdachaSom(String(orderData.zdacha_som ?? ''));
 		}
 	}, [orderData]);
 
@@ -79,7 +85,8 @@ export function PaymentModal({
         `,
 	});
 
-	const usdAmount = (totalAmount / usdRate).toFixed(2);
+	const formatUsdAmount = (val: number) => (Math.abs(Number(val)) < 0.005 ? '0' : val.toFixed(2));
+	const usdAmount = formatUsdAmount(totalAmount / usdRate);
 	const remaining = totalAmount - paidAmount;
 
 	const paymentMethods = [
@@ -123,12 +130,17 @@ export function PaymentModal({
 	];
 
 	// Jami to'landi (har doim UZS da): naqd/card/terminal = so'm, dollar = USD* kurs
-	const getPaidAmountInUzs = (methods: { [key: string]: number }) =>
-		(methods.cash || 0) + (methods.usd || 0) * usdRate + (methods.card || 0) + (methods.terminal || 0);
+	const getPaidAmountInUzs = (methods: { [key: string]: string }) => {
+		const cash = parseFloat(methods.cash || '') || 0;
+		const usd = parseFloat(methods.usd || '') || 0;
+		const card = parseFloat(methods.card || '') || 0;
+		const terminal = parseFloat(methods.terminal || '') || 0;
+		return cash + usd * usdRate + card + terminal;
+	};
 
 	const handleMethodAmountChange = (methodId: string, amount: string) => {
-		const numAmount = parseFloat(amount) || 0;
-		const next = { ...selectedMethods, [methodId]: numAmount };
+		// `amount` is a normalized numeric string (e.g. "10000.5") from NumberInput
+		const next = { ...selectedMethods, [methodId]: amount };
 		setSelectedMethods(next);
 		setPaidAmount(getPaidAmountInUzs(next));
 	};
@@ -140,16 +152,21 @@ export function PaymentModal({
 		setPaidAmount(getPaidAmountInUzs(newMethods));
 	};
 
+	// keep paidAmount in sync with selectedMethods (initialisation and updates)
+	useEffect(() => {
+		setPaidAmount(getPaidAmountInUzs(selectedMethods));
+	}, [selectedMethods, usdRate]);
+
 	const handleComplete = async () => {
 		if (orderData) {
 			setIsCompleting(true);
 			try {
 				// Payment methods ni API polylariga map qilish
-				const summa_naqt = selectedMethods.cash || 0;
-				const summa_dollar = selectedMethods.usd || 0;
-				const summa_transfer = selectedMethods.card || 0;
+				const summa_naqt = parseFloat(selectedMethods.cash || '') || 0;
+				const summa_dollar = parseFloat(selectedMethods.usd || '') || 0;
+				const summa_transfer = parseFloat(selectedMethods.card || '') || 0;
 				// Terminal to'lovi (so'mda)
-				const summa_terminal = selectedMethods.terminal || 0;
+				const summa_terminal = parseFloat(selectedMethods.terminal || '') || 0;
 
 				// Summa total dollar (jami summa USD da)
 				const summa_total_dollar = totalAmount;
@@ -175,7 +192,7 @@ export function PaymentModal({
 					zdacha_som: parseFloat(zdachaSom) || 0,
 				};
 
-				const updatedOrder = await orderService.updateOrder(orderData.id, updateData);
+				const updatedOrder = await orderService.sellOrder(orderData.id, updateData);
 				const mergedOrder: OrderResponse = {
 					...updatedOrder,
 					client_detail: updatedOrder.client_detail || orderData.client_detail,
@@ -192,7 +209,9 @@ export function PaymentModal({
 					paidAmount,
 					customer,
 					kassirName,
-					paymentMethods: { ...selectedMethods },
+					paymentMethods: Object.fromEntries(
+						Object.entries(selectedMethods).map(([k, v]) => [k, parseFloat(v || '') || 0]),
+					) as any,
 				};
 
 				addSale(sale);
@@ -273,7 +292,7 @@ export function PaymentModal({
 							<div className='bg-gradient-to-br from-emerald-50 to-green-50 p-5 rounded-2xl border-2 border-emerald-200'>
 								<p className='text-gray-600 mb-2 font-medium'>To'landi:</p>
 								<p className='text-3xl font-bold text-emerald-600'>
-									{(paidAmount / usdRate).toFixed(2)}{' '}
+									{formatUsdAmount(paidAmount / usdRate)}{' '}
 									<span className='text-sm font-normal text-emerald-400'>USD</span>
 								</p>
 								<p className='text-xl font-bold text-emerald-500 mt-1'>
@@ -288,7 +307,7 @@ export function PaymentModal({
 								<p
 									className={`text-3xl font-bold ${remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
 								>
-									{(Math.max(0, remaining) / usdRate).toFixed(2)}{' '}
+									{formatUsdAmount(Math.max(0, remaining) / usdRate)}{' '}
 									<span
 										className={`text-sm font-normal ${remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
 									>
@@ -309,7 +328,7 @@ export function PaymentModal({
 						{/* Payment Methods Grid */}
 						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6'>
 							{paymentMethods.map((method) => {
-								const isSelected = selectedMethods[method.id] > 0;
+								const isSelected = (parseFloat(selectedMethods[method.id] || '') || 0) > 0;
 								return (
 									<div
 										key={method.id}
@@ -339,14 +358,11 @@ export function PaymentModal({
 										</div>
 										<div className='p-2.5 bg-white'>
 											<div className='relative'>
-												<Input
-													type='number'
-													step={method.unit === 'USD' ? '0.01' : '1'}
-													placeholder={method.unit === 'USD' ? '0.00' : '0'}
-													value={selectedMethods[method.id] ?? ''}
-													onChange={(e) =>
-														handleMethodAmountChange(method.id, e.target.value)
-													}
+												<NumberInput
+													value={String(selectedMethods[method.id] ?? '0')}
+													onChange={(val) => handleMethodAmountChange(method.id, val)}
+													allowDecimal={method.unit === 'USD'}
+													placeholder={method.unit === 'USD' ? '0' : '0'}
 													className='w-full border-2 border-indigo-200 focus:border-2 focus:border-indigo-500 py-1.5 pr-10 text-right font-semibold text-base rounded-lg focus:bg-indigo-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 												/>
 												<span className='absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
@@ -365,11 +381,10 @@ export function PaymentModal({
 							<div className='bg-gradient-to-br from-amber-50 to-orange-50 p-4 rounded-xl border-2 border-amber-200'>
 								<label className='block text-amber-600 text-sm font-semibold mb-2'>Chegirma</label>
 								<div className='relative'>
-									<Input
-										type='number'
-										step='0.01'
+									<NumberInput
 										value={discountAmount}
-										onChange={(e) => setDiscountAmount(e.target.value)}
+										onChange={(val) => setDiscountAmount(val)}
+										allowDecimal={true}
 										placeholder='0'
 										className='w-full border-2 border-amber-200 focus:border-2 focus:border-amber-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-amber-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 									/>
@@ -385,12 +400,11 @@ export function PaymentModal({
 									Qaytim dollarda
 								</label>
 								<div className='relative'>
-									<Input
-										type='number'
-										step='0.01'
+									<NumberInput
 										value={zdachaDollar}
-										onChange={(e) => setZdachaDollar(e.target.value)}
-										placeholder='0.00'
+										onChange={(val) => setZdachaDollar(val)}
+										allowDecimal={true}
+										placeholder='0'
 										className='w-full border-2 border-green-200 focus:border-2 focus:border-green-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-green-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 									/>
 									<span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
@@ -403,11 +417,10 @@ export function PaymentModal({
 							<div className='bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200'>
 								<label className='block text-blue-600 text-sm font-semibold mb-2'>Qaytim so'mda</label>
 								<div className='relative'>
-									<Input
-										type='number'
-										step='0.01'
+									<NumberInput
 										value={zdachaSom}
-										onChange={(e) => setZdachaSom(e.target.value)}
+										onChange={(val) => setZdachaSom(val)}
+										allowDecimal={true}
 										placeholder='0'
 										className='w-full border-2 border-blue-200 focus:border-2 focus:border-blue-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-blue-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 									/>

@@ -226,7 +226,11 @@ export const orderService = {
 
 	// Order yangilash
 	updateOrder: async (id: number, data: Partial<CreateOrderRequest>): Promise<OrderResponse> => {
-		const response = await api.put<OrderResponse>(`/v1/order-history/${id}`, data);
+		const response = await api.put<OrderResponse>(`/v1/order-history/${id}/edit`, data);
+		return response.data;
+	},
+	sellOrder: async (id: number, data: Partial<CreateOrderRequest>): Promise<OrderResponse> => {
+		const response = await api.put<OrderResponse>(`/v1/order-history/${id}/sell`, data);
 		return response.data;
 	},
 

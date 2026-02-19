@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { FileText, Truck, Banknote, CreditCard, X, ArrowLeft, Save } from 'lucide-react';
 import { Input } from '../ui/Input';
+import NumberInput from '../ui/NumberInput';
 import { OrderResponse } from '../../types';
 import { orderService } from '../../services/orderService';
 import { showError, showSuccess } from '../../lib/toast';
@@ -27,7 +28,7 @@ export function OrderPaymentFields({
 	const [zdachaDollar, setZdachaDollar] = useState<string>('0');
 	const [zdachaSom, setZdachaSom] = useState<string>('0');
 	const [isSaving, setIsSaving] = useState(false);
-	const [selectedMethods, setSelectedMethods] = useState<{ [key: string]: number }>({});
+	const [selectedMethods, setSelectedMethods] = useState<{ [key: string]: string }>({});
 	const [orderProducts, setOrderProducts] = useState<any[]>([]);
 	const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 	const isInitialMount = useRef(true);
@@ -105,8 +106,13 @@ export function OrderPaymentFields({
 	];
 
 	// Jami to'landi (har doim UZS da)
-	const getPaidAmountInUzs = (methods: { [key: string]: number }) =>
-		(methods.cash || 0) + (methods.usd || 0) * usdRate + (methods.card || 0) + (methods.terminal || 0);
+	const getPaidAmountInUzs = (methods: { [key: string]: string }) => {
+		const cash = parseFloat(methods.cash || '') || 0;
+		const usd = parseFloat(methods.usd || '') || 0;
+		const card = parseFloat(methods.card || '') || 0;
+		const terminal = parseFloat(methods.terminal || '') || 0;
+		return cash + usd * usdRate + card + terminal;
+	};
 
 	// To'langan summa: selectedMethods dan yoki orderData dan (default)
 	const paidAmountFromMethods = getPaidAmountInUzs(selectedMethods);
@@ -122,9 +128,8 @@ export function OrderPaymentFields({
 	const remaining = totalAmountToPay - paidAmount;
 
 	const handleMethodAmountChange = (methodId: string, amount: string) => {
-		const numAmount = parseFloat(amount) || 0;
 		hasUserChanged.current = true;
-		setSelectedMethods({ ...selectedMethods, [methodId]: numAmount });
+		setSelectedMethods({ ...selectedMethods, [methodId]: amount });
 	};
 
 	const handleRemoveMethod = (methodId: string) => {
@@ -144,11 +149,11 @@ export function OrderPaymentFields({
 			setZdachaSom(orderData.zdacha_som || '0');
 
 			// Payment methods ni yuklash
-			const methods: { [key: string]: number } = {};
-			if (orderData.summa_naqt) methods.cash = Number(orderData.summa_naqt);
-			if (orderData.summa_dollar) methods.usd = Number(orderData.summa_dollar);
-			if (orderData.summa_transfer) methods.card = Number(orderData.summa_transfer);
-			if (orderData.summa_terminal) methods.terminal = Number(orderData.summa_terminal);
+			const methods: { [key: string]: string } = {};
+			if (orderData.summa_naqt) methods.cash = String(orderData.summa_naqt);
+			if (orderData.summa_dollar) methods.usd = String(orderData.summa_dollar);
+			if (orderData.summa_transfer) methods.card = String(orderData.summa_transfer);
+			if (orderData.summa_terminal) methods.terminal = String(orderData.summa_terminal);
 			setSelectedMethods(methods);
 
 			// Birinchi yuklanishni belgilash
@@ -165,10 +170,10 @@ export function OrderPaymentFields({
 
 		setIsSaving(true);
 		try {
-			const summa_naqt = selectedMethods.cash || 0;
-			const summa_dollar = selectedMethods.usd || 0;
-			const summa_transfer = selectedMethods.card || 0;
-			const summa_terminal = selectedMethods.terminal || 0;
+			const summa_naqt = String(selectedMethods.cash ?? '0');
+			const summa_dollar = String(selectedMethods.usd ?? '0');
+			const summa_transfer = String(selectedMethods.card ?? '0');
+			const summa_terminal = String(selectedMethods.terminal ?? '0');
 
 			const updatedOrder = await orderService.updateOrder(orderData.id, {
 				note: note,
@@ -176,10 +181,10 @@ export function OrderPaymentFields({
 				discount_amount: parseFloat(discountAmount) || 0,
 				zdacha_dollar: parseFloat(zdachaDollar) || 0,
 				zdacha_som: parseFloat(zdachaSom) || 0,
-				summa_naqt: summa_naqt,
-				summa_dollar: summa_dollar,
-				summa_transfer: summa_transfer,
-				summa_terminal: summa_terminal,
+				summa_naqt: parseFloat(summa_naqt) || 0,
+				summa_dollar: parseFloat(summa_dollar) || 0,
+				summa_transfer: parseFloat(summa_transfer) || 0,
+				summa_terminal: parseFloat(summa_terminal) || 0,
 				update_status: 1,
 			});
 			onOrderUpdate?.(updatedOrder);
@@ -267,7 +272,7 @@ export function OrderPaymentFields({
 				{/* Payment Methods Grid */}
 				<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-4'>
 					{paymentMethods.map((method) => {
-						const isSelected = selectedMethods[method.id] > 0;
+						const isSelected = (parseFloat(selectedMethods[method.id] || '') || 0) > 0;
 						return (
 							<div
 								key={method.id}
@@ -295,12 +300,11 @@ export function OrderPaymentFields({
 								</div>
 								<div className='p-1.5 sm:p-2 bg-white'>
 									<div className='relative'>
-										<Input
-											type='number'
-											step={method.unit === 'USD' ? '0.01' : '1'}
-											placeholder={method.unit === 'USD' ? '0.00' : '0'}
-											value={selectedMethods[method.id] ?? ''}
-											onChange={(e) => handleMethodAmountChange(method.id, e.target.value)}
+										<NumberInput
+											value={String(selectedMethods[method.id] ?? '0')}
+											onChange={(val) => handleMethodAmountChange(method.id, val)}
+											allowDecimal={method.unit === 'USD'}
+											placeholder='0'
 											className='w-full border border-indigo-200 focus:border focus:border-indigo-500 py-1 pr-8 text-right font-semibold text-sm rounded focus:bg-indigo-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 										/>
 										<span className='absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500 pointer-events-none'>
@@ -319,14 +323,13 @@ export function OrderPaymentFields({
 					<div className='bg-gradient-to-br from-amber-50 to-orange-50 p-2 sm:p-3 rounded-lg border border-amber-200'>
 						<label className='block text-amber-600 text-xs font-semibold mb-1'>Chegirma</label>
 						<div className='relative'>
-							<Input
-								type='number'
-								step='0.01'
+							<NumberInput
 								value={discountAmount}
-								onChange={(e) => {
+								onChange={(val) => {
 									hasUserChanged.current = true;
-									setDiscountAmount(e.target.value);
+									setDiscountAmount(val);
 								}}
+								allowDecimal={true}
 								placeholder='0'
 								className='w-full border border-amber-200 focus:border focus:border-amber-500 py-1 pr-10 text-right font-semibold text-sm rounded focus:bg-amber-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 							/>
@@ -340,15 +343,14 @@ export function OrderPaymentFields({
 					<div className='bg-gradient-to-br from-green-50 to-emerald-50 p-2 sm:p-3 rounded-lg border border-green-200'>
 						<label className='block text-green-600 text-xs font-semibold mb-1'>Qaytim dollarda</label>
 						<div className='relative'>
-							<Input
-								type='number'
-								step='0.01'
+							<NumberInput
 								value={zdachaDollar}
-								onChange={(e) => {
+								onChange={(val) => {
 									hasUserChanged.current = true;
-									setZdachaDollar(e.target.value);
+									setZdachaDollar(val);
 								}}
-								placeholder='0.00'
+								allowDecimal={true}
+								placeholder='0'
 								className='w-full border border-green-200 focus:border focus:border-green-500 py-1 pr-10 text-right font-semibold text-sm rounded focus:bg-green-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 							/>
 							<span className='absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500 pointer-events-none'>
@@ -361,14 +363,13 @@ export function OrderPaymentFields({
 					<div className='bg-gradient-to-br from-blue-50 to-cyan-50 p-2 sm:p-3 rounded-lg border border-blue-200'>
 						<label className='block text-blue-600 text-xs font-semibold mb-1'>Qaytim so'mda</label>
 						<div className='relative'>
-							<Input
-								type='number'
-								step='0.01'
+							<NumberInput
 								value={zdachaSom}
-								onChange={(e) => {
+								onChange={(val) => {
 									hasUserChanged.current = true;
-									setZdachaSom(e.target.value);
+									setZdachaSom(val);
 								}}
+								allowDecimal={true}
 								placeholder='0'
 								className='w-full border border-blue-200 focus:border focus:border-blue-500 py-1 pr-10 text-right font-semibold text-sm rounded focus:bg-blue-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 							/>
@@ -417,34 +418,34 @@ export function OrderPaymentFields({
 						/>
 					</div>
 				</div>
-			</div>
 
-			{/* Footer with buttons */}
-			<div className='p-3 sm:p-4 border-t bg-white flex justify-between items-center gap-3 shrink-0'>
-				<button
-					onClick={() => navigate(-1)}
-					className='px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors flex items-center space-x-2'
-				>
-					<ArrowLeft size={16} />
-					<span>Orqaga</span>
-				</button>
-				<button
-					onClick={handleSave}
-					disabled={isSaving || !orderData}
-					className='bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2'
-				>
-					{isSaving ? (
-						<>
-							<div className='w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin'></div>
-							<span>Saqlanmoqda...</span>
-						</>
-					) : (
-						<>
-							<Save size={18} />
-							<span>Saqlash</span>
-						</>
-					)}
-				</button>
+				{/* Footer with buttons (keeps inside the scrollable form) */}
+				<div className='p-3 sm:p-4 border-t bg-white flex justify-between items-center gap-3 shrink-0'>
+					<button
+						onClick={() => navigate(-1)}
+						className='px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors flex items-center space-x-2'
+					>
+						<ArrowLeft size={16} />
+						<span>Orqaga</span>
+					</button>
+					<button
+						onClick={handleSave}
+						disabled={isSaving || !orderData}
+						className='bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2'
+					>
+						{isSaving ? (
+							<>
+								<div className='w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin'></div>
+								<span>Saqlanmoqda...</span>
+							</>
+						) : (
+							<>
+								<Save size={18} />
+								<span>Saqlash</span>
+							</>
+						)}
+					</button>
+				</div>
 			</div>
 		</div>
 	);

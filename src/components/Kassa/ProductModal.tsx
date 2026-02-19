@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { Product, OrderResponse } from '../../types';
 import { Input, Label } from '../ui/Input';
+import NumberInput from '../ui/NumberInput';
 import { Autocomplete } from '../ui/Autocomplete';
 import { productService } from '../../services/productService';
 import { orderService } from '../../services/orderService';
@@ -147,10 +148,12 @@ export function ProductModal({
 
 	if (!isOpen || !product) return null;
 
+	const parsedPrice = parseFloat((price || '').toString().replace(/\s+/g, '')) || 0;
+
 	const handleConfirm = () => {
 		const newErrors: { sklad?: string; quantity?: string; price?: string; stock?: string } = {};
 		const qty = parseFloat(quantity);
-		const priceValue = parseFloat(price);
+		const priceValue = parsedPrice;
 
 		// Sklad validation
 		if (selectedSkladId == null) {
@@ -214,10 +217,33 @@ export function ProductModal({
 		onClose();
 	};
 
-	const priceValue = parseFloat(price) || 0;
-
 	// Jami summa - tanlangan currency'da
-	const total = parseFloat(quantity) * priceValue;
+	const total = parseFloat(quantity || '0') * parsedPrice;
+
+	// Helpers: keep `price` as unformatted numeric string (e.g. "10000.50").
+	const formatWithSpaces = (val: string) => {
+		if (!val) return '';
+		const parts = val.split('.');
+		// remove leading zeros except single zero
+		parts[0] = parts[0].replace(/^0+(?=\d)/, '');
+		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+		return parts.join('.');
+	};
+
+	const normalizeInputNumber = (val: string) => {
+		if (!val) return '';
+		// allow digits and dot, remove spaces and commas
+		let cleaned = val
+			.replace(/\s+/g, '')
+			.replace(/,/g, '.')
+			.replace(/[^0-9.]/g, '');
+		const parts = cleaned.split('.');
+		if (parts.length > 1) {
+			// keep first dot only and join rest as decimals
+			cleaned = parts[0] + '.' + parts.slice(1).join('');
+		}
+		return cleaned;
+	};
 
 	return (
 		<div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
@@ -344,19 +370,15 @@ export function ProductModal({
 							<div
 								className={`flex rounded-xl shadow-lg overflow-hidden border-2 ${errors.price ? 'border-red-500' : 'border-indigo-200'}`}
 							>
-								<Input
-									id='price'
-									type='number'
-									step='0.01'
+								<NumberInput
 									value={price}
-									onChange={(e) => {
-										setPrice(e.target.value);
-										if (errors.price) {
-											setErrors((prev) => ({ ...prev, price: undefined }));
-										}
+									onChange={(val) => {
+										setPrice(val);
+										if (errors.price) setErrors((prev) => ({ ...prev, price: undefined }));
 									}}
-									className='flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white'
+									allowDecimal={true}
 									placeholder={`Narx (${currencyCode})`}
+									className='flex-1 block w-full rounded-l-xl border-0 sm:text-lg p-3 bg-white'
 								/>
 								<div className='flex justify-between text-sm text-gray-600 bg-indigo-50/50 px-3 py-2 min-w-[3rem] items-center'>
 									{currencyCode}
