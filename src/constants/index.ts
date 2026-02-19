@@ -6,7 +6,8 @@
 export const USD_RATE = 12180;
 
 // API Configuration
-export const API_BASE_URL = (import.meta.env as { VITE_API_BASE_URL?: string }).VITE_API_BASE_URL || 'https://api-savdo.elegantchinni.uz/api';
+export const API_BASE_URL =
+	(import.meta.env as { VITE_API_BASE_URL?: string }).VITE_API_BASE_URL || 'https://api-savdo.elegantchinni.uz/api';
 
 // Routes
 export const ROUTES = {
@@ -20,6 +21,7 @@ export const ROUTES = {
 	STATISTICS: '/statistika',
 	DEBT_REPAYMENT: '/qarzlar',
 	VOZVRAT_ORDER: '/tovar-qaytarish',
+	EXPENSES: '/xarajatlar',
 } as const;
 
 // Local Storage Keys

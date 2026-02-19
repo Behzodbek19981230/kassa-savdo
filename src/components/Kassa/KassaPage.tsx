@@ -470,6 +470,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
             onOrderUpdate={(updatedOrder) => setOrderData(updatedOrder)}
             totalAmount={totalAmount}
             refreshTrigger={refreshCartTrigger}
+            isVozvratOrder={isVozvratOrder}
         />
     ) : (
         <Cart

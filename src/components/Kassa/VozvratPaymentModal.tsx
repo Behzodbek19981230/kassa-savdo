@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Loader2 } from 'lucide-react';
-import { Input, Label } from '../ui/Input';
+import { Label } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
+import { NumberInput } from '../ui/NumberInput';
 import { vozvratOrderService } from '../../services/orderService';
 import { showError, showSuccess } from '../../lib/toast';
 import { useNavigate } from 'react-router-dom';
-import { USD_RATE } from '../../constants';
 
 interface VozvratPaymentModalProps {
     isOpen: boolean;
@@ -25,7 +25,7 @@ export function VozvratPaymentModal({
     onComplete,
     totalAmount,
     totalCount,
-    usdRate,
+    usdRate: _usdRate,
     orderData,
     onOrderUpdate,
 }: VozvratPaymentModalProps) {
@@ -69,7 +69,7 @@ export function VozvratPaymentModal({
                 is_karzinka: !isConfirmed,
             };
 
-            await vozvratOrderService.updateVozvratOrder(orderData.id, updateData);
+            await vozvratOrderService.returnVozvratOrder(orderData.id, updateData);
             showSuccess('Vozvrat muvaffaqiyatli tasdiqlandi');
             onOrderUpdate?.(updateData);
             onComplete?.();
@@ -102,26 +102,26 @@ export function VozvratPaymentModal({
 
                     {/* Content */}
                     <div className='flex-1 overflow-y-auto p-4 sm:p-6'>
-                        <div className='space-y-4'>
+                        <div className='space-y-6'>
                             {/* Umumiy ma'lumotlar */}
-                            <div className='grid grid-cols-2 gap-4 mb-4'>
-                                <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
-                                    <Label className='block text-xs text-red-600 mb-1 ml-1 font-semibold'>
+                            <div className='grid grid-cols-2 gap-4 mb-6'>
+                                <div className='bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border-2 border-red-200'>
+                                    <Label className='block text-xs text-red-600 mb-2 font-semibold'>
                                         Umumiy soni:
                                     </Label>
-                                    <p className='text-lg font-bold text-red-700'>{totalCount}</p>
+                                    <p className='text-2xl font-bold text-red-700'>{totalCount}</p>
                                 </div>
-                                <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
-                                    <Label className='block text-xs text-red-600 mb-1 ml-1 font-semibold'>
+                                <div className='bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border-2 border-red-200'>
+                                    <Label className='block text-xs text-red-600 mb-2 font-semibold'>
                                         Umumiy narxi ($):
                                     </Label>
-                                    <p className='text-lg font-bold text-red-700'>{totalAmount.toFixed(2)}</p>
+                                    <p className='text-2xl font-bold text-red-700'>{totalAmount.toFixed(2)}</p>
                                 </div>
                             </div>
 
                             {/* Sana */}
                             <div>
-                                <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
+                                <Label className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
                                     Sana
                                 </Label>
                                 <DatePicker
@@ -132,82 +132,101 @@ export function VozvratPaymentModal({
                                 />
                             </div>
 
-                            {/* Jami qaytarilgan summa ($) */}
-                            <div>
-                                <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-                                    Jami qaytarilgan summa ($)
-                                </Label>
-                                <Input
-                                    type='number'
-                                    step='0.01'
-                                    value={summaTotalDollar}
-                                    onChange={(e) => setSummaTotalDollar(e.target.value)}
-                                    placeholder='0.00'
-                                    className='w-full'
-                                />
-                            </div>
+                            {/* Payment Fields Grid */}
+                            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                                {/* Jami qaytarilgan summa ($) */}
+                                <div className='bg-gradient-to-br from-indigo-50 to-blue-50 p-4 rounded-xl border-2 border-indigo-200'>
+                                    <Label className='block text-indigo-600 text-sm font-semibold mb-2'>
+                                        Jami qaytarilgan summa ($)
+                                    </Label>
+                                    <div className='relative'>
+                                        <NumberInput
+                                            value={summaTotalDollar}
+                                            onChange={(val) => setSummaTotalDollar(val)}
+                                            allowDecimal={true}
+                                            placeholder='0'
+                                            className='w-full border-2 border-indigo-200 focus:border-2 focus:border-indigo-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-indigo-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                        />
+                                        <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
+                                            USD
+                                        </span>
+                                    </div>
+                                </div>
 
-                            {/* Qaytarilgan summa ($) */}
-                            <div>
-                                <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-                                    Qaytarilgan summa ($)
-                                </Label>
-                                <Input
-                                    type='number'
-                                    step='0.01'
-                                    value={summaDollar}
-                                    onChange={(e) => setSummaDollar(e.target.value)}
-                                    placeholder='0.00'
-                                    className='w-full'
-                                />
-                            </div>
+                                {/* Qaytarilgan summa ($) */}
+                                <div className='bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-xl border-2 border-emerald-200'>
+                                    <Label className='block text-emerald-600 text-sm font-semibold mb-2'>
+                                        Qaytarilgan summa ($)
+                                    </Label>
+                                    <div className='relative'>
+                                        <NumberInput
+                                            value={summaDollar}
+                                            onChange={(val) => setSummaDollar(val)}
+                                            allowDecimal={true}
+                                            placeholder='0'
+                                            className='w-full border-2 border-emerald-200 focus:border-2 focus:border-emerald-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-emerald-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                        />
+                                        <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
+                                            USD
+                                        </span>
+                                    </div>
+                                </div>
 
-                            {/* Qaytarilgan summa so'mda */}
-                            <div>
-                                <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-                                    Qaytarilgan summa so'mda
-                                </Label>
-                                <Input
-                                    type='number'
-                                    step='1'
-                                    value={summaSom}
-                                    onChange={(e) => setSummaSom(e.target.value)}
-                                    placeholder='0'
-                                    className='w-full'
-                                />
-                            </div>
+                                {/* Qaytarilgan summa so'mda */}
+                                <div className='bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200'>
+                                    <Label className='block text-blue-600 text-sm font-semibold mb-2'>
+                                        Qaytarilgan summa so'mda
+                                    </Label>
+                                    <div className='relative'>
+                                        <NumberInput
+                                            value={summaSom}
+                                            onChange={(val) => setSummaSom(val)}
+                                            allowDecimal={false}
+                                            placeholder='0'
+                                            className='w-full border-2 border-blue-200 focus:border-2 focus:border-blue-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-blue-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                        />
+                                        <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
+                                            UZS
+                                        </span>
+                                    </div>
+                                </div>
 
-                            {/* Qaytarilgan summa kartada */}
-                            <div>
-                                <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-                                    Qaytarilgan summa kartada
-                                </Label>
-                                <Input
-                                    type='number'
-                                    step='1'
-                                    value={summaKarta}
-                                    onChange={(e) => setSummaKarta(e.target.value)}
-                                    placeholder='0'
-                                    className='w-full'
-                                />
+                                {/* Qaytarilgan summa kartada */}
+                                <div className='bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl border-2 border-purple-200'>
+                                    <Label className='block text-purple-600 text-sm font-semibold mb-2'>
+                                        Qaytarilgan summa kartada
+                                    </Label>
+                                    <div className='relative'>
+                                        <NumberInput
+                                            value={summaKarta}
+                                            onChange={(val) => setSummaKarta(val)}
+                                            allowDecimal={false}
+                                            placeholder='0'
+                                            className='w-full border-2 border-purple-200 focus:border-2 focus:border-purple-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-purple-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                        />
+                                        <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
+                                            UZS
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Izoh */}
                             <div>
-                                <Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
+                                <Label className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
                                     Izoh
                                 </Label>
                                 <textarea
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
                                     placeholder='Izoh kiriting...'
-                                    className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none'
+                                    className='w-full px-3 py-2 text-sm border-2 border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none transition-all duration-200'
                                     rows={3}
                                 />
                             </div>
 
                             {/* Tasdiqlash */}
-                            <div className='flex items-center gap-3'>
+                            <div className='flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200'>
                                 <input
                                     type='checkbox'
                                     id='confirm'

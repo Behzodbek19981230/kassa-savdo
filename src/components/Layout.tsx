@@ -1,5 +1,5 @@
 import { useNavigate, NavLink, useLocation } from 'react-router-dom';
-import { ArrowLeft, BarChart2, DollarSign, Plus, User, Building2, LogOut, FileText, RotateCcw } from 'lucide-react';
+import { ArrowLeft, BarChart2, DollarSign, Plus, User, Building2, LogOut, FileText, RotateCcw, Undo2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { USD_RATE, ROUTES } from '../constants';
 
@@ -9,11 +9,7 @@ interface LayoutProps {
     showBackButton?: boolean;
 }
 
-export function Layout({
-    children,
-    onBack,
-    showBackButton = true,
-}: LayoutProps) {
+export function Layout({ children, onBack, showBackButton = true }: LayoutProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const { kassir, user, logout } = useAuth();
@@ -92,6 +88,19 @@ export function Layout({
                                 </li>
                                 <li>
                                     <NavLink
+                                        to={ROUTES.EXPENSES}
+                                        className={({ isActive }) =>
+                                            `px-3 py-2 rounded-md text-sm font-semibold transition flex items-center gap-2 whitespace-nowrap ${isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/10'
+                                            }`
+                                        }
+                                        title='Xarajatlar'
+                                    >
+                                        <DollarSign size={18} />
+                                        <span className='hidden sm:inline'>Xarajatlar</span>
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink
                                         to={ROUTES.VOZVRAT_ORDER}
                                         className={({ isActive }) =>
                                             `px-3 py-2 rounded-md text-sm font-semibold transition flex items-center gap-2 whitespace-nowrap ${isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/10'
@@ -99,7 +108,7 @@ export function Layout({
                                         }
                                         title='Tovar qaytarish'
                                     >
-                                        <RotateCcw size={18} />
+                                        <Undo2 size={18} />
                                         <span className='hidden sm:inline'>Tovar qaytarish</span>
                                     </NavLink>
                                 </li>

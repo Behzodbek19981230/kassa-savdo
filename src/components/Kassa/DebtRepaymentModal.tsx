@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import { Input, Label } from '../ui/Input';
+import { Label } from '../ui/Input';
+import NumberInput from '../ui/NumberInput';
+import { useForm, Controller } from 'react-hook-form';
 import { DatePicker } from '../ui/DatePicker';
 import { Autocomplete, AutocompleteOption } from '../ui/Autocomplete';
 import { debtRepaymentService, DebtRepaymentRequest } from '../../services/orderService';
@@ -75,6 +77,39 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 		}
 	};
 
+	// react-hook-form setup (inline validation)
+	interface FormValues {
+		note: string;
+		summaTotalDollar: string;
+		discountAmount: string;
+		summaDollar: string;
+		summaSom: string;
+		summaKarta: string;
+		summaTerminal: string;
+		zdachaDollar: string;
+		zdachaSom: string;
+	}
+
+	const {
+		control,
+		handleSubmit: rhfHandleSubmit,
+		formState: { errors, isValid },
+		reset,
+	} = useForm<FormValues>({
+		mode: 'onChange',
+		defaultValues: {
+			note,
+			summaTotalDollar,
+			discountAmount,
+			summaDollar,
+			summaSom,
+			summaKarta,
+			summaTerminal,
+			zdachaDollar,
+			zdachaSom,
+		},
+	});
+
 	const autocompleteOptions: AutocompleteOption[] = clients.map((client) => ({
 		id: client.id.toString(),
 		label: `${client.full_name}${client.phone_number ? ` (${client.phone_number})` : ''}`,
@@ -85,6 +120,18 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 	const resetForm = () => {
 		setSelectedClient(null);
 		setDate(new Date());
+		// reset form-controlled values
+		reset({
+			note: '',
+			summaTotalDollar: '0',
+			discountAmount: '0',
+			summaDollar: '0',
+			summaSom: '0',
+			summaKarta: '0',
+			summaTerminal: '0',
+			zdachaDollar: '0',
+			zdachaSom: '0',
+		});
 		setNote('');
 		setSummaTotalDollar('0');
 		setDiscountAmount('0');
@@ -105,7 +152,20 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 	}, [isOpen]);
 
 	// Qarz to'lash
-	const handleSubmit = async () => {
+	const handleSubmit = async (formData?: any) => {
+		// formData will be provided by react-hook-form via rhfHandleSubmit
+		const data = formData as {
+			note: string;
+			summaTotalDollar: string;
+			discountAmount: string;
+			summaDollar: string;
+			summaSom: string;
+			summaKarta: string;
+			summaTerminal: string;
+			zdachaDollar: string;
+			zdachaSom: string;
+		};
+
 		if (!selectedClient) {
 			showError('Mijozni tanlang');
 			return;
@@ -120,12 +180,12 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 		try {
 			const oldTotalDebt = selectedClient.total_debt ? Number(selectedClient.total_debt) : 0;
 			const totalPaid =
-				Number(summaSom || 0) +
-				Number(summaDollar || 0) * exchangeRate +
-				Number(summaKarta || 0) +
-				Number(summaTerminal || 0);
+				Number(data?.summaSom || 0) +
+				Number(data?.summaDollar || 0) * exchangeRate +
+				Number(data?.summaKarta || 0) +
+				Number(data?.summaTerminal || 0);
 
-			const newTotalDebt = Math.max(0, oldTotalDebt - totalPaid + Number(discountAmount || 0));
+			const newTotalDebt = Math.max(0, oldTotalDebt - totalPaid + Number(data?.discountAmount || 0));
 
 			const payload: DebtRepaymentRequest = {
 				filial: user.order_filial,
@@ -133,18 +193,18 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 				employee: user.id || 0,
 				exchange_rate: exchangeRate,
 				date: date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-				note: note,
+				note: data?.note,
 				old_total_debt_client: oldTotalDebt,
 				total_debt_client: newTotalDebt,
-				summa_total_dollar: Number(summaTotalDollar || 0),
-				summa_dollar: Number(summaDollar || 0),
-				summa_naqt: Number(summaSom || 0),
+				summa_total_dollar: Number(data?.summaTotalDollar || 0),
+				summa_dollar: Number(data?.summaDollar || 0),
+				summa_naqt: Number(data?.summaSom || 0),
 				summa_kilik: 0,
-				summa_terminal: Number(summaTerminal || 0),
-				summa_transfer: Number(summaKarta || 0),
-				discount_amount: Number(discountAmount || 0),
-				zdacha_dollar: Number(zdachaDollar || 0),
-				zdacha_som: Number(zdachaSom || 0),
+				summa_terminal: Number(data?.summaTerminal || 0),
+				summa_transfer: Number(data?.summaKarta || 0),
+				discount_amount: Number(data?.discountAmount || 0),
+				zdacha_dollar: Number(data?.zdachaDollar || 0),
+				zdacha_som: Number(data?.zdachaSom || 0),
 				is_delete: false,
 				debt_status: debtStatus,
 			};
@@ -169,7 +229,15 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 				<Dialog.Content className='fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border-2 border-indigo-200 z-50 overflow-hidden'>
 					{/* Header */}
 					<div className='flex justify-between items-center p-4 sm:p-5 border-b-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50'>
-						<h2 className='text-lg sm:text-xl font-bold text-gray-900'>Qarz to'lash</h2>
+						<div className='flex items-center gap-4'>
+							<h2 className='text-lg sm:text-xl font-bold text-gray-900'>Qarz to'lash</h2>
+							<div className='hidden sm:flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm ml-3'>
+								<span className='text-xs font-semibold text-gray-700'>Kurs:</span>
+								<span className='text-sm font-bold text-indigo-700'>
+									1 USD = {exchangeRate.toLocaleString()} UZS
+								</span>
+							</div>
+						</div>
 						<button
 							onClick={onClose}
 							className='text-gray-500 hover:text-indigo-600 hover:bg-white p-2 rounded-xl transition-all duration-200'
@@ -211,28 +279,9 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 								</div>
 							</div>
 
-							{/* Toggle Switch */}
-							<div className='flex items-center justify-end gap-3'>
-								<span className='text-sm font-semibold text-gray-700'>Status:</span>
-								<button
-									type='button'
-									onClick={() => setDebtStatus(!debtStatus)}
-									className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-										debtStatus ? 'bg-blue-600' : 'bg-gray-300'
-									}`}
-								>
-									<span
-										className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-											debtStatus ? 'translate-x-6' : 'translate-x-1'
-										}`}
-									/>
-								</button>
-							</div>
-
-							{/* Form Fields */}
-							<div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
-								{/* Sana */}
-								<div>
+							{/* Toggle Switch + Sana (moved right of status) */}
+							<div className='flex items-center justify-between gap-6'>
+								<div className='w-48'>
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
 										Sana
 									</Label>
@@ -243,20 +292,55 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 										className='w-full'
 									/>
 								</div>
+								<div className='flex items-center gap-3'>
+									<span className='text-sm font-semibold text-gray-700'>Status:</span>
+									<button
+										type='button'
+										onClick={() => setDebtStatus(!debtStatus)}
+										className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+											debtStatus ? 'bg-blue-600' : 'bg-gray-300'
+										}`}
+									>
+										<span
+											className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+												debtStatus ? 'translate-x-6' : 'translate-x-1'
+											}`}
+										/>
+									</button>
+								</div>
+							</div>
 
+							{/* Form Fields */}
+							<div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
 								{/* Jami Summa ($) */}
 								<div>
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-										Jami Summa ($)
+										Jami Summa ($) <span className='text-red-600'>*</span>
 									</Label>
-									<Input
-										type='number'
-										step='0.01'
-										value={summaTotalDollar}
-										onChange={(e) => setSummaTotalDollar(e.target.value)}
-										placeholder='0.00'
-										className='w-full'
+									<Controller
+										control={control}
+										name='summaTotalDollar'
+										rules={{
+											required: 'Jami Summa ($) majburiy',
+											min: { value: 0.01, message: 'Kamida 0.01 bo`lishi kerak' },
+										}}
+										render={({ field }) => (
+											<NumberInput
+												value={field.value}
+												onChange={(val) => {
+													field.onChange(val);
+													setSummaTotalDollar(val);
+												}}
+												allowDecimal={true}
+												placeholder='0.00'
+												className='w-full'
+												aria-required='true'
+											/>
+										)}
 									/>
+									{errors.summaTotalDollar && (
+										<p className='text-rose-600 text-xs mt-1'>{errors.summaTotalDollar.message}</p>
+									)}
 								</div>
 
 								{/* Chegirma ($) */}
@@ -264,74 +348,133 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
 										Chegirma ($)
 									</Label>
-									<Input
-										type='number'
-										step='0.01'
-										value={discountAmount}
-										onChange={(e) => setDiscountAmount(e.target.value)}
-										placeholder='0.00'
-										className='w-full'
+									<Controller
+										control={control}
+										name='discountAmount'
+										render={({ field }) => (
+											<NumberInput
+												value={field.value}
+												onChange={(val) => {
+													field.onChange(val);
+													setDiscountAmount(val);
+												}}
+												allowDecimal={true}
+												placeholder='0.00'
+												className='w-full'
+											/>
+										)}
 									/>
 								</div>
 
 								{/* Summa ($) */}
 								<div>
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-										Summa ($)
+										Summa ($) <span className='text-red-600'>*</span>
 									</Label>
-									<Input
-										type='number'
-										step='0.01'
-										value={summaDollar}
-										onChange={(e) => setSummaDollar(e.target.value)}
-										placeholder='0.00'
-										className='w-full'
+									<Controller
+										control={control}
+										name='summaDollar'
+										rules={{
+											required: 'Summa ($) majburiy',
+											min: { value: 0.01, message: 'Kamida 0.01 bo`lishi kerak' },
+										}}
+										render={({ field }) => (
+											<NumberInput
+												value={field.value}
+												onChange={(val) => {
+													field.onChange(val);
+													setSummaDollar(val);
+												}}
+												allowDecimal={true}
+												placeholder='0.00'
+												className='w-full'
+												aria-required='true'
+											/>
+										)}
 									/>
+									{errors.summaDollar && (
+										<p className='text-rose-600 text-xs mt-1'>{errors.summaDollar.message}</p>
+									)}
 								</div>
 
 								{/* Summa so'm */}
 								<div>
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-										Summa so'm
+										Summa so'm <span className='text-red-600'>*</span>
 									</Label>
-									<Input
-										type='number'
-										step='1'
-										value={summaSom}
-										onChange={(e) => setSummaSom(e.target.value)}
-										placeholder='0'
-										className='w-full'
+									<Controller
+										control={control}
+										name='summaSom'
+										render={({ field }) => (
+											<NumberInput
+												value={field.value}
+												onChange={(val) => {
+													field.onChange(val);
+													setSummaSom(val);
+												}}
+												allowDecimal={true}
+												placeholder='0'
+												className='w-full'
+												aria-required='true'
+											/>
+										)}
 									/>
 								</div>
 
 								{/* Summa karta */}
 								<div>
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-										Summa karta
+										Summa karta <span className='text-red-600'>*</span>
 									</Label>
-									<Input
-										type='number'
-										step='1'
-										value={summaKarta}
-										onChange={(e) => setSummaKarta(e.target.value)}
-										placeholder='0'
-										className='w-full'
+									<Controller
+										control={control}
+										name='summaKarta'
+										rules={{ required: 'Summa karta majburiy' }}
+										render={({ field }) => (
+											<NumberInput
+												value={field.value}
+												onChange={(val) => {
+													field.onChange(val);
+													setSummaKarta(val);
+												}}
+												allowDecimal={true}
+												placeholder='0'
+												className='w-full'
+												aria-required='true'
+											/>
+										)}
 									/>
+									{errors.summaKarta && (
+										<p className='text-rose-600 text-xs mt-1'>{errors.summaKarta.message}</p>
+									)}
 								</div>
 
 								{/* Summa terminal */}
 								<div>
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-										Summa terminal
+										Summa terminal <span className='text-red-600'>*</span>
 									</Label>
-									<Input
-										type='number'
-										step='1'
-										value={summaTerminal}
-										onChange={(e) => setSummaTerminal(e.target.value)}
-										placeholder='0'
-										className='w-full'
+									<Controller
+										control={control}
+										name='summaTerminal'
+										rules={{ required: 'Summa terminal majburiy' }}
+										render={({ field }) => (
+											<NumberInput
+												value={field.value}
+												onChange={(val) => {
+													field.onChange(val);
+													setSummaTerminal(val);
+												}}
+												allowDecimal={true}
+												placeholder='0'
+												className='w-full'
+												aria-required='true'
+											/>
+										)}
 									/>
+									{errors.summaTerminal && (
+										<p className='text-rose-600 text-xs mt-1'>{errors.summaTerminal.message}</p>
+									)}
 								</div>
 
 								{/* Qaytim ($) */}
@@ -339,13 +482,21 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
 										Qaytim ($)
 									</Label>
-									<Input
-										type='number'
-										step='0.01'
-										value={zdachaDollar}
-										onChange={(e) => setZdachaDollar(e.target.value)}
-										placeholder='0.00'
-										className='w-full'
+									<Controller
+										control={control}
+										name='zdachaDollar'
+										render={({ field }) => (
+											<NumberInput
+												value={field.value}
+												onChange={(val) => {
+													field.onChange(val);
+													setZdachaDollar(val);
+												}}
+												allowDecimal={true}
+												placeholder='0.00'
+												className='w-full'
+											/>
+										)}
 									/>
 								</div>
 
@@ -354,27 +505,49 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
 										Qaytim so'm
 									</Label>
-									<Input
-										type='number'
-										step='1'
-										value={zdachaSom}
-										onChange={(e) => setZdachaSom(e.target.value)}
-										placeholder='0'
-										className='w-full'
+									<Controller
+										control={control}
+										name='zdachaSom'
+										render={({ field }) => (
+											<NumberInput
+												value={field.value}
+												onChange={(val) => {
+													field.onChange(val);
+													setZdachaSom(val);
+												}}
+												allowDecimal={true}
+												placeholder='0'
+												className='w-full'
+											/>
+										)}
 									/>
 								</div>
 							</div>
 
 							{/* Izoh */}
 							<div>
-								<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>Izoh</Label>
-								<textarea
-									value={note}
-									onChange={(e) => setNote(e.target.value)}
-									placeholder='Izoh kiriting...'
-									className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none'
-									rows={3}
+								<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
+									Izoh <span className='text-red-600'>*</span>
+								</Label>
+								<Controller
+									control={control}
+									name='note'
+									rules={{ required: 'Izoh majburiy' }}
+									render={({ field }) => (
+										<textarea
+											{...field}
+											placeholder='Izoh kiriting...'
+											className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none'
+											rows={3}
+											aria-required='true'
+											onChange={(e) => {
+												field.onChange(e.target.value);
+												setNote(e.target.value);
+											}}
+										/>
+									)}
 								/>
+								{errors.note && <p className='text-rose-600 text-xs mt-1'>{errors.note.message}</p>}
 							</div>
 						</div>
 					</div>
@@ -388,7 +561,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 							Bekor qilish
 						</button>
 						<button
-							onClick={handleSubmit}
+							onClick={rhfHandleSubmit(handleSubmit)}
 							disabled={isSubmitting || !selectedClient}
 							className='bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
 						>

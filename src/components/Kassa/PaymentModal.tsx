@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Printer, Banknote, CreditCard, CheckCircle2, FileText, Truck, Loader2 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
-import { Input } from '../ui/Input';
 import NumberInput from '../ui/NumberInput';
 import { Receipt } from './Receipt';
 import { CartItem, Customer, Sale, OrderResponse } from '../../types';

@@ -162,6 +162,23 @@ export interface DebtRepayment {
 	debt_status: boolean;
 }
 
+/* ================= EXPENSE ================= */
+
+export interface Expense {
+	id?: number;
+	filial: number;
+	category?: number;
+	summa_total_dollar?: number;
+	summa_dollar?: number;
+	summa_naqt?: number;
+	summa_kilik?: number;
+	summa_terminal?: number;
+	summa_transfer?: number;
+	date?: string;
+	note?: string;
+	is_delete?: boolean;
+}
+
 /* ================= VOZVRAT ORDER ================= */
 
 export interface VozvratOrder {
