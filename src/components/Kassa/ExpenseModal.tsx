@@ -10,6 +10,7 @@ import { expenseService } from '../../services/expenseService';
 import api from '../../services/api';
 import { showError, showSuccess } from '../../lib/toast';
 import { useAuth } from '../../contexts/AuthContext';
+import { userService, User } from '../../services/userService';
 
 interface ExpenseModalProps {
 	isOpen: boolean;
@@ -32,9 +33,11 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 		summa_transfer?: string;
 		date?: Date | undefined;
 		note?: string;
+		is_salary?: boolean;
+		employee?: string;
 	}
 
-	const { control, handleSubmit, reset } = useForm<FormValues>({
+	const { control, handleSubmit, reset, watch } = useForm<FormValues>({
 		defaultValues: {
 			category: initialData?.category?.toString() || '',
 			summa_total_dollar: initialData?.summa_total_dollar?.toString() || '0',
@@ -45,11 +48,17 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 			summa_transfer: initialData?.summa_transfer?.toString() || '0',
 			date: initialData?.date ? new Date(initialData.date) : new Date(),
 			note: initialData?.note || '',
+			is_salary: initialData?.is_salary || false,
+			employee: initialData?.employee?.toString() || '',
 		},
 	});
 
+	const isSalary = watch('is_salary');
+
 	const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
 	const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+	const [employees, setEmployees] = useState<User[]>([]);
+	const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -70,6 +79,23 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 	}, [isOpen]);
 
 	useEffect(() => {
+		if (!isOpen) return;
+		const loadEmployees = async () => {
+			setIsLoadingEmployees(true);
+			try {
+				const res = await userService.getUsers({ page_size: 100 });
+				setEmployees(res.results || []);
+			} catch (err) {
+				console.error('Failed to load employees', err);
+				setEmployees([]);
+			} finally {
+				setIsLoadingEmployees(false);
+			}
+		};
+		loadEmployees();
+	}, [isOpen]);
+
+	useEffect(() => {
 		reset({
 			category: initialData?.category?.toString() || '',
 			summa_total_dollar: initialData?.summa_total_dollar?.toString() || '0',
@@ -80,6 +106,8 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 			summa_transfer: initialData?.summa_transfer?.toString() || '0',
 			date: initialData?.date ? new Date(initialData.date) : new Date(),
 			note: initialData?.note || '',
+			is_salary: initialData?.is_salary || false,
+			employee: initialData?.employee?.toString() || '',
 		});
 	}, [initialData, reset]);
 
@@ -97,6 +125,8 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 			date: values.date ? values.date.toISOString().split('T')[0] : undefined,
 			note: values.note || '',
 			is_delete: false,
+			is_salary: values.is_salary === true,
+			employee: values.is_salary === true && values.employee ? Number(values.employee) : undefined,
 		} as any;
 
 		try {
@@ -137,6 +167,45 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 
 					<form onSubmit={handleSubmit(onSubmit)} className='flex-1 overflow-y-auto p-4 sm:p-6'>
 						<div className='space-y-4'>
+							{/* Is Salary Radio Button */}
+							<div className='mb-4'>
+								<Label className='block text-xs text-indigo-600 mb-2 ml-1 font-semibold'>
+									Xarajat turi
+								</Label>
+								<div className='flex gap-4'>
+									<Controller
+										control={control}
+										name='is_salary'
+										render={({ field }) => (
+											<label className='flex items-center gap-2 cursor-pointer'>
+												<input
+													type='radio'
+													checked={field.value === false}
+													onChange={() => field.onChange(false)}
+													className='w-4 h-4 text-indigo-600 focus:ring-indigo-500'
+												/>
+												<span className='text-sm text-gray-700'>Oddiy xarajat</span>
+											</label>
+										)}
+									/>
+									<Controller
+										control={control}
+										name='is_salary'
+										render={({ field }) => (
+											<label className='flex items-center gap-2 cursor-pointer'>
+												<input
+													type='radio'
+													checked={field.value === true}
+													onChange={() => field.onChange(true)}
+													className='w-4 h-4 text-indigo-600 focus:ring-indigo-500'
+												/>
+												<span className='text-sm text-gray-700'>Oylik</span>
+											</label>
+										)}
+									/>
+								</div>
+							</div>
+
 							<div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
 								<div>
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
@@ -146,7 +215,7 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 										control={control}
 										name='category'
 										render={({ field }) => (
-											<Select value={field.value} onValueChange={(v) => field.onChange(v)}>
+											<Select value={field.value || undefined} onValueChange={(v) => field.onChange(v)}>
 												<SelectTrigger>
 													<SelectValue placeholder='— Tanlang —' />
 												</SelectTrigger>
@@ -196,6 +265,42 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 									/>
 								</div>
 							</div>
+
+							{/* Employee Selection - Only shown when is_salary is true */}
+							{isSalary && (
+								<div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
+									<div>
+										<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
+											Hodim
+										</Label>
+										<Controller
+											control={control}
+											name='employee'
+											render={({ field }) => (
+												<Select value={field.value || undefined} onValueChange={(v) => field.onChange(v)}>
+													<SelectTrigger>
+														<SelectValue placeholder='— Tanlang —' />
+													</SelectTrigger>
+													<SelectContent>
+														{isLoadingEmployees ? (
+															<div className='px-2 py-1.5 text-sm text-gray-500'>
+																Yuklanmoqda...
+															</div>
+														) : (
+															employees.map((emp) => (
+																<SelectItem key={emp.id} value={emp.id.toString()}>
+																	{emp.full_name}
+																	{emp.phone_number ? ` (${emp.phone_number})` : ''}
+																</SelectItem>
+															))
+														)}
+													</SelectContent>
+												</Select>
+											)}
+										/>
+									</div>
+								</div>
+							)}
 
 							<div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
 								<div>

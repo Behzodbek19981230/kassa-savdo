@@ -13,6 +13,8 @@ export interface Expense {
 	date?: string;
 	note?: string;
 	is_delete?: boolean;
+	is_salary?: boolean;
+	employee?: number;
 }
 
 export interface ExpensesResponse {

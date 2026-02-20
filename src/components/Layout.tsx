@@ -1,5 +1,5 @@
 import { useNavigate, NavLink, useLocation } from 'react-router-dom';
-import { ArrowLeft, BarChart2, DollarSign, Plus, User, Building2, LogOut, FileText, RotateCcw, Undo2 } from 'lucide-react';
+import { ArrowLeft, BarChart2, DollarSign, Plus, User, Building2, LogOut, FileText, RotateCcw, Undo2, ShoppingCart } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { USD_RATE, ROUTES } from '../constants';
 
@@ -40,14 +40,15 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
                                     <NavLink
                                         to={ROUTES.HOME}
                                         className={({ isActive }) =>
-                                            `px-3 py-2 rounded-md text-sm font-semibold transition ${isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/10'
+                                            `px-3 py-2 rounded-md text-sm font-semibold transition flex items-center gap-2 whitespace-nowrap shrink-0 ${isActive ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/10'
                                             }`
                                         }
                                     >
-                                        Kassa
+                                        <ShoppingCart size={18} />
+                                        <span className='hidden sm:inline'>Savdo ro'yxati</span>
                                     </NavLink>
                                 </li>
-                                <li>
+                                {/* <li>
                                     <NavLink
                                         to={ROUTES.ORDER_CREATE}
                                         className={({ isActive }) =>
@@ -59,7 +60,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
                                         <Plus size={16} />
                                         <span className='hidden sm:inline'>Buyurma qilish</span>
                                     </NavLink>
-                                </li>
+                                </li> */}
                                 <li>
                                     <NavLink
                                         to={ROUTES.STATISTICS}

@@ -84,6 +84,12 @@ export function ExpensePage() {
 										Kategoriya
 									</th>
 									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
+										Oylik
+									</th>
+									<th className='text-left p-2 font-semibold text-gray-700 min-w-[150px]'>
+										Hodim
+									</th>
+									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
 										Jami ($)
 									</th>
 									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
@@ -102,7 +108,7 @@ export function ExpensePage() {
 							<tbody>
 								{data.length === 0 ? (
 									<tr>
-										<td colSpan={9} className='text-center py-12 text-gray-400'>
+										<td colSpan={11} className='text-center py-12 text-gray-400'>
 											Ma'lumotlar yo'q
 										</td>
 									</tr>
@@ -118,8 +124,33 @@ export function ExpensePage() {
 											</td>
 											<td className='p-2'>
 												<span className='font-medium text-gray-800'>
-													{item.category || '-'}
+													{item.category_detail?.name || '-'}
 												</span>
+											</td>
+											<td className='p-2'>
+												{item.is_salary ? (
+													<span className='px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold'>
+														Ha
+													</span>
+												) : (
+													<span className='px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold'>
+														Yo'q
+													</span>
+												)}
+											</td>
+											<td className='p-2'>
+												{item.employee_detail ? (
+													<span className='font-medium text-gray-800'>
+														{item.employee_detail.full_name}
+														{item.employee_detail.phone_number ? (
+															<span className='text-gray-500 text-xs ml-1'>
+																({item.employee_detail.phone_number})
+															</span>
+														) : null}
+													</span>
+												) : (
+													<span className='text-gray-400'>-</span>
+												)}
 											</td>
 											<td className='p-2 text-gray-800 text-left'>
 												{Number(item.summa_total_dollar || 0).toLocaleString()} $
