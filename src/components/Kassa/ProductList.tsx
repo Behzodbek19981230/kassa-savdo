@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useCallback } from 'react';
 import { Search, Star, RotateCcw, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Product } from '../../types';
 import { Input } from '../ui/Input';
@@ -47,7 +48,49 @@ export function ProductList({
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isLoadingImages, setIsLoadingImages] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [groupedProducts, setGroupedProducts] = useState<any[]>([]);
+    const [isLoadingGrouped, setIsLoadingGrouped] = useState(false);
+    const [page, setPage] = useState(1);
+    const [limit] = useState(30); // You can adjust limit as needed
+    const [hasMoreGroups, setHasMoreGroups] = useState(true);
 
+    // Fetch grouped products by model
+    const fetchGroupedProducts = useCallback(async (reset = false) => {
+        setIsLoadingGrouped(true);
+        try {
+            const response = await productService.getProductsGroupedByModel({
+                search: searchInput,
+                branch: selectedBranch,
+                model: selectedModel,
+                type: selectedType,
+                page: reset ? 1 : page,
+                limit,
+            });
+            const newGroups = response.results || [];
+            if (reset) {
+                setGroupedProducts(newGroups);
+            } else {
+                setGroupedProducts((prev: any[]) => [...prev, ...newGroups]);
+            }
+            setHasMoreGroups(response.pagination?.currentPage < response.pagination?.lastPage);
+        } catch (error) {
+            if (reset) setGroupedProducts([]);
+        } finally {
+            setIsLoadingGrouped(false);
+        }
+    }, [searchInput, selectedBranch, selectedModel, selectedType, page, limit]);
+
+    // Reset page and fetch on filter/search change
+    useEffect(() => {
+        setPage(1);
+        fetchGroupedProducts(true);
+    }, [searchInput, selectedBranch, selectedModel, selectedType]);
+
+    // Fetch more when page changes (except first page)
+    useEffect(() => {
+        if (page === 1) return;
+        fetchGroupedProducts();
+    }, [page]);
     useEffect(() => {
         setSearchInput(appliedSearch);
     }, [appliedSearch]);
@@ -147,16 +190,19 @@ export function ProductList({
     // Scroll event handler
     useEffect(() => {
         const container = scrollContainerRef.current;
-        if (!container || !onScrollToBottom || !hasMore) return;
+        if (!container) return;
 
         const handleScroll = () => {
-            const threshold = 100; // 100px qoldiqda yuklash
+            const threshold = 100;
             const scrollTop = container.scrollTop;
             const scrollHeight = container.scrollHeight;
             const clientHeight = container.clientHeight;
-
-            if (scrollHeight - scrollTop <= clientHeight + threshold && !isLoadingMore) {
-                onScrollToBottom();
+            if (
+                scrollHeight - scrollTop <= clientHeight + threshold &&
+                !isLoadingGrouped &&
+                hasMoreGroups
+            ) {
+                setPage((prev) => prev + 1);
             }
         };
 
@@ -164,7 +210,7 @@ export function ProductList({
         return () => {
             container.removeEventListener('scroll', handleScroll);
         };
-    }, [onScrollToBottom, hasMore, isLoadingMore]);
+    }, [isLoadingGrouped, hasMoreGroups]);
 
     return (
         <div className='flex flex-col h-full min-h-0 bg-gradient-to-b from-white to-blue-50/30 overflow-hidden'>
@@ -236,97 +282,98 @@ export function ProductList({
                 ref={scrollContainerRef}
                 className='flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-2 min-h-0'
             >
-                {products.length === 0 ? (
+                {isLoadingGrouped && groupedProducts.length === 0 ? (
+                    <div className='flex flex-col items-center justify-center py-12 text-gray-500'>
+                        <Loader2 className='w-8 h-8 animate-spin text-blue-600 mb-4' />
+                        <p className='text-sm'>Mahsulotlar yuklanmoqda...</p>
+                    </div>
+                ) : groupedProducts.length === 0 ? (
                     <div className='flex flex-col items-center justify-center py-12 text-gray-500'>
                         <Search size={48} className='mb-4 opacity-50' />
                         <p className='text-sm'>Mahsulotlar topilmadi</p>
                     </div>
                 ) : (
-                    <>
-                        {products.map((product) => (
-                            <button
-                                key={product.id}
-                                onClick={() => onProductClick(product)}
-                                className='w-full text-left p-4 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 border-2 border-transparent hover:border-blue-300 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex justify-between items-start group'
-                            >
-                                <div className='flex items-start space-x-3 flex-1 min-w-0'>
-                                    {/* Product Image */}
-                                    <div className='relative flex-shrink-0'>
-                                        {product.image ? (
-                                            <img
-                                                src={product.image}
-                                                alt={product.name}
-                                                className='w-16 h-16 object-cover rounded-lg border-2 border-gray-200 group-hover:border-blue-300 transition-colors cursor-pointer'
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleImageClick(product);
-                                                }}
-                                                onError={(e) => {
-                                                    // Agar rasm yuklanmasa, placeholder ko'rsatish
-                                                    (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"%3E%3Crect fill="%23e5e7eb" width="64" height="64"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-size="24"%3E%3F%3C/text%3E%3C/svg%3E';
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className='w-16 h-16 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center'>
-                                                <span className='text-gray-400 text-xs'>Rasm</span>
+                    groupedProducts.map((group) => (
+                        <div key={group.model} className='mb-6'>
+                            <div className='font-bold text-blue-700 text-lg mb-2'>
+                                {group.model_detail?.name || 'Model'}
+                                <span className='ml-2 text-xs text-gray-500'>({group.total_count} ta)</span>
+                            </div>
+                            <div className='space-y-2'>
+                                {group.items.map((product: any) => (
+                                    <button
+                                        key={product.id}
+                                        onClick={() => onProductClick(product)}
+                                        className='w-full text-left p-4 bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 border-2 border-transparent hover:border-blue-300 rounded-xl shadow-md hover:shadow-xl transition-all duration-200 flex justify-between items-start group'
+                                    >
+                                        <div className='flex items-start space-x-3 flex-1 min-w-0'>
+                                            {/* Product Image */}
+                                            <div className='relative flex-shrink-0'>
+                                                {product.images && product.images.file ? (
+                                                    <img
+                                                        src={product.images.file}
+                                                        alt={product.name}
+                                                        className='w-16 h-16 object-cover rounded-lg border-2 border-gray-200 group-hover:border-blue-300 transition-colors cursor-pointer'
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleImageClick(product);
+                                                        }}
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"%3E%3Crect fill="%23e5e7eb" width="64" height="64"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-size="24"%3E%3F%3C/text%3E%3C/svg%3E';
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className='w-16 h-16 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center'>
+                                                        <span className='text-gray-400 text-xs'>Rasm</span>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                        {product.isFavorite && (
-                                            <Star
-                                                size={14}
-                                                className='absolute -top-1 -right-1 text-orange-400 bg-white rounded-full p-0.5'
-                                                fill='currentColor'
-                                            />
-                                        )}
-                                    </div>
-                                    <div className='flex-1 min-w-0'>
-                                        <div className='flex flex-wrap gap-2 mt-1.5'>
-                                            {product.branchName && (
-                                                <span className='text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded'>
-                                                    Kategoriya: {product.branchName}
-                                                </span>
-                                            )}
-                                            {product.modelName && (
-                                                <span className='text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded'>
-                                                    Modeli: {product.modelName}
-                                                </span>
-                                            )}
-                                            {product.typeName && (
-                                                <span className='text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded'>
-                                                    Turi: {product.typeName}
-                                                </span>
-                                            )}
-                                            {product.size !== undefined && product.size !== null && (
-                                                <span className='text-xs text-purple-600 font-medium bg-purple-50 px-2 py-0.5 rounded'>
-                                                    O'lchami: {product.size}
-                                                    {product.unitCode ? ` ${product.unitCode}` : ''}
-                                                </span>
-                                            )}
-                                            {product.stock !== undefined && (
-                                                <span className='text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded'>
-                                                    Soni: {product.stock}
-                                                    {product.unitCode ? ` ${product.unitCode}` : ''}
-                                                </span>
-                                            )}
+                                            <div className='flex-1 min-w-0'>
+                                                <div className='flex flex-wrap gap-2 mt-1.5'>
+                                                    {product.branch_detail?.name && (
+                                                        <span className='text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded'>
+                                                            Kategoriya: {product.branch_detail.name}
+                                                        </span>
+                                                    )}
+                                                    {product.model_detail?.name && (
+                                                        <span className='text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded'>
+                                                            Modeli: {product.model_detail.name}
+                                                        </span>
+                                                    )}
+                                                    {product.type_detail?.name && (
+                                                        <span className='text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded'>
+                                                            Turi: {product.type_detail.name}
+                                                        </span>
+                                                    )}
+                                                    {product.size_detail?.size && (
+                                                        <span className='text-xs text-purple-600 font-medium bg-purple-50 px-2 py-0.5 rounded'>
+                                                            O'lchami: {product.size_detail.size} {product.size_detail.unit_code || ''}
+                                                        </span>
+                                                    )}
+                                                    {product.count !== undefined && (
+                                                        <span className='text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded'>
+                                                            Soni: {product.count} {product.size_detail?.unit_code || ''}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </button>
-                        ))}
-                        {/* Loading indicator for pagination */}
-                        {isLoadingMore && (
-                            <div className='flex items-center justify-center py-4'>
-                                <Loader2 className='w-6 h-6 animate-spin text-blue-600 mr-2' />
-                                <span className='text-sm text-gray-500'>Yuklanmoqda...</span>
+                                    </button>
+                                ))}
                             </div>
-                        )}
-                        {/* End of list indicator */}
-                        {!hasMore && products.length > 0 && (
-                            <div className='flex items-center justify-center py-4'>
-                                <span className='text-sm text-gray-400'>Barcha mahsulotlar ko'rsatildi</span>
-                            </div>
-                        )}
-                    </>
+                        </div>
+                    ))
+                )}
+                {isLoadingGrouped && groupedProducts.length > 0 && (
+                    <div className='flex items-center justify-center py-4'>
+                        <Loader2 className='w-6 h-6 animate-spin text-blue-600 mr-2' />
+                        <span className='text-sm text-gray-500'>Yuklanmoqda...</span>
+                    </div>
+                )}
+                {!hasMoreGroups && groupedProducts.length > 0 && (
+                    <div className='flex items-center justify-center py-4'>
+                        <span className='text-sm text-gray-400'>Barcha mahsulotlar ko'rsatildi</span>
+                    </div>
                 )}
             </div>
 

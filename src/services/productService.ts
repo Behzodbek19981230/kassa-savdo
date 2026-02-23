@@ -76,6 +76,29 @@ export interface BranchesResponse {
 }
 
 export const productService = {
+        // Mahsulotlarni model bo'yicha guruhlab olish
+        getProductsGroupedByModel: async (params?: {
+            page?: number;
+            per_page?: number;
+            limit?: number;
+            search?: string;
+            filial?: number;
+            branch?: number;
+            model?: number;
+            type?: number;
+        }): Promise<any> => {
+            const queryParams = new URLSearchParams();
+            if (params?.page) queryParams.append('page', params.page.toString());
+            if (params?.limit) queryParams.append('limit', params.limit.toString());
+            else if (params?.per_page) queryParams.append('per_page', params.per_page.toString());
+            if (params?.search) queryParams.append('search', params.search);
+            if (params?.filial) queryParams.append('filial', params.filial.toString());
+            if (params?.branch) queryParams.append('branch', params.branch.toString());
+            if (params?.model) queryParams.append('model', params.model.toString());
+            if (params?.type) queryParams.append('type', params.type.toString());
+            const response = await api.get<any>(`/v1/product/group-by-model?${queryParams.toString()}`);
+            return response.data;
+        },
     // Mahsulotlarni olish
     getProducts: async (params?: {
         page?: number;
