@@ -1,5 +1,5 @@
 import { useState, useRef, Fragment, useMemo } from 'react';
-import { Loader2, Plus, Trash2, Download } from 'lucide-react';
+import { Loader2, Plus, Trash2, Download, Search, RotateCcw } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -18,8 +18,11 @@ export function DebtRepaymentPage() {
 	const today = new Date();
 	const oneMonthAgo = new Date(today);
 	oneMonthAgo.setMonth(today.getMonth() - 1);
-	const [dateFrom, setDateFrom] = useState<Date | undefined>(oneMonthAgo);
-	const [dateTo, setDateTo] = useState<Date | undefined>(today);
+
+	const [draftDateFrom, setDraftDateFrom] = useState<Date | undefined>(oneMonthAgo);
+	const [draftDateTo, setDraftDateTo] = useState<Date | undefined>(today);
+	const [appliedDateFrom, setAppliedDateFrom] = useState<Date | undefined>(oneMonthAgo);
+	const [appliedDateTo, setAppliedDateTo] = useState<Date | undefined>(today);
 	const receiptRef = useRef<HTMLDivElement>(null);
 
 	// React Query bilan ma'lumotlarni olish
@@ -32,20 +35,19 @@ export function DebtRepaymentPage() {
 			'debt-repayments-grouped',
 			{
 				filial: user?.order_filial,
-				dateFrom: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined,
-				dateTo: dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined,
+				dateFrom: appliedDateFrom ? format(appliedDateFrom, 'yyyy-MM-dd') : undefined,
+				dateTo: appliedDateTo ? format(appliedDateTo, 'yyyy-MM-dd') : undefined,
 			},
 		],
 		queryFn: () =>
 			debtRepaymentService.getDebtRepaymentsGroupedByDate({
 				filial: user?.order_filial || undefined,
-				date_from: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined,
-				date_to: dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined,
+				date_from: appliedDateFrom ? format(appliedDateFrom, 'yyyy-MM-dd') : undefined,
+				date_to: appliedDateTo ? format(appliedDateTo, 'yyyy-MM-dd') : undefined,
 			}),
 		staleTime: 30000, // 30 soniya
 		enabled: !!user?.order_filial,
 	});
-
 	// Delete mutation
 	const deleteMutation = useMutation({
 		mutationFn: (id: number) => debtRepaymentService.deleteDebtRepayment(id),
@@ -129,11 +131,39 @@ export function DebtRepaymentPage() {
 					<h2 className='text-2xl sm:text-3xl font-bold text-gray-800'>To'langan qarzlar</h2>
 					<div className='flex items-center gap-3'>
 						<DateRangePicker
-							dateFrom={dateFrom}
-							dateTo={dateTo}
-							onDateFromChange={(d) => setDateFrom(d)}
-							onDateToChange={(d) => setDateTo(d)}
+							dateFrom={draftDateFrom}
+							dateTo={draftDateTo}
+							onDateFromChange={(d) => setDraftDateFrom(d)}
+							onDateToChange={(d) => setDraftDateTo(d)}
 						/>
+
+						<div className='flex items-center gap-2'>
+							<button
+								onClick={() => {
+									setAppliedDateFrom(draftDateFrom);
+									setAppliedDateTo(draftDateTo);
+								}}
+								className='h-9 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-semibold flex items-center'
+							>
+								<Search size={14} className='mr-2' />
+								<span>Filter</span>
+							</button>
+
+							<button
+								onClick={() => {
+									const defaultFrom = oneMonthAgo;
+									const defaultTo = today;
+									setDraftDateFrom(defaultFrom);
+									setDraftDateTo(defaultTo);
+									setAppliedDateFrom(defaultFrom);
+									setAppliedDateTo(defaultTo);
+								}}
+								className='h-9 px-3 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-200 flex items-center gap-2'
+							>
+								<RotateCcw size={14} />
+								<span>Tozalash</span>
+							</button>
+						</div>
 
 						<button
 							onClick={() => setIsModalOpen(true)}

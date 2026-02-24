@@ -129,8 +129,19 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 	};
 
 	// Check if any filter is active (different from default)
+	const datesEqual = (a?: Date, b?: Date) => {
+		if (!a && !b) return true;
+		if (!a || !b) return false;
+		return a.getTime() === b.getTime();
+	};
+
 	const isFiltered =
-		draft.search !== '' || draft.clientId !== null || draft.employee !== null || draft.status !== 'all';
+		draft.search !== '' ||
+		draft.clientId !== null ||
+		draft.employee !== null ||
+		draft.status !== 'all' ||
+		!datesEqual(draft.dateFrom, defaultDraft.dateFrom) ||
+		!datesEqual(draft.dateTo, defaultDraft.dateTo);
 
 	const groupedResults = ordersData?.results || [];
 	const isGroupedByDate = groupedResults.length > 0 && (groupedResults[0] as any).items !== undefined;
