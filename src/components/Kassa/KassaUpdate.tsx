@@ -202,6 +202,8 @@ export function KassaUpdate({ orderId, readOnly = false, updateMode = false }: K
     const handleProductClick = (product: Product) => {
         if (!isSaleStarted) return;
         setSelectedProduct(product);
+        console.log(product);
+
     };
 
     const handleStartSale = (newOrderId: number) => {

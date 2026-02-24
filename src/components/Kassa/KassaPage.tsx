@@ -235,9 +235,10 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
     const handleModelChange = (modelId: number | null) => setSelectedModel(modelId);
     const handleTypeChange = (typeId: number | null) => setSelectedType(typeId);
 
-    const handleProductClick = (product: Product) => {
+    const handleProductClick = (product: any) => {
+
         if (!isSaleStarted) return;
-        setSelectedProduct(product);
+        setSelectedProduct(transformProduct(product));
     };
 
     const handleStartSale = (newOrderId: number) => {

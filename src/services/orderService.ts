@@ -1,3 +1,4 @@
+import { OrderItem } from '@/types';
 import api from './api';
 
 export interface CreateOrderRequest {
@@ -138,6 +139,12 @@ export interface OrderResponse {
 
 // Order service
 export const orderService = {
+    // Berilgan sonini yangilash
+    updateGivenCount: async (productId: number, givenCount: number) => {
+        return api.patch<OrderItem>(`/v1/order-history-product/${productId}`, {
+            given_count: givenCount,
+        });
+    },
     // Yangi order yaratish
     createOrder: async (data: CreateOrderRequest): Promise<OrderResponse> => {
         const response = await api.post<OrderResponse>('/v1/order-history', {
@@ -179,6 +186,7 @@ export const orderService = {
         search?: string;
         date_from?: string;
         date_to?: string;
+        client?: number;
         created_by?: number;
         is_karzinka?: boolean;
         all_product_summa_min?: number;
@@ -198,6 +206,7 @@ export const orderService = {
         if (params?.search) queryParams.append('search', params.search);
         if (params?.date_from) queryParams.append('date_from', params.date_from);
         if (params?.date_to) queryParams.append('date_to', params.date_to);
+        if (params?.client != null) queryParams.append('client', params.client.toString());
         if (params?.created_by != null) queryParams.append('created_by', params.created_by.toString());
         if (params?.is_karzinka !== undefined) queryParams.append('is_karzinka', String(params.is_karzinka));
         if (params?.all_product_summa_min != null)
@@ -283,7 +292,7 @@ export const orderService = {
             count: data.count,
             sklad: data.sklad ?? null,
         };
-
+        
         // Vozvrat order bo'lsa, alohida endpoint ishlatish
         if (data.vozvrat_order != null) {
             requestData.vozvrat_order = data.vozvrat_order;
@@ -299,15 +308,15 @@ export const orderService = {
         } else if (data.order_history != null) {
             // Oddiy order uchun
             requestData.order_history = data.order_history;
-            // price_dollar va price_sum ni qo'shish
-            if (data.price_dollar != null) {
-                requestData.price_dollar = data.price_dollar;
-            }
-            if (data.price_sum != null) {
-                requestData.price_sum = data.price_sum;
-            }
-            const response = await api.post('/v1/order-history-product', requestData);
-            return response.data;
+        // price_dollar va price_sum ni qo'shish
+        if (data.price_dollar != null) {
+            requestData.price_dollar = data.price_dollar;
+        }
+        if (data.price_sum != null) {
+            requestData.price_sum = data.price_sum;
+        }
+        const response = await api.post('/v1/order-history-product', requestData);
+        return response.data;
         } else {
             throw new Error('order_history yoki vozvrat_order kerak');
         }

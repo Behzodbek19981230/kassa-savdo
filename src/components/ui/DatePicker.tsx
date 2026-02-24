@@ -21,11 +21,14 @@ export function DatePicker({ date, onDateChange, placeholder = 'Sana tanlang', c
 				<button
 					disabled={disabled === true}
 					className={cn(
-						'flex h-10 w-full items-center justify-between rounded-xl border-2 border-indigo-200 bg-white px-4 py-2 text-sm',
+						'flex h-8 w-full items-center justify-between rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm',
 						'ring-offset-white',
-						'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2',
+						'focus:outline-none focus:ring-0 focus:shadow-none',
+						'focus:border-indigo-300',
+						'hover:border-indigo-300',
 						'disabled:cursor-not-allowed disabled:opacity-50',
-						'transition-all duration-200 hover:border-indigo-300',
+						'transition-all duration-200',
+						'data-[state=open]:border-indigo-500',
 						'text-left font-normal',
 						!date && 'text-gray-400',
 						className,
@@ -38,7 +41,7 @@ export function DatePicker({ date, onDateChange, placeholder = 'Sana tanlang', c
 			<Popover.Portal>
 				<Popover.Content
 					className={cn(
-						'z-50 w-auto rounded-xl border-2 border-indigo-200 bg-white p-3 shadow-lg',
+						'z-50 w-auto rounded-xl border border-indigo-200 bg-white p-3 shadow-lg',
 						'data-[state=open]:animate-in data-[state=closed]:animate-out',
 						'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
 						'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',

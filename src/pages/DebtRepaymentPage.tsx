@@ -123,7 +123,7 @@ export function DebtRepaymentPage() {
 		<div className='h-full flex flex-col p-4 sm:p-6'>
 			<div className='bg-white rounded-2xl shadow-xl p-4 sm:p-6 min-h-[400px] border border-gray-100 overflow-hidden flex-1 flex flex-col'>
 				<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
-					<h2 className='text-2xl sm:text-3xl font-bold text-gray-800'>Qarzlar</h2>
+					<h2 className='text-2xl sm:text-3xl font-bold text-gray-800'>To'langan qarzlar</h2>
 					<div className='flex items-center gap-3'>
 						<DateRangePicker
 							dateFrom={dateFrom}

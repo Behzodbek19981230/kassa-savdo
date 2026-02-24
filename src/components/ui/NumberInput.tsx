@@ -59,7 +59,7 @@ export function NumberInput({
 			className={
 				cn
 					? cn(
-							`${sizeClasses} text-gray-800 border-2 border-indigo-200 bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus:border-indigo-500 transition-all duration-200`,
+							`${sizeClasses} text-gray-800 border border-indigo-200 bg-white focus-visible:outline-none focus-visible:ring-0 focus:border-indigo-300 transition-all duration-200`,
 							className,
 						)
 					: `${sizeClasses} text-gray-800 ${className}`

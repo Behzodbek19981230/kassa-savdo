@@ -8,47 +8,106 @@
 
 /* Toast Animations */
 @keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
 }
 
 @keyframes slideOutRight {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(100%);
-    opacity: 0;
-  }
+	from {
+		transform: translateX(0);
+		opacity: 1;
+	}
+	to {
+		transform: translateX(100%);
+		opacity: 0;
+	}
 }
 
 /* Toast Custom Styles */
 .toast-success {
-  animation: slideInRight 0.3s ease-out;
+	animation: slideInRight 0.3s ease-out;
 }
 
 .toast-error {
-  animation: slideInRight 0.3s ease-out;
+	animation: slideInRight 0.3s ease-out;
 }
 
 .toast-loading {
-  animation: slideInRight 0.3s ease-out;
+	animation: slideInRight 0.3s ease-out;
 }
 
 /* Toast Container */
 [data-sonner-toaster] {
-  z-index: 9999 !important;
+	z-index: 9999 !important;
 }
 
 /* Autocomplete ochiq bo'lganda boshqa scrolllarni o'chirish */
 body.autocomplete-open .flex-1.overflow-y-auto:not([data-autocomplete-list]) {
-  pointer-events: none !important;
-  user-select: none !important;
+	pointer-events: none !important;
+	user-select: none !important;
+}
+
+/* Global: keep form controls thin-bordered and remove heavy focus/active rings */
+input,
+textarea,
+select,
+button {
+	outline: none;
+}
+
+input,
+textarea,
+select {
+	border-width: 1px !important;
+	box-shadow: none !important;
+}
+
+/* Remove focus / active visual noise while keeping a subtle 1px border */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus,
+input:active,
+textarea:active,
+select:active,
+button:active {
+	outline: none !important;
+	box-shadow: none !important;
+	border-width: 1px !important;
+}
+
+/* Datepicker specific inputs (react-datepicker / react-day-picker wrappers) */
+input[type='date'],
+.react-datepicker__input-container input,
+.react-datepicker-wrapper input,
+.rdp input,
+.date-picker__input {
+	border-width: 1px !important;
+	box-shadow: none !important;
+}
+
+.react-datepicker__input-container input:focus,
+.react-datepicker-wrapper input:focus,
+input[type='date']:focus,
+.rdp input:focus,
+.date-picker__input:focus {
+	outline: none !important;
+	box-shadow: none !important;
+	border-width: 1px !important;
+}
+
+/* If any utility classes add ring or shadow, ensure form controls override them */
+input[class*='ring-'],
+select[class*='ring-'],
+textarea[class*='ring-'],
+input[class*='shadow-'],
+select[class*='shadow-'],
+textarea[class*='shadow-'] {
+	box-shadow: none !important;
 }

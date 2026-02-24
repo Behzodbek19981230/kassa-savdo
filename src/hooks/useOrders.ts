@@ -7,6 +7,7 @@ export interface UseOrdersParams {
 	search?: string;
 	date_from?: string;
 	date_to?: string;
+	client?: number;
 	created_by?: number;
 	is_karzinka?: boolean;
 	all_product_summa_min?: number;

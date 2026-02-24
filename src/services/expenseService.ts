@@ -32,6 +32,17 @@ export const expenseService = {
 		return res.data;
 	},
 
+	getExpensesGroupedByDate: async (params?: { filial?: number | null; date_from?: string; date_to?: string }) => {
+		const query = new URLSearchParams();
+		if (params?.filial !== undefined && params?.filial !== null) query.append('filial', params.filial.toString());
+		if (params?.date_from) query.append('date_from', params.date_from);
+		if (params?.date_to) query.append('date_to', params.date_to);
+		// Note: user requested /api/v1/expense/group-by-date
+		const res = await api.get<any>(`/v1/expense/group-by-date?${query.toString()}`);
+		// API returns an object with pagination and `results` array; return results for ease of use
+		return res.data?.results ?? res.data;
+	},
+
 	getExpense: async (id: number) => {
 		const res = await api.get<Expense>(`/v1/expense/${id}`);
 		return res.data;
