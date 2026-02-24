@@ -13,8 +13,11 @@ export function ExpensePage() {
 	const queryClient = useQueryClient();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editItem, setEditItem] = useState<any | null>(null);
-	const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
-	const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+	const today = new Date();
+	const oneMonthAgo = new Date(today);
+	oneMonthAgo.setMonth(today.getMonth() - 1);
+	const [dateFrom, setDateFrom] = useState<Date | undefined>(oneMonthAgo);
+	const [dateTo, setDateTo] = useState<Date | undefined>(today);
 
 	const {
 		data: groupedData,
@@ -147,7 +150,7 @@ export function ExpensePage() {
 								</tr>
 							</thead>
 							<tbody>
-								{groups.length === 0 || groups.every((g) => (g.items?.length || 0) === 0) ? (
+								{groups.length === 0 || groups.every((g: any) => (g.items?.length || 0) === 0) ? (
 									<tr>
 										<td colSpan={10} className='text-center py-12 text-gray-400'>
 											Ma'lumotlar yo'q
@@ -174,7 +177,7 @@ export function ExpensePage() {
 											return (
 												<Fragment key={`group-${group.date ?? gIdx}`}>
 													<tr className='bg-gray-100'>
-														<td className='p-2'>Jami</td>
+														<td className='p-2'></td>
 														<td className='px-2 py-1 font-semibold text-gray-700'>
 															{group.date
 																? format(new Date(group.date), 'yyyy-MM-dd')
@@ -186,13 +189,13 @@ export function ExpensePage() {
 														<td className='p-2' />
 														<td className='p-2' />
 														<td className='p-2' />
-														<td className='p-2 text-right font-semibold text-blue-700'>
+														<td className='p-2 text-left font-semibold text-blue-700'>
 															{sumDollar.toLocaleString()} $
 														</td>
-														<td className='p-2 text-right font-semibold text-blue-700'>
+														<td className='p-2 text-left font-semibold text-blue-700'>
 															{sumNaqt.toLocaleString()} UZS
 														</td>
-														<td className='p-2 text-right font-semibold text-blue-700'>
+														<td className='p-2 text-left font-semibold text-blue-700'>
 															{sumTerminal.toLocaleString()} UZS
 														</td>
 														<td className='p-2' />
@@ -296,13 +299,13 @@ export function ExpensePage() {
 									<tr className='bg-blue-50'>
 										<td className='p-2 font-semibold'>Jami</td>
 										<td colSpan={4} />
-										<td className='p-2 text-right font-semibold text-blue-700'>
+										<td className='p-2 text-left font-semibold text-blue-700'>
 											{overallTotals.totalSumDollar.toLocaleString()} $
 										</td>
-										<td className='p-2 text-right font-semibold text-blue-700'>
+										<td className='p-2 text-left font-semibold text-blue-700'>
 											{overallTotals.totalSumNaqt.toLocaleString()} UZS
 										</td>
-										<td className='p-2 text-right font-semibold text-blue-700'>
+										<td className='p-2 text-left font-semibold text-blue-700'>
 											{overallTotals.totalTerminal.toLocaleString()} UZS
 										</td>
 										<td colSpan={2} />

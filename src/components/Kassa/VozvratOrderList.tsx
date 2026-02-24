@@ -12,8 +12,11 @@ export function VozvratOrderList() {
 	const { user } = useAuth();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
-	const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+	const today = new Date();
+	const oneMonthAgo = new Date(today);
+	oneMonthAgo.setMonth(today.getMonth() - 1);
+	const [dateFrom, setDateFrom] = useState<Date | undefined>(oneMonthAgo);
+	const [dateTo, setDateTo] = useState<Date | undefined>(today);
 
 	// React Query bilan ma'lumotlarni olish
 	const {
@@ -159,18 +162,15 @@ export function VozvratOrderList() {
 											return (
 												<Fragment key={`group-${group.date ?? gIdx}`}>
 													<tr className='bg-gray-100'>
-														<td className='p-2'>Jami</td>
+														<td className='p-2'></td>
 														<td className='px-2 py-1 font-semibold text-gray-700'>
 															{group.date
 																? format(new Date(group.date), 'yyyy-MM-dd')
 																: 'Barcha sanalar'}
-															<span className='ml-2 text-sm text-gray-500'>
-																({items.length})
-															</span>
 														</td>
 														<td className='p-2' />
 														<td className='p-2' />
-														<td className='p-2 text-right font-semibold text-blue-700'>
+														<td className='p-2 text-left font-semibold text-blue-700'>
 															{sumTotal.toFixed(2)} $
 														</td>
 														<td className='p-2' />
@@ -269,7 +269,7 @@ export function VozvratOrderList() {
 									<tr className='bg-blue-50'>
 										<td className='p-2 font-semibold'>Jami</td>
 										<td colSpan={3} />
-										<td className='p-2 text-right font-semibold text-blue-700'>
+										<td className='p-2 text-left font-semibold text-blue-700'>
 											{overallTotals.totalSumma.toFixed(2)} $
 										</td>
 										<td colSpan={2} />
