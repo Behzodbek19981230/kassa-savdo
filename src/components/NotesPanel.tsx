@@ -4,13 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/Input';
 import { Textarea } from './ui/textarea';
 import { DatePicker } from './ui/DatePicker';
-import {
-	Dialog,
-	DialogContent,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from './ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { useCreateNote, useDeleteNote, useNotesAll, useUpdateNote } from '../hooks/api/useNotes';
 import { getNotesWsUrl, type NoteItem } from '../services/note.service';
 
@@ -230,7 +224,7 @@ export function NotesPanel({ embedded = false }: NotesPanelProps) {
 	const openView = async (note: NoteItem) => {
 		setViewingNote(note);
 		setIsViewDialogOpen(true);
-		
+
 		// Agar eslatma o'qilmagan bo'lsa, uni o'qilgan deb belgilash
 		if (note.is_read === false) {
 			try {
@@ -251,6 +245,19 @@ export function NotesPanel({ embedded = false }: NotesPanelProps) {
 			}
 		}
 	};
+
+	// Listen for external requests to open a specific note (from header dropdown)
+	useEffect(() => {
+		const handler = (e: Event) => {
+			const ce = e as CustomEvent;
+			const id = ce?.detail?.id as number | undefined;
+			if (!id) return;
+			const note = notes.find((n) => n.id === id) || data?.find((n) => n.id === id) || null;
+			if (note) void openView(note);
+		};
+		window.addEventListener('open-note', handler as EventListener);
+		return () => window.removeEventListener('open-note', handler as EventListener);
+	}, [notes, data, openView]);
 
 	return (
 		<div className={embedded ? 'flex flex-col h-full' : 'rounded-xl border border-gray-200 bg-white shadow-sm'}>
@@ -442,19 +449,6 @@ export function NotesPanel({ embedded = false }: NotesPanelProps) {
 							>
 								<Check className='h-3.5 w-3.5 mr-1.5' />
 								Bajarildi
-							</Button>
-						)}
-						{viewingNote && (
-							<Button
-								size='sm'
-								variant='outline'
-								onClick={() => {
-									setIsViewDialogOpen(false);
-									openEdit(viewingNote);
-								}}
-							>
-								<Pencil className='h-3.5 w-3.5 mr-1.5' />
-								Tahrirlash
 							</Button>
 						)}
 					</DialogFooter>

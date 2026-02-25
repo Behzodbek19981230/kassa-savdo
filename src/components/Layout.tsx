@@ -9,12 +9,17 @@ import {
     Undo2,
     ShoppingCart,
     StickyNote,
+    Bell,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNotesAll, useUpdateNote } from '../hooks/api/useNotes';
 import { useAuth } from '../contexts/AuthContext';
 import { USD_RATE, ROUTES } from '../constants';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from './ui/sheet';
 import { NotesPanel } from './NotesPanel';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Button } from './ui/button';
+import type { NoteItem } from '../services/note.service';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -27,6 +32,123 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
     const location = useLocation();
     const { kassir, user, logout } = useAuth();
     const [notesOpen, setNotesOpen] = useState(false);
+    const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+    const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
+    const { data: notesData } = useNotesAll();
+    const updateNote = useUpdateNote();
+    const unreadNotesCount = notesData ? notesData.filter((n) => n.is_read === false).length : 0;
+    const sortedNotes = notesData
+        ? [...notesData].sort((a, b) => {
+            const da = new Date(a.date || a.created_at || 0).getTime();
+            const db = new Date(b.date || b.created_at || 0).getTime();
+            return db - da;
+        })
+        : [];
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const ddRef = useRef<HTMLDivElement | null>(null);
+
+    const prevUnreadRef = useRef<number>(unreadNotesCount);
+    const [pulseActive, setPulseActive] = useState(false);
+
+    useEffect(() => {
+        // play short bell when new unread notifications arrive
+        if (typeof prevUnreadRef.current === 'number' && unreadNotesCount > prevUnreadRef.current) {
+            try {
+                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.type = 'sine';
+                o.frequency.value = 1000;
+                g.gain.value = 0.0001;
+                o.connect(g);
+                g.connect(ctx.destination);
+                const now = ctx.currentTime;
+                g.gain.linearRampToValueAtTime(0.15, now + 0.01);
+                o.start(now);
+                o.stop(now + 0.18);
+                setTimeout(() => {
+                    try {
+                        ctx.close();
+                    } catch { }
+                }, 400);
+
+                // visual pulse
+                setPulseActive(true);
+                setTimeout(() => setPulseActive(false), 1400);
+            } catch (err) {
+                // ignore audio errors
+            }
+        }
+        prevUnreadRef.current = unreadNotesCount;
+    }, [unreadNotesCount]);
+
+    useEffect(() => {
+        const onDoc = (e: MouseEvent) => {
+            if (!ddRef.current) return;
+            if (!ddRef.current.contains(e.target as Node)) setDropdownOpen(false);
+        };
+        document.addEventListener('click', onDoc);
+        return () => document.removeEventListener('click', onDoc);
+    }, []);
+
+    const formatNoteDate = (raw?: string) => {
+        if (!raw) return '—';
+        const d = new Date(raw);
+        if (Number.isNaN(d.getTime())) return '—';
+        const day = String(d.getDate()).padStart(2, '0');
+        const mon = String(d.getMonth() + 1).padStart(2, '0');
+        const h = String(d.getHours()).padStart(2, '0');
+        const m = String(d.getMinutes()).padStart(2, '0');
+        return `${day}.${mon} ${h}:${m}`;
+    };
+
+    const handleNoteClick = (note: NoteItem) => {
+        setSelectedNote(note);
+        setIsNoteDialogOpen(true);
+        setDropdownOpen(false);
+
+        // Agar eslatma o'qilmagan bo'lsa, uni o'qilgan deb belgilash
+        if (note.is_read === false) {
+            updateNote.mutateAsync({
+                id: note.id,
+                payload: {
+                    sorting: note.sorting ?? 0,
+                    date: note.date || new Date().toISOString(),
+                    title: note.title,
+                    text: note.text || '',
+                    status: note.status || 'new',
+                    is_read: true,
+                    is_delete: note.is_delete ?? false,
+                },
+            }).catch((error: unknown) => {
+                console.error('Failed to mark note as read:', error);
+            });
+        }
+    };
+
+    const handleDoneNote = async () => {
+        if (!selectedNote) return;
+        try {
+            await updateNote.mutateAsync({
+                id: selectedNote.id,
+                payload: {
+                    sorting: selectedNote.sorting ?? 0,
+                    date: selectedNote.date || new Date().toISOString(),
+                    title: selectedNote.title,
+                    text: selectedNote.text || '',
+                    status: 'done',
+                    is_read: selectedNote.is_read ?? true,
+                    is_delete: selectedNote.is_delete ?? false,
+                },
+            });
+            setIsNoteDialogOpen(false);
+            setSelectedNote(null);
+        } catch (error) {
+            console.error('Failed to mark note as done:', error);
+        }
+    };
+
+    const unreadNotes = sortedNotes.filter((n) => n.is_read === false);
 
     // Back button faqat order pagelarda ko'rsatiladi
     const shouldShowBack = showBackButton && location.pathname.startsWith('/order');
@@ -168,7 +290,85 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
                             </div>
                         )}
 
-                        {/* Logout (right) */}
+                        {/* Notifications dropdown */}
+                        <div className='relative' ref={ddRef}>
+                            <div
+                                role='button'
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') setDropdownOpen((s) => !s);
+                                }}
+                                onClick={() => setDropdownOpen((s) => !s)}
+                                title='Bildirishnomalar'
+                                className='flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm shadow-sm cursor-pointer relative'
+                            >
+                                <Bell className='h-[18px] w-[18px] text-white/90' />
+                                {pulseActive && (
+                                    <span className='pointer-events-none absolute -inset-1 rounded-xl ring-2 ring-amber-300/70 opacity-90 animate-ping' />
+                                )}
+                                {unreadNotesCount > 0 && (
+                                    <span className='absolute right-1.5 top-1.5 flex h-[18px] min-w-[18px] px-1 items-center justify-center rounded-full bg-amber-500 text-[10px] font-extrabold text-white border-2 border-white/10'>
+                                        {unreadNotesCount > 99 ? '99+' : unreadNotesCount}
+                                    </span>
+                                )}
+                            </div>
+
+                            {dropdownOpen && (
+                                <div className='absolute right-0 mt-2 w-[340px] p-1.5 z-50 rounded-lg border border-white/20 bg-slate-900/85 backdrop-blur-sm text-white shadow-lg'>
+                                    <p className='px-2 py-1.5 text-xs font-semibold text-white/80'>Bildirishnomalar</p>
+                                    <div className='max-h-[360px] overflow-y-auto'>
+                                        {unreadNotes.length === 0 ? (
+                                            <p className='px-2 py-4 text-sm text-white/70 text-center'>
+                                                O'qilmagan bildirishnoma yo'q
+                                            </p>
+                                        ) : (
+                                            <div className='space-y-1 pb-1'>
+                                                {unreadNotes.map((note) => (
+                                                    <div
+                                                        key={note.id}
+                                                        className='cursor-pointer rounded-xl border border-white/10 bg-slate-800/70 p-0 hover:bg-slate-800/80 transition-colors'
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            handleNoteClick(note);
+                                                        }}
+                                                    >
+                                                        <div className='w-full p-2.5'>
+                                                            <div className='w-full flex items-start justify-between gap-2'>
+                                                                <p className='text-sm font-semibold leading-5 line-clamp-1 text-white'>
+                                                                    {note.title || 'Sarlavha'}
+                                                                </p>
+                                                                <span className='shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-500/20 text-blue-100'>
+                                                                    Yangi
+                                                                </span>
+                                                            </div>
+                                                            <p className='mt-1 text-xs text-white/80 line-clamp-2'>
+                                                                {note.text || "Matn yo'q"}
+                                                            </p>
+                                                            <div className='mt-2 flex items-center justify-between'>
+                                                                <p className='text-[11px] text-white/70'>
+                                                                    {formatNoteDate(
+                                                                        note.date || note.created_at,
+                                                                    )}
+                                                                </p>
+                                                                <span className='text-[11px] text-white/70'>
+                                                                    {note.status === 'done'
+                                                                        ? 'Bajarilgan'
+                                                                        : note.status === 'expired'
+                                                                            ? "Muddati o'tgan"
+                                                                            : 'Yangi'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <button
                             onClick={logout}
                             className='hover:bg-white/20 p-2 rounded-xl transition-all duration-200'
@@ -204,6 +404,47 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
                     </div>
                 </SheetContent>
             </Sheet>
+
+            {/* Eslatma Dialog */}
+            <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
+                <DialogContent className='sm:max-w-[560px]'>
+                    <DialogHeader>
+                        <DialogTitle>{selectedNote?.title || 'Eslatma'}</DialogTitle>
+                        <DialogDescription>
+                            {selectedNote ? formatNoteDate(selectedNote.date || selectedNote.created_at) : ''}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className='space-y-3'>
+                        <div className='flex items-center gap-2 text-xs text-gray-500'>
+                            <span>
+                                Muallif: {selectedNote?.created_by_detail?.full_name || selectedNote?.author_name || '—'}
+                            </span>
+                            <span>•</span>
+                            <span>
+                                Status:{' '}
+                                {selectedNote?.status === 'done'
+                                    ? 'Bajarilgan'
+                                    : selectedNote?.status === 'expired'
+                                        ? "Muddati o'tgan"
+                                        : 'Yangi'}
+                            </span>
+                        </div>
+                        <div className='rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm leading-6 whitespace-pre-wrap'>
+                            {selectedNote?.text || "Matn yo'q"}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant='outline' onClick={() => setIsNoteDialogOpen(false)}>
+                            Yopish
+                        </Button>
+                        {selectedNote && selectedNote.status !== 'done' && (
+                            <Button onClick={handleDoneNote} disabled={updateNote.isPending}>
+                                {updateNote.isPending ? 'Saqlanmoqda...' : 'Bajarildi'}
+                            </Button>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
