@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Loader2, Banknote, CreditCard, AlertTriangle, Pencil } from 'lucide-react';
+import { Loader2, Banknote, CreditCard, AlertTriangle, Pencil, ChevronLeft, Printer, User } from 'lucide-react';
 import { orderService } from '../../services/orderService';
 import { OrderResponse } from '../../types';
 import { showError, showSuccess } from '../../lib/toast';
 import { USD_RATE } from '../../constants';
 import { Input } from '../ui/Input';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { renderReceiptHtml } from './Receipt';
+import { Dialog, DialogContent, DialogFooter } from '../ui/dialog';
 
 interface ProductByModel {
     model_id: number;
@@ -22,7 +26,85 @@ export function OrderShowPage() {
     const { id } = useParams<{ id: string }>();
     const [data, setData] = useState<OrderProductsByModelResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const handleBack = () => window.history.back();
+    const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+    const [receiptHtmlPreview, setReceiptHtmlPreview] = useState<string>('');
+    const [printRole, setPrintRole] = useState<'hodim' | 'mijoz'>('hodim');
 
+    const buildReceiptHtml = () => {
+        try {
+            const items = products.flatMap((g) =>
+                g.product.map((p: any) => {
+                    const usd = Number(p.price_dollar || 0);
+                    const priceUz = usd * (Number(order_history.exchange_rate) || 1);
+                    const count = Number(p.count || 0);
+                    return {
+                        id: p.id,
+                        modelName: g.model,
+                        name: p.branch_category_detail?.name || p.type_detail?.name || '-',
+                        joy: p.sklad_detail?.name || 'Ombor',
+                        quantity: count,
+                        unit: p.type_detail?.name || p.unit || '-',
+                        price: priceUz,
+                        totalPrice: priceUz * count,
+                        stock: p.stock || 0,
+                    } as any;
+                }),
+            );
+
+            const totalAmount = Number(order_history.all_product_summa || 0);
+            const usdRate = Number(order_history.exchange_rate) || 1;
+            const totalPaidUZS =
+                Number(order_history.summa_naqt || 0) +
+                Number(order_history.summa_dollar || 0) * usdRate +
+                Number(order_history.summa_transfer || 0) +
+                Number(order_history.summa_terminal || 0);
+
+            return renderReceiptHtml({
+                items,
+                totalAmount,
+                usdAmount: (totalAmount / usdRate).toFixed(2),
+                usdRate,
+                customer: {
+                    name: order_history.client_detail?.full_name || '',
+                } as any,
+                kassirName: order_history.created_by_detail?.full_name || '',
+                orderNumber: String(order_history.id),
+                date: order_history.created_time ? new Date(order_history.created_time) : new Date(),
+                paidAmount: totalPaidUZS,
+                remainingDebt: Number(order_history.client_detail?.total_debt || 0) * usdRate,
+                filialLogo: order_history.order_filial_detail?.logo || null,
+                hodimLayout: printRole === 'hodim',
+            });
+        } catch (e) {
+            console.error('Failed to build receipt html', e);
+            return '';
+        }
+    };
+
+    const openPrintPreview = (role: 'hodim' | 'mijoz') => {
+        setPrintRole(role);
+        const html = buildReceiptHtml();
+        setReceiptHtmlPreview(html);
+        setIsPrintDialogOpen(true);
+    };
+
+    const printPreview = () => {
+        if (!receiptHtmlPreview) return;
+        const w = window.open('', '_blank', 'width=900,height=700');
+        if (!w) return;
+        w.document.write(receiptHtmlPreview);
+        w.document.close();
+        w.focus();
+        setTimeout(() => {
+            try {
+                w.print();
+                w.close();
+            } catch (e) {
+                console.error('Print failed', e);
+            }
+        }, 300);
+    };
     useEffect(() => {
         const loadData = async () => {
             if (!id) return;
@@ -136,7 +218,7 @@ export function OrderShowPage() {
                         disabled={isSaving}
                         className='h-7 w-20 text-right text-sm px-1.5 '
                     />
-                    {isSaving && <Loader2 className='h-3.5 w-3.5 animate-spin text-muted-foreground' />}
+                    {isSaving && <Loader2 className='h-3.5 w-3.5 animate-spin text-gray-500' />}
                 </div>
             );
         }
@@ -147,18 +229,19 @@ export function OrderShowPage() {
                 onClick={() => setIsEditing(true)}
                 title='Bosib tahrirlang'
             >
-                <span
-                    className={`text-base font-bold ${isDifferent ? 'text-red-600' : 'text-gray-800'}`}
+                <Badge
+                    variant={isDifferent ? 'destructive' : 'default'}
+                    className='text-base font-bold'
                 >
-                    {givenCount}
-                </span>
+                    <span className='text-sm'>{givenCount}</span>
+                </Badge>
                 {isDifferent && (
                     <AlertTriangle
                         className='h-4.5 w-4.5 text-red-500 flex-shrink-0'
                         aria-label={`Soni: ${count}, Berilgan: ${givenCount}`}
                     />
                 )}
-                <span className='inline-flex items-center justify-center h-6 w-6 rounded bg-muted/80 text-muted-foreground opacity-0 group-hover/cell:opacity-100 transition-opacity'>
+                <span className='inline-flex items-center justify-center h-6 w-6 rounded bg-gray-100 text-gray-600 opacity-0 group-hover/cell:opacity-100 transition-opacity'>
                     <Pencil className='h-3.5 w-3.5' />
                 </span>
             </div>
@@ -182,68 +265,103 @@ export function OrderShowPage() {
         <div className='h-full overflow-y-auto p-4 sm:p-6'>
             {/* Order History Ma'lumotlari */}
             <div className='bg-white rounded-lg shadow-md p-3 sm:p-4 mb-4'>
-                <div className='flex items-center justify-between mb-3 pb-2 border-b border-gray-200'>
-                    <h2 className='text-lg sm:text-xl font-bold text-gray-800'>Order #{order_history.id}</h2>
-                    <div
-                        className={`px-2 py-0.5 rounded-full text-xs font-semibold ${order_history.order_status ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                            }`}
-                    >
-                        {order_history.order_status ? 'Tugallangan' : 'Kutilmoqda'}
+                <div className='flex flex-col sm:flex-row items-center justify-between gap-3 mb-3 pb-2 border-b border-gray-200'>
+                    {/* Left: client name + phone */}
+                    <div className='flex items-center gap-3 min-w-0'>
+                        <div className='min-w-0'>
+                            <div className='text-sm font-semibold text-gray-800 truncate'>
+                                {order_history.client_detail?.full_name || "Noma'lum"}
+                            </div>
+                            <div className='text-xs text-gray-500 truncate'>
+                                {order_history.client_detail?.phone_number || ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Center: timestamp (hidden on very small screens) */}
+                    <div className='hidden sm:block text-xs text-gray-500'>
+                        <div className='text-xs text-gray-500'>Qo'shilgan vaqti:</div>
+
+                        {order_history.created_time
+                            ? new Date(order_history.created_time).toLocaleTimeString('ru-RU', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                            })
+                            : '—'}
+                    </div>
+
+                    {/* Right: compact actions */}
+                    <div className='flex items-center gap-2'>
+                        <Button
+                            variant='ghost'
+                            size='sm'
+                            className='px-2 py-1 flex items-center gap-2'
+                            onClick={handleBack}
+                        >
+                            <ChevronLeft className='h-4 w-4 text-rose-600' />
+                            <span className='text-sm text-rose-700'>Orqaga</span>
+                        </Button>
+
+                        <Button
+                            variant='outline'
+                            size='sm'
+                            className='px-2 py-1 flex items-center gap-2'
+                            onClick={() => openPrintPreview('hodim')}
+                        >
+                            <Printer className='h-4 w-4 text-indigo-600' />
+                            <span className='text-sm text-indigo-700'>Hodim uchun</span>
+                        </Button>
+
+                        <Button
+                            variant='outline'
+                            size='sm'
+                            className='px-2 py-1 flex items-center gap-2'
+                            onClick={() => openPrintPreview('mijoz')}
+                        >
+                            <User className='h-4 w-4 text-emerald-600' />
+                            <span className='text-sm text-emerald-700'>Mijoz uchun</span>
+                        </Button>
                     </div>
                 </div>
 
-                <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3'>
-                    {/* Mijoz ma'lumotlari */}
-                    <div className='bg-gradient-to-br from-blue-50 to-indigo-50 p-2 rounded border border-blue-200'>
-                        <p className='text-[10px] font-semibold text-blue-600 mb-1 uppercase tracking-wide'>Mijoz</p>
-                        <p className='font-bold text-gray-800 text-sm mb-0.5'>
-                            {order_history.client_detail?.full_name || "Noma'lum"}
-                        </p>
-                        <p className='text-xs text-gray-600'>{order_history.client_detail?.phone_number || ''}</p>
-                        {order_history.client_detail?.total_debt &&
-                            Number(order_history.client_detail.total_debt) > 0 && (
-                                <p className='text-[10px] text-red-600 font-semibold mt-0.5'>
-                                    Qarz: {Number(order_history.client_detail.total_debt).toLocaleString()}
-                                </p>
+                {/* Print Preview Dialog for Hodim */}
+                <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
+                    <DialogContent className='max-w-5xl w-[95vw] sm:w-[90vw] lg:w-[80vw]'>
+                        <div className='overflow-auto max-h-[70vh] my-2'>
+                            {receiptHtmlPreview ? (
+                                <div dangerouslySetInnerHTML={{ __html: receiptHtmlPreview }} />
+                            ) : (
+                                <div className='p-4 text-sm text-muted-foreground'>Preview mavjud emas</div>
                             )}
-                    </div>
+                        </div>
+                        <DialogFooter>
+                            <div className='flex items-center gap-2 ml-auto'>
+                                <Button variant='secondary' onClick={printPreview}>
+                                    <Printer className='h-4 w-4 mr-2' />
+                                    Chop etish
+                                </Button>
+                                <Button variant='ghost' onClick={() => setIsPrintDialogOpen(false)}>
+                                    Yopish
+                                </Button>
+                            </div>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
-                    {/* Sana va vaqt */}
-                    <div className='bg-gradient-to-br from-purple-50 to-pink-50 p-2 rounded border border-purple-200'>
-                        <p className='text-[10px] font-semibold text-purple-600 mb-1 uppercase tracking-wide'>
-                            Sana va vaqt
-                        </p>
-                        {order_history.created_time ? (
-                            <>
-                                <p className='font-bold text-gray-800 text-sm'>
-                                    {new Date(order_history.created_time)
-                                        .toLocaleDateString('ru-RU', {
-                                            year: 'numeric',
-                                            month: '2-digit',
-                                            day: '2-digit',
-                                        })
-                                        .replace(/\//g, '.')}
-                                </p>
-                                <p className='text-xs text-gray-600 mt-0.5'>
-                                    {new Date(order_history.created_time).toLocaleTimeString('ru-RU', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        second: '2-digit',
-                                    })}
-                                </p>
-                            </>
-                        ) : (
-                            <p className='font-bold text-gray-800 text-sm'>Noma'lum</p>
-                        )}
-                    </div>
-
+                <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3'>
                     {/* Kassir */}
                     <div className='bg-gradient-to-br from-green-50 to-emerald-50 p-2 rounded border border-green-200'>
                         <p className='text-[10px] font-semibold text-green-600 mb-1 uppercase tracking-wide'>Kassir</p>
                         <p className='font-bold text-gray-800 text-sm mb-0.5'>
                             {order_history.created_by_detail?.full_name || "Noma'lum"}
                         </p>
-                        <p className='text-xs text-gray-600'>{order_history.created_by_detail?.phone_number || ''}</p>
+                        <p className='text-xs text-gray-600'>
+                            {order_history.created_by_detail?.phone_number || ''}
+                        </p>
                     </div>
 
                     {/* Filial */}
@@ -266,7 +384,9 @@ export function OrderShowPage() {
 
                     {/* Status */}
                     <div className='bg-gradient-to-br from-gray-50 to-slate-50 p-2 rounded border border-gray-200'>
-                        <p className='text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wide'>Status</p>
+                        <p className='text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wide'>
+                            Status
+                        </p>
                         <div className='space-y-0.5'>
                             <div className='flex items-center gap-1.5'>
                                 <span
@@ -321,26 +441,72 @@ export function OrderShowPage() {
                     </div>
 
                     {/* To'lanishi kerak */}
-                    <div className='bg-gradient-to-br from-emerald-50 to-green-50 p-2 rounded border-2 border-emerald-300'>
-                        <p className='text-[10px] font-semibold text-emerald-600 mb-1 uppercase tracking-wide'>
-                            To'lanishi kerak
+                    {/* To'lanishi kerak va Jami to'landi yonma-yon */}
+                    {(Number(order_history.all_product_summa || 0) - Number(order_history.discount_amount || 0) > 0 ||
+                        totalPaidUZS > 0) && (
+                            <div className='bg-gradient-to-br from-emerald-50 to-green-50 p-2 rounded border-2 border-emerald-300'>
+                                <p className='text-[10px] font-semibold text-emerald-600 mb-1 uppercase tracking-wide'>
+                                    To'lanishi kerak
+                                </p>
+                                <p className='font-bold text-emerald-700 text-base mb-0.5'>
+                                    {(
+                                        (Number(order_history.all_product_summa || 0) -
+                                            Number(order_history.discount_amount || 0)) /
+                                        usdRate
+                                    ).toFixed(2)}{' '}
+                                    USD
+                                </p>
+                                <p className='text-xs font-semibold text-emerald-600'>
+                                    {(
+                                        Number(order_history.all_product_summa || 0) -
+                                        Number(order_history.discount_amount || 0)
+                                    ).toLocaleString()}{' '}
+                                    UZS
+                                </p>
+                            </div>
+                        )}
+
+                    {/* Jami to'landi */}
+                    <div className='bg-gradient-to-br from-indigo-50 to-blue-50 p-2 rounded border-2 border-indigo-300'>
+                        <p className='text-[10px] font-semibold text-indigo-600 mb-1 uppercase tracking-wide'>
+                            Jami to'landi
                         </p>
-                        <p className='font-bold text-emerald-700 text-base mb-0.5'>
-                            {(
-                                (Number(order_history.all_product_summa || 0) -
-                                    Number(order_history.discount_amount || 0)) /
-                                usdRate
-                            ).toFixed(2)}{' '}
-                            USD
+                        <div className='text-right'>
+                            <div className='font-bold text-lg sm:text-xl text-indigo-700'>
+                                {totalPaidUSD ? totalPaidUSD.toFixed(2) : '0.00'} USD
+                            </div>
+                            <div className='text-sm sm:text-base text-gray-500'>
+                                {totalPaidUZS.toLocaleString()} UZS
+                            </div>
+                        </div>
+                    </div>
+                    {/* Qarz ma'lumotlari */}
+                    <div className='bg-gradient-to-br from-red-50 to-pink-50 p-2 rounded border border-red-200'>
+                        <p className='text-[10px] font-semibold text-red-600 mb-2 uppercase tracking-wide'>
+                            Qarz ma'lumotlari
                         </p>
-                        <p className='text-xs font-semibold text-emerald-600'>
-                            {(
-                                Number(order_history.all_product_summa || 0) -
-                                Number(order_history.discount_amount || 0)
-                            ).toLocaleString()}{' '}
-                            UZS
+                        <p className='font-bold text-red-700 text-base'>
+                            {Number(order_history.client_detail?.total_debt || 0).toFixed(2)} USD
+                        </p>
+                        <p className='text-xs text-red-600 mt-0.5'>
+                            {(Number(order_history.client_detail?.total_debt || 0) * usdRate).toLocaleString()} UZS
                         </p>
                     </div>
+
+                    {/* Foyda */}
+                    {Number(order_history.all_profit_dollar || 0) > 0 && (
+                        <div className='bg-gradient-to-br from-lime-50 to-green-50 p-2 rounded border border-lime-200'>
+                            <p className='text-[10px] font-semibold text-lime-600 mb-1 uppercase tracking-wide'>
+                                Foyda
+                            </p>
+                            <p className='font-bold text-lime-700 text-base'>
+                                {Number(order_history.all_profit_dollar).toFixed(2)} USD
+                            </p>
+                            <p className='text-xs text-lime-600 mt-0.5'>
+                                {(Number(order_history.all_profit_dollar) * usdRate).toLocaleString()} UZS
+                            </p>
+                        </div>
+                    )}
 
                     {/* To'lov usullari */}
                     <div className='md:col-span-2 lg:col-span-3 xl:col-span-5'>
@@ -433,19 +599,6 @@ export function OrderShowPage() {
                                 </div>
                             )}
                         </div>
-                        <div className='mt-2 pt-2 border-t border-gray-200'>
-                            <div className='flex items-center justify-between gap-3'>
-                                <span className='text-sm sm:text-base font-semibold text-gray-700'>Jami to'landi:</span>
-                                <div className='text-right'>
-                                    <div className='font-bold text-lg sm:text-xl text-indigo-700'>
-                                        {totalPaidUSD ? totalPaidUSD.toFixed(2) : '0.00'} USD
-                                    </div>
-                                    <div className='text-sm sm:text-base text-gray-500'>
-                                        {totalPaidUZS.toLocaleString()} UZS
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Qaytim */}
@@ -475,56 +628,15 @@ export function OrderShowPage() {
                         </div>
                     )}
 
-                    {/* Qarz ma'lumotlari */}
-                    {(Number(order_history.total_debt_client || 0) > 0 ||
-                        Number(order_history.total_debt_today_client || 0) > 0) && (
-                            <div className='bg-gradient-to-br from-red-50 to-pink-50 p-2 rounded border border-red-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
-                                <p className='text-[10px] font-semibold text-red-600 mb-2 uppercase tracking-wide'>
-                                    Qarz ma'lumotlari
-                                </p>
-                                <div className='grid grid-cols-2 gap-2'>
-                                    {Number(order_history.total_debt_client || 0) > 0 && (
-                                        <div className='bg-white p-2 rounded border border-red-100'>
-                                            <p className='text-[10px] text-gray-500 mb-0.5'>Umumiy qarz</p>
-                                            <p className='font-bold text-red-700 text-xs'>
-                                                {Number(order_history.total_debt_client).toLocaleString()} UZS
-                                            </p>
-                                        </div>
-                                    )}
-                                    {Number(order_history.total_debt_today_client || 0) > 0 && (
-                                        <div className='bg-white p-2 rounded border border-red-100'>
-                                            <p className='text-[10px] text-gray-500 mb-0.5'>Bugungi qarz</p>
-                                            <p className='font-bold text-red-700 text-xs'>
-                                                {Number(order_history.total_debt_today_client).toLocaleString()} UZS
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                    {/* Foyda */}
-                    {Number(order_history.all_profit_dollar || 0) > 0 && (
-                        <div className='bg-gradient-to-br from-lime-50 to-green-50 p-2 rounded border border-lime-200'>
-                            <p className='text-[10px] font-semibold text-lime-600 mb-1 uppercase tracking-wide'>
-                                Foyda
-                            </p>
-                            <p className='font-bold text-lime-700 text-base'>
-                                {Number(order_history.all_profit_dollar).toFixed(2)} USD
-                            </p>
-                            <p className='text-xs text-lime-600 mt-0.5'>
-                                {(Number(order_history.all_profit_dollar) * usdRate).toLocaleString()} UZS
-                            </p>
-                        </div>
-                    )}
-
                     {/* Izoh */}
                     {order_history.note && (
                         <div className='bg-gradient-to-br from-slate-50 to-gray-50 p-2 rounded border border-slate-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
                             <p className='text-[10px] font-semibold text-slate-600 mb-1 uppercase tracking-wide'>
                                 Izoh
                             </p>
-                            <p className='text-xs text-gray-800 whitespace-pre-wrap'>{order_history.note}</p>
+                            <p className='text-xs text-gray-800 whitespace-pre-wrap'>
+                                {order_history.note}
+                            </p>
                         </div>
                     )}
 
@@ -534,11 +646,14 @@ export function OrderShowPage() {
                             <p className='text-[10px] font-semibold text-teal-600 mb-1 uppercase tracking-wide'>
                                 Yetkazib beruvchi
                             </p>
-                            <p className='text-xs text-gray-800 whitespace-pre-wrap'>{order_history.driver_info}</p>
+                            <p className='text-xs text-gray-800 whitespace-pre-wrap'>
+                                {order_history.driver_info}
+                            </p>
                         </div>
                     )}
                 </div>
             </div>
+
 
             {/* Productlar - Model bo'yicha guruhlangan */}
             <div className='bg-white rounded-lg shadow-md overflow-hidden'>
@@ -582,7 +697,7 @@ export function OrderShowPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {products.map((group, groupIndex) => {
+                            {products.map((group) => {
                                 let productIndex = 0;
                                 const groupTotal = {
                                     count: 0,

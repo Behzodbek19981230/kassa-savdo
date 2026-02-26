@@ -1,8 +1,7 @@
-import { Plus, Eye, Loader2, ArrowRight, CheckCircle2, Edit, Trash2, X, Search, FilterX } from 'lucide-react';
+import { Eye, Loader2, ArrowRight, Search, FilterX } from 'lucide-react';
 import { useState, useMemo, useCallback, Fragment } from 'react';
 import { DateRangePicker } from '../ui/date-picker';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useOrdersMySelf } from '../../hooks/useOrders';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import type { OrderResponse } from '../../services/orderService';
@@ -10,21 +9,14 @@ import { orderService } from '../../services/orderService';
 import { userService } from '../../services/userService';
 import { clientService } from '../../services/clientService';
 import type { Client } from '../../services/clientService';
-import { Input } from '../ui/Input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/Select';
 import { Autocomplete, type AutocompleteOption } from '../ui/Autocomplete';
-import { showError, showSuccess } from '../../lib/toast';
 import clsx from 'clsx';
-
-interface DashboardProps {
-    onNewSale?: () => void;
-}
 
 interface DraftFilters {
     search: string;
     clientId: number | null;
     employee: number | null;
-    status: 'all' | 'completed' | 'pending';
     dateFrom: Date | undefined;
     dateTo: Date | undefined;
 }
@@ -33,7 +25,6 @@ const defaultDraft: DraftFilters = {
     search: '',
     clientId: null,
     employee: null,
-    status: 'all',
     // Default: one month ago to today
     dateFrom: (() => {
         const d = new Date();
@@ -52,18 +43,14 @@ function tolovSummasi(order: OrderResponse): number {
     return n + k + t + tr + d;
 }
 
-export function Dashboard({ onNewSale }: DashboardProps) {
+export function DebtorDashboard() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
 
     // Draft filters (user edits these, not applied until "Filter" button click)
     const [draft, setDraft] = useState<DraftFilters>({ ...defaultDraft });
     // Applied filters (used in API query)
     const [applied, setApplied] = useState<DraftFilters>({ ...defaultDraft });
 
-    const [deletingOrderId, setDeletingOrderId] = useState<number | null>(null);
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [orderToDelete, setOrderToDelete] = useState<any | null>(null);
 
     // Client search for Autocomplete
     const [clients, setClients] = useState<Client[]>([]);
@@ -103,11 +90,14 @@ export function Dashboard({ onNewSale }: DashboardProps) {
             search: applied.search.trim() || undefined,
             client: applied.clientId || undefined,
             created_by: applied.employee || undefined,
-            is_karzinka: applied.status === 'pending' ? true : applied.status === 'completed' ? false : undefined,
         };
     }, [applied]);
 
-    const { data: ordersData, isLoading, error, refetch } = useOrdersMySelf(orderParams);
+    const { data: ordersData, isLoading, error } = useQuery({
+        queryKey: ['debtor-products', orderParams],
+        queryFn: () => orderService.getDebtorProducts(orderParams),
+        staleTime: 30000,
+    });
 
     const { data: usersData } = useQuery({
         queryKey: ['users-list'],
@@ -139,7 +129,6 @@ export function Dashboard({ onNewSale }: DashboardProps) {
         draft.search !== '' ||
         draft.clientId !== null ||
         draft.employee !== null ||
-        draft.status !== 'all' ||
         !datesEqual(draft.dateFrom, defaultDraft.dateFrom) ||
         !datesEqual(draft.dateTo, defaultDraft.dateTo);
 
@@ -173,53 +162,12 @@ export function Dashboard({ onNewSale }: DashboardProps) {
         return { totalCount, totalZakaz, totalTolangan };
     }, [groups]);
 
-    // Order ni tahrirlash
-    const handleEdit = (order: any) => {
-        navigate(`/order/update/${order.id}`);
-    };
-
-    // Order ni o'chirish modalini ochish
-    const handleDeleteClick = (order: any) => {
-        setOrderToDelete(order);
-        setDeleteModalOpen(true);
-    };
-
-    // Order ni o'chirish
-    const handleDelete = async () => {
-        if (!orderToDelete) return;
-
-        setDeletingOrderId(orderToDelete.id);
-        try {
-            await orderService.deleteOrder(orderToDelete.id);
-            showSuccess("Savdo muvaffaqiyatli o'chirildi");
-            // Query ni invalidate qilish va refetch - ro'yxatni yangilash
-            queryClient.invalidateQueries({ queryKey: ['orders-my-self'] });
-            await refetch();
-            setDeleteModalOpen(false);
-            setOrderToDelete(null);
-        } catch (error: any) {
-            console.error('Failed to delete order:', error);
-            const errorMessage =
-                error?.response?.data?.detail || error?.message || "Savdoni o'chirishda xatolik yuz berdi";
-            showError(errorMessage);
-        } finally {
-            setDeletingOrderId(null);
-        }
-    };
 
     return (
         <div className='p-3 sm:p-6 min-h-full'>
             <div className='bg-white rounded-2xl shadow-xl p-4 sm:p-6 min-h-[400px] border border-gray-100 overflow-hidden'>
                 <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
-                    <h2 className='text-2xl sm:text-3xl font-bold text-gray-800'>Savdo ro'yxati</h2>
-                    <button
-                        onClick={onNewSale}
-                        className='px-4 sm:px-5 py-2.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] font-semibold'
-                    >
-                        <Plus size={18} className='mr-2' />
-                        <span className='hidden sm:inline'>Yangi savdo</span>
-                        <span className='sm:hidden'>Yangi</span>
-                    </button>
+                    <h2 className='text-2xl sm:text-3xl font-bold text-gray-800'>Mijozdan qarzdorlik</h2>
                 </div>
 
                 {/* Filters Bar */}
@@ -253,22 +201,6 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                         {u.full_name || u.username}
                                     </SelectItem>
                                 ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className='w-full sm:w-auto sm:min-w-[140px]'>
-                        <Select
-                            onValueChange={(v) => setDraft((p) => ({ ...p, status: v as DraftFilters['status'] }))}
-                            value={draft.status}
-                        >
-                            <SelectTrigger className='w-full h-8 text-sm'>
-                                <SelectValue placeholder='Barcha holatlar' />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value='all'>Barchasi</SelectItem>
-                                <SelectItem value='completed'>Yakunlangan</SelectItem>
-                                <SelectItem value='pending'>Korzinkada</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -330,14 +262,13 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                     <th className='text-left p-2 font-semibold text-gray-700 min-w-[90px]'>
                                         Umumiy qarz
                                     </th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[110px]'>Holati</th>
                                     <th className='text-left p-2 font-semibold text-gray-700 w-28'>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {groups.length === 0 || groups.every((g) => (g.items?.length || 0) === 0) ? (
                                     <tr>
-                                        <td colSpan={10} className='text-center py-12 text-gray-400'>
+                                        <td colSpan={9} className='text-center py-12 text-gray-400'>
                                             Ma'lumotlar yo'q
                                         </td>
                                     </tr>
@@ -372,8 +303,6 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                                         <td className='p-2 text-left font-semibold'>
                                                             {sumTolangan.toLocaleString()}
                                                         </td>
-                                                        <td className='p-2' />
-                                                        <td className='p-2' />
                                                         <td className='p-2' />
                                                         <td className='p-2' />
                                                         <td className='p-2' />
@@ -453,57 +382,24 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                                                         order.total_debt_client || '0',
                                                                     ).toLocaleString()}
                                                                 </td>
-                                                                <td className='text-left p-2 group-hover:bg-blue-50/30 transition-colors'>
-                                                                    {isKarzinka ? (
-                                                                        <span className='px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full border border-yellow-300'>
-                                                                            Korzinkada
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className='px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full border border-green-300 inline-flex items-center gap-1'>
-                                                                            <CheckCircle2 size={12} />
-                                                                            Yakunlangan
-                                                                        </span>
-                                                                    )}
-                                                                </td>
-                                                                <td className='text-left p-2 text-center group-hover:bg-blue-50/30 transition-colors'>
-                                                                    <div className='flex items-center justify-center gap-1'>
-                                                                        {/* Edit button */}
-                                                                        {!isKarzinka && (
-                                                                            <button
-                                                                                onClick={() => handleEdit(order)}
-                                                                                className='inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 bg-blue-500 hover:bg-blue-600 text-white'
-                                                                                title='Tahrirlash'
-                                                                            >
-                                                                                <Edit size={16} />
-                                                                            </button>
+                                                                <td className='p-2 text-center group-hover:bg-blue-50/30 transition-colors'>
+                                                                    {/* View button only */}
+                                                                    <button
+                                                                        onClick={() => navigate(orderPath)}
+                                                                        className={`inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 ${isKarzinka
+                                                                            ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                                                            : 'bg-green-500 hover:bg-green-600 text-white'
+                                                                            }`}
+                                                                        title={
+                                                                            isKarzinka ? 'Davom etish' : "Ko'rish"
+                                                                        }
+                                                                    >
+                                                                        {isKarzinka ? (
+                                                                            <ArrowRight size={18} />
+                                                                        ) : (
+                                                                            <Eye size={18} />
                                                                         )}
-                                                                        {/* View/Continue button */}
-                                                                        <button
-                                                                            onClick={() => navigate(orderPath)}
-                                                                            className={`inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 ${isKarzinka
-                                                                                    ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                                                                                    : 'bg-green-500 hover:bg-green-600 text-white'
-                                                                                }`}
-                                                                            title={
-                                                                                isKarzinka ? 'Davom etish' : "Ko'rish"
-                                                                            }
-                                                                        >
-                                                                            {isKarzinka ? (
-                                                                                <ArrowRight size={18} />
-                                                                            ) : (
-                                                                                <Eye size={18} />
-                                                                            )}
-                                                                        </button>
-                                                                        {/* Delete button */}
-                                                                        <button
-                                                                            onClick={() => handleDeleteClick(order)}
-                                                                            disabled={deletingOrderId === order.id}
-                                                                            className='inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 disabled:cursor-not-allowed'
-                                                                            title="O'chirish"
-                                                                        >
-                                                                            <Trash2 size={16} />
-                                                                        </button>
-                                                                    </div>
+                                                                    </button>
                                                                 </td>
                                                             </tr>
                                                         );
@@ -515,26 +411,15 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                 )}
                                 {/* overall totals row */}
                                 <tr className='bg-blue-50'>
-                                    <td className='p-2 text-left    font-semibold'>Jami</td>
+                                    <td className='p-2 text-left font-semibold'>Jami</td>
                                     <td colSpan={2} />
                                     <td />
                                     <td className='p-2 text-left font-semibold text-blue-700'>
                                         {overallTotals.totalZakaz.toLocaleString()}
                                     </td>
-                                    <td
-                                        className='p-2 text-
-                                    text-left font-semibold'
-                                    >
+                                    <td className='p-2 text-left font-semibold'>
                                         {overallTotals.totalTolangan.toLocaleString()}
                                     </td>
-                                    <td
-                                        className='p-2 text-
-                                    text-left font-semibold'
-                                    ></td>
-                                    <td
-                                        className='p-2 text-
-                                    text-left font-semibold'
-                                    ></td>
                                     <td colSpan={3} />
                                 </tr>
                             </tbody>
@@ -543,62 +428,6 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                 )}
             </div>
 
-            {/* Delete Confirmation Modal */}
-            {deleteModalOpen && (
-                <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
-                    <div className='bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-red-200'>
-                        <div className='flex justify-between items-center p-5 border-b-2 border-red-100 bg-gradient-to-r from-red-50 to-pink-50'>
-                            <h3 className='text-xl font-bold text-gray-900'>Savdoni o'chirish</h3>
-                            <button
-                                onClick={() => {
-                                    setDeleteModalOpen(false);
-                                    setOrderToDelete(null);
-                                }}
-                                disabled={deletingOrderId !== null}
-                                className='text-gray-500 hover:text-red-600 hover:bg-white p-2 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        <div className='p-6 bg-white'>
-                            <p className='text-gray-700 mb-6'>
-                                Savdo #{orderToDelete?.id} ni o'chirishni tasdiqlaysizmi? Bu amalni qaytarib bo'lmaydi.
-                            </p>
-
-                            <div className='flex gap-3 justify-end'>
-                                <button
-                                    onClick={() => {
-                                        setDeleteModalOpen(false);
-                                        setOrderToDelete(null);
-                                    }}
-                                    disabled={deletingOrderId !== null}
-                                    className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed'
-                                >
-                                    Bekor qilish
-                                </button>
-                                <button
-                                    onClick={handleDelete}
-                                    disabled={deletingOrderId !== null}
-                                    className='px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
-                                >
-                                    {deletingOrderId !== null ? (
-                                        <>
-                                            <Loader2 className='w-4 h-4 animate-spin' />
-                                            <span>O'chirilmoqda...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Trash2 className='w-4 h-4' />
-                                            <span>Ha, o'chirish</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

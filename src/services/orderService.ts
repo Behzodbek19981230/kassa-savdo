@@ -182,7 +182,7 @@ export const orderService = {
     // Order-historylar ro'yxatini olish (barcha filterlar backend params orqali)
     getOrdersMySelf: async (params?: {
         page?: number;
-        page_size?: number;
+        limit?: number;
         search?: string;
         date_from?: string;
         date_to?: string;
@@ -202,7 +202,7 @@ export const orderService = {
     }> => {
         const queryParams = new URLSearchParams();
         if (params?.page) queryParams.append('page', params.page.toString());
-        if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
         if (params?.search) queryParams.append('search', params.search);
         if (params?.date_from) queryParams.append('date_from', params.date_from);
         if (params?.date_to) queryParams.append('date_to', params.date_to);
@@ -246,7 +246,7 @@ export const orderService = {
     // Order-historylar ro'yxatini olish
     getOrders: async (params?: {
         page?: number;
-        page_size?: number;
+        limit?: number;
         search?: string;
         date_from?: string;
         date_to?: string;
@@ -258,7 +258,7 @@ export const orderService = {
     }> => {
         const queryParams = new URLSearchParams();
         if (params?.page) queryParams.append('page', params.page.toString());
-        if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
         if (params?.search) queryParams.append('search', params.search);
         if (params?.date_from) queryParams.append('date_from', params.date_from);
         if (params?.date_to) queryParams.append('date_to', params.date_to);
@@ -277,6 +277,39 @@ export const orderService = {
         await api.delete(`/v1/order-history/${id}`);
     },
 
+    // Mijozdan qarzdorlik (debtor-product) ro'yxatini olish
+    getDebtorProducts: async (params?: {
+        page?: number;
+        limit?: number;
+        search?: string;
+        date_from?: string;
+        date_to?: string;
+        client?: number;
+        created_by?: number;
+    }): Promise<{
+        count: number;
+        next: string | null;
+        previous: string | null;
+        results: OrderResponse[];
+    }> => {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.append('page', params.page.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        if (params?.search) queryParams.append('search', params.search);
+        if (params?.date_from) queryParams.append('date_from', params.date_from);
+        if (params?.date_to) queryParams.append('date_to', params.date_to);
+        if (params?.client) queryParams.append('client', params.client.toString());
+        if (params?.created_by) queryParams.append('created_by', params.created_by.toString());
+
+        const response = await api.get<{
+            count: number;
+            next: string | null;
+            previous: string | null;
+            results: OrderResponse[];
+        }>(`/v1/order-history/debtor-product?${queryParams.toString()}`);
+        return response.data;
+    },
+
     // Order-history-product yaratish
     createOrderProduct: async (data: {
         order_history?: number;
@@ -292,7 +325,7 @@ export const orderService = {
             count: data.count,
             sklad: data.sklad ?? null,
         };
-        
+
         // Vozvrat order bo'lsa, alohida endpoint ishlatish
         if (data.vozvrat_order != null) {
             requestData.vozvrat_order = data.vozvrat_order;
@@ -308,15 +341,15 @@ export const orderService = {
         } else if (data.order_history != null) {
             // Oddiy order uchun
             requestData.order_history = data.order_history;
-        // price_dollar va price_sum ni qo'shish
-        if (data.price_dollar != null) {
-            requestData.price_dollar = data.price_dollar;
-        }
-        if (data.price_sum != null) {
-            requestData.price_sum = data.price_sum;
-        }
-        const response = await api.post('/v1/order-history-product', requestData);
-        return response.data;
+            // price_dollar va price_sum ni qo'shish
+            if (data.price_dollar != null) {
+                requestData.price_dollar = data.price_dollar;
+            }
+            if (data.price_sum != null) {
+                requestData.price_sum = data.price_sum;
+            }
+            const response = await api.post('/v1/order-history-product', requestData);
+            return response.data;
         } else {
             throw new Error('order_history yoki vozvrat_order kerak');
         }
@@ -402,7 +435,7 @@ export const debtRepaymentService = {
     // Qarz to'lovlarini olish
     getDebtRepayments: async (params?: {
         page?: number;
-        page_size?: number;
+        limit?: number;
         search?: string;
         date_from?: string;
         date_to?: string;
@@ -416,7 +449,7 @@ export const debtRepaymentService = {
     }> => {
         const queryParams = new URLSearchParams();
         if (params?.page) queryParams.append('page', params.page.toString());
-        if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
         if (params?.search) queryParams.append('search', params.search);
         if (params?.date_from) queryParams.append('date_from', params.date_from);
         if (params?.date_to) queryParams.append('date_to', params.date_to);
@@ -509,7 +542,7 @@ export const vozvratOrderService = {
     // Vozvrat orderlarni olish
     getVozvratOrders: async (params?: {
         page?: number;
-        page_size?: number;
+        limit?: number;
         search?: string;
         date_from?: string;
         date_to?: string;
@@ -524,7 +557,7 @@ export const vozvratOrderService = {
     }> => {
         const queryParams = new URLSearchParams();
         if (params?.page) queryParams.append('page', params.page.toString());
-        if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
         if (params?.search) queryParams.append('search', params.search);
         if (params?.date_from) queryParams.append('date_from', params.date_from);
         if (params?.date_to) queryParams.append('date_to', params.date_to);
