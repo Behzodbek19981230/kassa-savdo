@@ -146,7 +146,7 @@ export const orderService = {
 		});
 	},
 	// Yangi order yaratish
-	createOrder: async (data: CreateOrderRequest): Promise<OrderResponse> => {
+	createOrder: async (data: CreateOrderRequest): Promise<any> => {
 		const response = await api.post<OrderResponse>('/v1/order-history/create-update', {
 			// order: data.order || 0,
 			client: data.client,
@@ -176,7 +176,7 @@ export const orderService = {
 			driver_info: data.driver_info || '',
 			is_karzinka: data.is_karzinka ?? false,
 		});
-		return response.data;
+		return response;
 	},
 
 	// Order-historylar ro'yxatini olish (barcha filterlar backend params orqali)
