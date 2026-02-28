@@ -12,6 +12,7 @@ import {
 	Bell,
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { startNotesWs, stopNotesWs } from '../services/notesWs';
 import { useNotesAll, useUpdateNote } from '../hooks/api/useNotes';
 import { useAuth } from '../contexts/AuthContext';
@@ -36,6 +37,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 	const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
 	const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
 	const { data: notesData } = useNotesAll();
+	const queryClient = useQueryClient();
 	const updateNote = useUpdateNote();
 	const unreadNotesCount = notesData ? notesData.filter((n) => n.is_read === false).length : 0;
 	const sortedNotes = notesData
@@ -92,12 +94,24 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 	}, []);
 
 	useEffect(() => {
+		// When socket messages arrive, invalidate notes query to refresh header badge/dropdown
+		const onSocket = (e: Event) => {
+			try {
+				queryClient.invalidateQueries({ queryKey: ['notes-all'] });
+			} catch {}
+		};
+
+		window.addEventListener('notes:message', onSocket as EventListener);
+
 		const onDoc = (e: MouseEvent) => {
 			if (!ddRef.current) return;
 			if (!ddRef.current.contains(e.target as Node)) setDropdownOpen(false);
 		};
 		document.addEventListener('click', onDoc);
-		return () => document.removeEventListener('click', onDoc);
+		return () => {
+			window.removeEventListener('notes:message', onSocket as EventListener);
+			document.removeEventListener('click', onDoc);
+		};
 	}, []);
 
 	const formatNoteDate = (raw?: string) => {
