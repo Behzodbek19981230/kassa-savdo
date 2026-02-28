@@ -108,85 +108,50 @@ export function NotesPanel({ embedded = false }: NotesPanelProps) {
 	}, [data]);
 
 	useEffect(() => {
-		let isMounted = true;
-		let socket: WebSocket | null = null;
-		const connect = () => {
-			try {
-				const url = getNotesWsUrl();
-				// Connect without token/subprotocol (token not required)
-				socket = new WebSocket(url);
-				socket.onopen = () => {
-					if (reconnectRef.current) {
-						window.clearTimeout(reconnectRef.current);
-						reconnectRef.current = null;
+		// Listen for messages dispatched by the global notes WS client
+		const handler = (e: Event) => {
+			const ce = e as CustomEvent;
+			const payload = ce.detail as WsNotePayload | null;
+			if (!payload) return;
+			if (payload.type === 'note_event') {
+				const id = (payload as any).note_id || payload.id;
+				if (!id) return;
+				const status = (payload as any).status as string | undefined;
+				const titleFromPayload = (payload as any).note_title || (payload as any).title;
+				const deadline = (payload as any).deadline as string | undefined;
+				setNotes((prev) => {
+					const idx = prev.findIndex((n) => n.id === id);
+					if (idx === -1) {
+						const item: NoteItem = {
+							id,
+							title: titleFromPayload || 'Sarlavha',
+							status: status,
+							date: deadline,
+						};
+						return [item, ...prev];
 					}
-				};
-				socket.onmessage = (event) => {
-					if (!isMounted) return;
-					let payload: WsNotePayload | null = null;
-					try {
-						payload = JSON.parse(event.data);
-					} catch {
-						payload = null;
-					}
-					if (!payload) return;
-					// New server-side event format: { type: 'note_event', event: 'expired', note_id, note_title, message, deadline, status }
-					if (payload.type === 'note_event') {
-						const id = (payload as any).note_id || payload.id;
-						if (!id) return;
-						const status = (payload as any).status as string | undefined;
-						const titleFromPayload = (payload as any).note_title || (payload as any).title;
-						const deadline = (payload as any).deadline as string | undefined;
-						setNotes((prev) => {
-							const idx = prev.findIndex((n) => n.id === id);
-							if (idx === -1) {
-								const item: NoteItem = {
-									id,
-									title: titleFromPayload || 'Sarlavha',
-									status: status,
-									date: deadline,
-								};
-								return [item, ...prev];
-							}
-							const next = [...prev];
-							next[idx] = {
-								...next[idx],
-								status: status ?? next[idx].status,
-								title: titleFromPayload ?? next[idx].title,
-								date: deadline ?? next[idx].date,
-							};
-							return next;
-						});
-						return;
-					}
-					const action = payload.action || payload.type || (payload as any).event;
-					const note = payload.note || (payload.id ? (payload as NoteItem) : null);
-					if (action === 'delete' || action === 'deleted') {
-						const removeId = payload.note_id || payload.id;
-						if (removeId) setNotes((prev) => prev.filter((item) => item.id !== removeId));
-						return;
-					}
-					if (note?.id) setNotes((prev) => upsertNote(prev, note));
-				};
-				socket.onclose = () => {
-					if (isMounted) reconnectRef.current = window.setTimeout(connect, 3000);
-				};
-				socket.onerror = () => {
-					// ensure socket is closed so reconnect logic can run
-					try {
-						socket?.close();
-					} catch {}
-				};
-			} catch {
-				reconnectRef.current = window.setTimeout(connect, 5000);
+					const next = [...prev];
+					next[idx] = {
+						...next[idx],
+						status: status ?? next[idx].status,
+						title: titleFromPayload ?? next[idx].title,
+						date: deadline ?? next[idx].date,
+					};
+					return next;
+				});
+				return;
 			}
+			const action = payload.action || payload.type || (payload as any).event;
+			const note = payload.note || (payload.id ? (payload as NoteItem) : null);
+			if (action === 'delete' || action === 'deleted') {
+				const removeId = payload.note_id || payload.id;
+				if (removeId) setNotes((prev) => prev.filter((item) => item.id !== removeId));
+				return;
+			}
+			if (note?.id) setNotes((prev) => upsertNote(prev, note));
 		};
-		connect();
-		return () => {
-			isMounted = false;
-			if (reconnectRef.current) window.clearTimeout(reconnectRef.current);
-			if (socket && socket.readyState !== WebSocket.CLOSED) socket.close();
-		};
+		window.addEventListener('notes:message', handler as EventListener);
+		return () => window.removeEventListener('notes:message', handler as EventListener);
 	}, []);
 
 	const isMutating = createNote.isPending || updateNote.isPending || deleteNote.isPending;
