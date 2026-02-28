@@ -112,7 +112,15 @@ export function NotesPanel({ embedded = false }: NotesPanelProps) {
 		let socket: WebSocket | null = null;
 		const connect = () => {
 			try {
-				socket = new WebSocket(getNotesWsUrl());
+				const url = getNotesWsUrl();
+				// Connect without token/subprotocol (token not required)
+				socket = new WebSocket(url);
+				socket.onopen = () => {
+					if (reconnectRef.current) {
+						window.clearTimeout(reconnectRef.current);
+						reconnectRef.current = null;
+					}
+				};
 				socket.onmessage = (event) => {
 					if (!isMounted) return;
 					let payload: WsNotePayload | null = null;
@@ -133,6 +141,12 @@ export function NotesPanel({ embedded = false }: NotesPanelProps) {
 				};
 				socket.onclose = () => {
 					if (isMounted) reconnectRef.current = window.setTimeout(connect, 3000);
+				};
+				socket.onerror = () => {
+					// ensure socket is closed so reconnect logic can run
+					try {
+						socket?.close();
+					} catch {}
 				};
 			} catch {
 				reconnectRef.current = window.setTimeout(connect, 5000);
