@@ -130,7 +130,36 @@ export function NotesPanel({ embedded = false }: NotesPanelProps) {
 						payload = null;
 					}
 					if (!payload) return;
-					const action = payload.action || payload.type;
+					// New server-side event format: { type: 'note_event', event: 'expired', note_id, note_title, message, deadline, status }
+					if (payload.type === 'note_event') {
+						const id = (payload as any).note_id || payload.id;
+						if (!id) return;
+						const status = (payload as any).status as string | undefined;
+						const titleFromPayload = (payload as any).note_title || (payload as any).title;
+						const deadline = (payload as any).deadline as string | undefined;
+						setNotes((prev) => {
+							const idx = prev.findIndex((n) => n.id === id);
+							if (idx === -1) {
+								const item: NoteItem = {
+									id,
+									title: titleFromPayload || 'Sarlavha',
+									status: status,
+									date: deadline,
+								};
+								return [item, ...prev];
+							}
+							const next = [...prev];
+							next[idx] = {
+								...next[idx],
+								status: status ?? next[idx].status,
+								title: titleFromPayload ?? next[idx].title,
+								date: deadline ?? next[idx].date,
+							};
+							return next;
+						});
+						return;
+					}
+					const action = payload.action || payload.type || (payload as any).event;
 					const note = payload.note || (payload.id ? (payload as NoteItem) : null);
 					if (action === 'delete' || action === 'deleted') {
 						const removeId = payload.note_id || payload.id;

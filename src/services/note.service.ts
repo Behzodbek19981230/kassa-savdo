@@ -1,5 +1,4 @@
 import api from './api';
-import { STORAGE_KEYS } from '../constants';
 
 export interface NoteItem {
 	id: number;
@@ -73,9 +72,14 @@ const toWsBaseUrl = (baseUrl: string) => {
 };
 
 export const getNotesWsUrl = () => {
-	const apiBaseUrl = import.meta.env.VITE_FILE_BASE_URL || '';
+	const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 	const fallbackBase = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
-	const wsBaseUrl = toWsBaseUrl(apiBaseUrl || fallbackBase).replace(/\/+$/, '');
+
+	// If API base includes a trailing /api path, remove it so WS path lives on the host root.
+	let base = apiBaseUrl || fallbackBase;
+	base = base.replace(/\/api\/?$/, '');
+
+	const wsBaseUrl = toWsBaseUrl(base).replace(/\/+$/, '');
 	const wsUrl = `${wsBaseUrl}/ws/notes/notifications/`;
 	return wsUrl;
 };
