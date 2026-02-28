@@ -489,6 +489,7 @@ export const debtRepaymentService = {
 		date_to?: string;
 		client?: number;
 		filial?: number;
+		employee?: number;
 	}): Promise<
 		Array<{
 			date: string;
@@ -511,6 +512,7 @@ export const debtRepaymentService = {
 		if (params?.date_from) queryParams.append('date_from', params.date_from);
 		if (params?.date_to) queryParams.append('date_to', params.date_to);
 		if (params?.client) queryParams.append('client', params.client.toString());
+		if (params?.employee) queryParams.append('employee', params.employee.toString());
 		if (params?.filial) queryParams.append('filial', params.filial.toString());
 
 		const response = await api.get(`/v1/debt-repayment/grouped-by-date?${queryParams.toString()}`);
@@ -617,6 +619,7 @@ export const vozvratOrderService = {
 		date_from?: string;
 		date_to?: string;
 		client?: number;
+		employee?: number;
 		filial?: number;
 	}): Promise<
 		Array<{
@@ -638,6 +641,7 @@ export const vozvratOrderService = {
 		if (params?.date_from) queryParams.append('date_from', params.date_from);
 		if (params?.date_to) queryParams.append('date_to', params.date_to);
 		if (params?.client) queryParams.append('client', params.client.toString());
+		if (params?.employee) queryParams.append('employee', params.employee.toString());
 		if (params?.filial) queryParams.append('filial', params.filial.toString());
 
 		const response = await api.get(`/v1/vozvrat-order/grouped-by-date?${queryParams.toString()}`);

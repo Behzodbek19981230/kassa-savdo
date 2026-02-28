@@ -398,7 +398,13 @@ export function ProductModal({
 						</div>
 					</div>
 
-					<div className='flex justify-end pt-4'>
+					<div className='flex justify-between items-center pt-4'>
+						<button
+							onClick={onClose}
+							className='px-4 py-2 rounded-xl border border-indigo-200 bg-white text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors'
+						>
+							Yopish
+						</button>
 						<button
 							onClick={handleConfirm}
 							className='bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 font-bold flex items-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]'

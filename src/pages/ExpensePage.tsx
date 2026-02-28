@@ -4,6 +4,8 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { DateRangePicker } from '../components/ui/date-picker';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/Select';
+import { Autocomplete } from '../components/ui/Autocomplete';
+import { userService } from '../services/userService';
 import api from '../services/api';
 import { expenseService } from '../services/expenseService';
 import { showError, showSuccess } from '../lib/toast';
@@ -27,6 +29,10 @@ export function ExpensePage() {
 	const [isLoadingCategories, setIsLoadingCategories] = useState(false);
 	const [draftCategory, setDraftCategory] = useState<number | null>(null);
 	const [appliedCategory, setAppliedCategory] = useState<number | null>(null);
+	// Employee filter
+	const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+	const [appliedEmployeeId, setAppliedEmployeeId] = useState<number | null>(null);
+	const [employeeOptions, setEmployeeOptions] = useState<{ id: string; label: string; value: string }[]>([]);
 
 	// Load categories once
 	useMemo(() => {
@@ -62,6 +68,7 @@ export function ExpensePage() {
 				dateFrom: appliedDateFrom ? format(appliedDateFrom, 'yyyy-MM-dd') : undefined,
 				dateTo: appliedDateTo ? format(appliedDateTo, 'yyyy-MM-dd') : undefined,
 				category: appliedCategory ?? undefined,
+				employee: appliedEmployeeId ?? undefined,
 			},
 		],
 		queryFn: () =>
@@ -70,6 +77,7 @@ export function ExpensePage() {
 				date_from: appliedDateFrom ? format(appliedDateFrom, 'yyyy-MM-dd') : undefined,
 				date_to: appliedDateTo ? format(appliedDateTo, 'yyyy-MM-dd') : undefined,
 				category: appliedCategory ?? undefined,
+				employee: appliedEmployeeId ?? undefined,
 			}),
 		staleTime: 30000,
 		enabled: !!user?.order_filial,
@@ -136,6 +144,26 @@ export function ExpensePage() {
 							onDateToChange={(d) => setDraftDateTo(d)}
 						/>
 
+						<div className='w-56'>
+							<Autocomplete
+								options={employeeOptions}
+								value={selectedEmployeeId ? String(selectedEmployeeId) : ''}
+								onChange={(v) => setSelectedEmployeeId(v ? Number(v) : null)}
+								onSearchChange={async (q) => {
+									const res = await userService.getUsers({ search: q || '', limit: 100 });
+									const items = res.results || [];
+									setEmployeeOptions(
+										items.map((u: any) => ({
+											id: String(u.id),
+											label: u.full_name || u.username || `ID:${u.id}`,
+											value: String(u.id),
+										})),
+									);
+								}}
+								placeholder="Xodim bo'yicha filtrlash"
+							/>
+						</div>
+
 						<Select
 							value={draftCategory ? String(draftCategory) : 'all'}
 							onValueChange={(v) => setDraftCategory(v && v !== 'all' ? Number(v) : null)}
@@ -163,6 +191,7 @@ export function ExpensePage() {
 									setAppliedDateFrom(draftDateFrom);
 									setAppliedDateTo(draftDateTo);
 									setAppliedCategory(draftCategory);
+									setAppliedEmployeeId(selectedEmployeeId);
 								}}
 								className='h-9 px-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg text-sm font-semibold flex items-center'
 							>
@@ -179,6 +208,8 @@ export function ExpensePage() {
 									setAppliedDateTo(defaultTo);
 									setDraftCategory(null);
 									setAppliedCategory(null);
+									setSelectedEmployeeId(null);
+									setAppliedEmployeeId(null);
 								}}
 								className='h-9 px-3 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-200 flex items-center gap-2'
 							>

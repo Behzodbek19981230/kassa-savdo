@@ -32,8 +32,8 @@ interface CartProps {
 	onCartChange?: (items: CartItem[], totalAmount: number) => void;
 	/** Read-only mode - faqat ko'rish uchun */
 	readOnly?: boolean;
-    /** Vozvrat order mode */
-    isVozvratOrder?: boolean;
+	/** Vozvrat order mode */
+	isVozvratOrder?: boolean;
 }
 export function Cart({
 	items,
@@ -52,7 +52,7 @@ export function Cart({
 	refreshCartTrigger = 0,
 	onCartChange,
 	readOnly = false,
-    isVozvratOrder = false,
+	isVozvratOrder = false,
 }: CartProps) {
 	const { user } = useAuth();
 	const navigate = useNavigate();
@@ -108,7 +108,7 @@ export function Cart({
 			quantity,
 			priceDollar: unitPriceDollar,
 			totalPriceDollar: totalPriceDollar,
-			priceSum: unitPriceSum,
+			priceSum: op.price_sum ? Number(op.price_sum) : 0,
 
 			branchName: branchDetail?.name ?? undefined,
 			branchCategoryName: branchCategoryDetail ?? undefined,
@@ -134,25 +134,25 @@ export function Cart({
 		if (!orderHistoryId) return;
 		setIsLoadingCart(true);
 		try {
-            let list;
-            if (isVozvratOrder) {
-                // Vozvrat order productlarini yuklash
-                list = await vozvratOrderService.getVozvratOrderProducts(orderHistoryId);
-            } else {
-                // Oddiy order productlarini yuklash
-                list = await orderService.getOrderProducts(orderHistoryId);
-            }
+			let list;
+			if (isVozvratOrder) {
+				// Vozvrat order productlarini yuklash
+				list = await vozvratOrderService.getVozvratOrderProducts(orderHistoryId);
+			} else {
+				// Oddiy order productlarini yuklash
+				list = await orderService.getOrderProducts(orderHistoryId);
+			}
 			const filtered = (list || []).filter((p: any) => !p.is_delete);
 			setOrderProductsRaw(filtered);
 			setCartItemsFromApi(filtered.map(transformOrderProductToCartItem));
 		} catch (error) {
 			console.error('Failed to load order products:', error);
-            showError('Mahsulotlarni yuklashda xatolik');
+			showError('Mahsulotlarni yuklashda xatolik');
 			setCartItemsFromApi([]);
 		} finally {
 			setIsLoadingCart(false);
 		}
-    }, [orderId, orderData?.id, transformOrderProductToCartItem, isVozvratOrder]);
+	}, [orderId, orderData?.id, transformOrderProductToCartItem, isVozvratOrder]);
 
 	useEffect(() => {
 		if (orderId ?? orderData?.id) {
@@ -247,7 +247,7 @@ export function Cart({
 				sklad: options.skladId,
 				price_sum: options.priceSum,
 				price_dollar: options.priceDollar,
-                currency: options.currencyId,
+				currency: options.currencyId,
 			});
 			showSuccess('Mahsulot muvaffaqiyatli yangilandi');
 			setIsProductModalOpen(false);
@@ -521,7 +521,7 @@ export function Cart({
 				<div className='flex items-center gap-3 flex-wrap'>
 					{/* Savdo va Order ID */}
 					<h2 className='text-xl sm:text-2xl font-bold text-white flex items-center shrink-0'>
-                        {isVozvratOrder ? 'Tovar qaytarish' : 'Savdo'}{' '}
+						{isVozvratOrder ? 'Tovar qaytarish' : 'Savdo'}{' '}
 						{orderData && (
 							<span className='ml-2 sm:ml-3 text-white/80 font-semibold bg-white/20 px-2 sm:px-3 py-1 rounded-xl text-base sm:text-lg'>
 								#{orderData.id}
@@ -562,13 +562,13 @@ export function Cart({
 						</div>
 					)}
 
-                    {/* Savdoni boshlash / Qaytarishni boshlash knopkasi - faqat readOnly emas bo'lsa ko'rsatish */}
+					{/* Savdoni boshlash / Qaytarishni boshlash knopkasi - faqat readOnly emas bo'lsa ko'rsatish */}
 					{!readOnly && !orderData && selectedCustomer && !isSaleStarted && onStartSaleClick && (
 						<button
 							onClick={onStartSaleClick}
 							disabled={isCreatingOrder}
 							className='flex items-center justify-center gap-2 bg-green-500/80 hover:bg-green-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
-                            title={isVozvratOrder ? 'Qaytarishni boshlash' : 'Savdoni boshlash'}
+							title={isVozvratOrder ? 'Qaytarishni boshlash' : 'Savdoni boshlash'}
 						>
 							{isCreatingOrder ? (
 								<>
@@ -579,10 +579,10 @@ export function Cart({
 							) : (
 								<>
 									<Plus size={18} />
-                                    <span className='hidden sm:inline'>
-                                        {isVozvratOrder ? 'Qaytarishni boshlash' : 'Savdoni boshlash'}
-                                    </span>
-                                    <span className='sm:hidden'>{isVozvratOrder ? 'Qaytarish' : 'Boshlash'}</span>
+									<span className='hidden sm:inline'>
+										{isVozvratOrder ? 'Qaytarishni boshlash' : 'Savdoni boshlash'}
+									</span>
+									<span className='sm:hidden'>{isVozvratOrder ? 'Qaytarish' : 'Boshlash'}</span>
 								</>
 							)}
 						</button>
@@ -614,45 +614,46 @@ export function Cart({
 					{/* Jami summa */}
 					<div className='text-right shrink-0 ml-auto'>
 						<div className='text-xs text-white/80 mb-1'>Jami</div>
-                        <div className='text-sm  sm:text-sm font-bold text-yellow-200 whitespace-nowrap'>
-                            {totalAmountDollar.toFixed(2)} USD ({totalAmount.toLocaleString()} UZS)
+						<div className='text-sm  sm:text-sm font-bold text-yellow-200 whitespace-nowrap'>
+							{totalAmountDollar.toFixed(2)} USD ({totalAmount.toLocaleString()} UZS)
 						</div>
 					</div>
 
 					{/* To'lov va Bekor qilish knopkalari - faqat readOnly emas bo'lsa ko'rsatish */}
 					{!readOnly && orderData && (
 						<>
-                            {!isVozvratOrder && (
-							<button
-								onClick={() => setIsDeleteModalOpen(true)}
-								disabled={isDeleting}
-								className='flex items-center justify-center gap-2 bg-red-500/80 hover:bg-red-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
-								title='Savdoni bekor qilish'
-							>
-								{isDeleting ? (
-									<>
-										<Loader2 className='w-4 h-4 animate-spin' />
-										<span className='hidden sm:inline'>Bekor qilinmoqda...</span>
-									</>
-								) : (
-									<>
-										<Trash2 size={16} />
-										<span className='hidden sm:inline'>Bekor qilish</span>
-									</>
-								)}
-							</button>
-                            )}
+							{!isVozvratOrder && (
+								<button
+									onClick={() => setIsDeleteModalOpen(true)}
+									disabled={isDeleting}
+									className='flex items-center justify-center gap-2 bg-red-500/80 hover:bg-red-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
+									title='Savdoni bekor qilish'
+								>
+									{isDeleting ? (
+										<>
+											<Loader2 className='w-4 h-4 animate-spin' />
+											<span className='hidden sm:inline'>Bekor qilinmoqda...</span>
+										</>
+									) : (
+										<>
+											<Trash2 size={16} />
+											<span className='hidden sm:inline'>Bekor qilish</span>
+										</>
+									)}
+								</button>
+							)}
 							<button
 								onClick={onPayment}
 								disabled={!isSaleStarted || totalAmount === 0}
-                                className={`flex items-center justify-center gap-2 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap ${isVozvratOrder
-                                    ? 'bg-red-500/80 hover:bg-red-500'
-                                    : 'bg-green-500/80 hover:bg-green-500'
-                                    }`}
-                                title={isVozvratOrder ? 'Qaytarish' : "To'lov"}
+								className={`flex items-center justify-center gap-2 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap ${
+									isVozvratOrder
+										? 'bg-red-500/80 hover:bg-red-500'
+										: 'bg-green-500/80 hover:bg-green-500'
+								}`}
+								title={isVozvratOrder ? 'Qaytarish' : "To'lov"}
 							>
 								<DollarSign size={16} />
-                                <span className='hidden sm:inline'>{isVozvratOrder ? 'Qaytarish' : "To'lov"}</span>
+								<span className='hidden sm:inline'>{isVozvratOrder ? 'Qaytarish' : "To'lov"}</span>
 							</button>
 						</>
 					)}
@@ -681,8 +682,8 @@ export function Cart({
 				exchangeRate={exchangeRate}
 				skladlar={skladlar}
 				orderData={orderData}
-                orderProductId={productForModal?.id ? Number(productForModal.id) : null}
-                isVozvratOrder={isVozvratOrder}
+				orderProductId={productForModal?.id ? Number(productForModal.id) : null}
+				isVozvratOrder={isVozvratOrder}
 				onConfirm={handleConfirmEditOrderProduct}
 			/>
 
@@ -796,11 +797,9 @@ export function Cart({
 							<div className='flex items-center justify-between sm:justify-end gap-2 sm:space-x-3 shrink-0'>
 								<div className='text-right'>
 									<div className='font-bold text-blue-700 text-base sm:text-lg whitespace-nowrap'>
-                                        {(item.totalPriceDollar ?? (item.priceSum || 0) / exchangeRate).toFixed(2)} USD
+										{(item.totalPriceDollar ?? (item.priceSum || 0) / exchangeRate).toFixed(2)} USD
 									</div>
-									<div className='text-xs text-gray-500'>
-                                        {item.priceSum?.toLocaleString()} UZS
-									</div>
+									<div className='text-xs text-gray-500'>{item.priceSum?.toLocaleString()} UZS</div>
 								</div>
 								{!readOnly && (
 									<>

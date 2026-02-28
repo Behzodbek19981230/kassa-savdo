@@ -462,14 +462,14 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 						</div>
 					</div>
 					<DialogFooter>
-						<Button variant='outline' onClick={() => setIsNoteDialogOpen(false)}>
-							Yopish
-						</Button>
 						{selectedNote && selectedNote.status !== 'done' && (
 							<Button onClick={handleDoneNote} disabled={updateNote.isPending}>
 								{updateNote.isPending ? 'Saqlanmoqda...' : 'Bajarildi'}
 							</Button>
 						)}
+						<Button variant='outline' onClick={() => setIsNoteDialogOpen(false)}>
+							Yopish
+						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

@@ -4,6 +4,9 @@ import { useReactToPrint } from 'react-to-print';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { DateRangePicker } from '../components/ui/date-picker';
+import { Autocomplete } from '../components/ui/Autocomplete';
+import { clientService } from '../services/clientService';
+import { userService } from '../services/userService';
 import { debtRepaymentService } from '../services/orderService';
 import { showError, showSuccess } from '../lib/toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,6 +26,14 @@ export function DebtRepaymentPage() {
 	const [draftDateTo, setDraftDateTo] = useState<Date | undefined>(today);
 	const [appliedDateFrom, setAppliedDateFrom] = useState<Date | undefined>(oneMonthAgo);
 	const [appliedDateTo, setAppliedDateTo] = useState<Date | undefined>(today);
+
+	// Filters: client and employee
+	const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+	const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+	const [clientOptions, setClientOptions] = useState<{ id: string; label: string; value: string }[]>([]);
+	const [employeeOptions, setEmployeeOptions] = useState<{ id: string; label: string; value: string }[]>([]);
+	const [appliedClientId, setAppliedClientId] = useState<number | null>(null);
+	const [appliedEmployeeId, setAppliedEmployeeId] = useState<number | null>(null);
 	const receiptRef = useRef<HTMLDivElement>(null);
 
 	// React Query bilan ma'lumotlarni olish
@@ -37,6 +48,8 @@ export function DebtRepaymentPage() {
 				filial: user?.order_filial,
 				dateFrom: appliedDateFrom ? format(appliedDateFrom, 'yyyy-MM-dd') : undefined,
 				dateTo: appliedDateTo ? format(appliedDateTo, 'yyyy-MM-dd') : undefined,
+				client: appliedClientId ?? undefined,
+				employee: appliedEmployeeId ?? undefined,
 			},
 		],
 		queryFn: () =>
@@ -44,6 +57,8 @@ export function DebtRepaymentPage() {
 				filial: user?.order_filial || undefined,
 				date_from: appliedDateFrom ? format(appliedDateFrom, 'yyyy-MM-dd') : undefined,
 				date_to: appliedDateTo ? format(appliedDateTo, 'yyyy-MM-dd') : undefined,
+				client: appliedClientId ?? undefined,
+				employee: appliedEmployeeId ?? undefined,
 			}),
 		staleTime: 30000, // 30 soniya
 		enabled: !!user?.order_filial,
@@ -137,11 +152,53 @@ export function DebtRepaymentPage() {
 							onDateToChange={(d) => setDraftDateTo(d)}
 						/>
 
+						<div className='w-56'>
+							<Autocomplete
+								options={clientOptions}
+								value={selectedClientId ? String(selectedClientId) : ''}
+								onChange={(v) => setSelectedClientId(v ? Number(v) : null)}
+								onSearchChange={async (q) => {
+									const res = await clientService.getClients(q || '');
+									const items = res.results || [];
+									setClientOptions(
+										items.map((c: any) => ({
+											id: String(c.id),
+											label: c.full_name || c.phone_number || `ID:${c.id}`,
+											value: String(c.id),
+										})),
+									);
+								}}
+								placeholder="Mijoz bo'yicha filtrlash"
+							/>
+						</div>
+
+						<div className='w-56'>
+							<Autocomplete
+								options={employeeOptions}
+								value={selectedEmployeeId ? String(selectedEmployeeId) : ''}
+								onChange={(v) => setSelectedEmployeeId(v ? Number(v) : null)}
+								onSearchChange={async (q) => {
+									const res = await userService.getUsers({ search: q || '', limit: 100 });
+									const items = res.results || [];
+									setEmployeeOptions(
+										items.map((u: any) => ({
+											id: String(u.id),
+											label: u.full_name || u.username || `ID:${u.id}`,
+											value: String(u.id),
+										})),
+									);
+								}}
+								placeholder="Xodim bo'yicha filtrlash"
+							/>
+						</div>
+
 						<div className='flex items-center gap-2'>
 							<button
 								onClick={() => {
 									setAppliedDateFrom(draftDateFrom);
 									setAppliedDateTo(draftDateTo);
+									setAppliedClientId(selectedClientId);
+									setAppliedEmployeeId(selectedEmployeeId);
 								}}
 								className='h-9 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-semibold flex items-center'
 							>
@@ -157,6 +214,10 @@ export function DebtRepaymentPage() {
 									setDraftDateTo(defaultTo);
 									setAppliedDateFrom(defaultFrom);
 									setAppliedDateTo(defaultTo);
+									setSelectedClientId(null);
+									setSelectedEmployeeId(null);
+									setAppliedClientId(null);
+									setAppliedEmployeeId(null);
 								}}
 								className='h-9 px-3 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-200 flex items-center gap-2'
 							>
@@ -195,6 +256,7 @@ export function DebtRepaymentPage() {
 									</th>
 									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>Sanasi</th>
 									<th className='text-left p-2 font-semibold text-gray-700 min-w-[120px]'>Mijoz</th>
+									<th className='text-left p-2 font-semibold text-gray-700 min-w-[120px]'>Xodim</th>
 									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
 										Eski qarz
 									</th>
@@ -211,7 +273,7 @@ export function DebtRepaymentPage() {
 							<tbody>
 								{groups.length === 0 || groups.every((g) => (g.items?.length || 0) === 0) ? (
 									<tr>
-										<td colSpan={8} className='text-center py-12 text-gray-400'>
+										<td colSpan={9} className='text-center py-12 text-gray-400'>
 											Ma'lumotlar yo'q
 										</td>
 									</tr>
@@ -258,6 +320,7 @@ export function DebtRepaymentPage() {
 														</td>
 														<td className='p-2' />
 														<td className='p-2' />
+														<td className='p-2' />
 													</tr>
 
 													{items.map((item: any) => {
@@ -283,6 +346,14 @@ export function DebtRepaymentPage() {
 																	<span className='font-medium text-gray-800'>
 																		{item.client_detail?.full_name ||
 																			`ID: ${item.client}`}
+																	</span>
+																</td>
+																<td className='p-2'>
+																	<span className='font-medium text-gray-800'>
+																		{item.employee_detail?.full_name ||
+																			(item.employee
+																				? `ID: ${item.employee}`
+																				: '-')}
 																	</span>
 																</td>
 																<td className='p-2 text-gray-800 text-left'>
@@ -365,7 +436,7 @@ export function DebtRepaymentPage() {
 										<td className='p-2 text-left font-semibold text-green-700'>
 											{overallTotals.totalPaid.toLocaleString()} UZS
 										</td>
-										<td colSpan={2} />
+										<td colSpan={3} />
 									</tr>
 								)}
 							</tbody>
