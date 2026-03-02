@@ -11,8 +11,8 @@ import {
 	StickyNote,
 	Bell,
 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { startNotesWs, stopNotesWs } from '../services/notesWs';
 import { useNotesAll, useUpdateNote } from '../hooks/api/useNotes';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,6 +21,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { NotesPanel } from './NotesPanel';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
+import { Input } from './ui/Input';
+import { exchangeRateService } from '../services/exchangeRateService';
+import { showSuccess, showError } from '../lib/toast';
 import type { NoteItem } from '../services/note.service';
 
 interface LayoutProps {
@@ -49,6 +52,21 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 		: [];
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const ddRef = useRef<HTMLDivElement | null>(null);
+	const [isExchangeRateDialogOpen, setIsExchangeRateDialogOpen] = useState(false);
+	const [exchangeRateValue, setExchangeRateValue] = useState<string>('');
+	const [isSavingRate, setIsSavingRate] = useState(false);
+
+	// Socket orqali kelgan real-time notificationlar
+	const [socketNotifications, setSocketNotifications] = useState<
+		Array<{
+			id: number;
+			title: string;
+			text: string;
+			date: string;
+			status: string;
+			note_title?: string;
+		}>
+	>([]);
 
 	const prevUnreadRef = useRef<number>(unreadNotesCount);
 	const [pulseActive, setPulseActive] = useState(false);
@@ -97,8 +115,62 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 		// When socket messages arrive, invalidate notes query to refresh header badge/dropdown
 		const onSocket = (e: Event) => {
 			try {
+				const ce = e as CustomEvent;
+				const payload = ce?.detail;
+				console.log('[Notes WS] Received message:', payload);
+				if (!payload) return;
+
+				// Socket orqali kelgan notificationni state'ga qo'shish
+				if (payload.type === 'note_event' || payload.event || payload.note_id) {
+					const newNotification = {
+						id: payload.note_id || Date.now(),
+						title: payload.title || payload.note_title || 'Yangi bildirishnoma',
+						text: payload.message || payload.text || '',
+						date: payload.deadline || new Date().toISOString(),
+						status: payload.status || payload.event || 'new',
+						note_title: payload.note_title,
+					};
+
+					setSocketNotifications((prev) => {
+						// Agar bu note allaqachon mavjud bo'lsa, yangilaymiz
+						const exists = prev.find((n) => n.id === newNotification.id);
+						if (exists) {
+							return prev.map((n) => (n.id === newNotification.id ? newNotification : n));
+						}
+						return [newNotification, ...prev];
+					});
+
+					// Pulse effekti
+					setPulseActive(true);
+					setTimeout(() => setPulseActive(false), 1400);
+
+					// Ovoz chiqarish
+					try {
+						const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+						const o = ctx.createOscillator();
+						const g = ctx.createGain();
+						o.type = 'sine';
+						o.frequency.value = 1000;
+						g.gain.value = 0.0001;
+						o.connect(g);
+						g.connect(ctx.destination);
+						const now = ctx.currentTime;
+						g.gain.linearRampToValueAtTime(0.15, now + 0.01);
+						o.start(now);
+						o.stop(now + 0.18);
+						setTimeout(() => {
+							try {
+								ctx.close();
+							} catch {}
+						}, 400);
+					} catch {}
+				}
+
+				// API'dan ham yangilash
 				queryClient.invalidateQueries({ queryKey: ['notes-all'] });
-			} catch {}
+			} catch (err) {
+				console.error('[Notes WS] Error processing message:', err);
+			}
 		};
 
 		window.addEventListener('notes:message', onSocket as EventListener);
@@ -112,7 +184,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 			window.removeEventListener('notes:message', onSocket as EventListener);
 			document.removeEventListener('click', onDoc);
 		};
-	}, []);
+	}, [queryClient]);
 
 	const formatNoteDate = (raw?: string) => {
 		if (!raw) return '—';
@@ -174,6 +246,123 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 	};
 
 	const unreadNotes = sortedNotes.filter((n) => n.is_read === false);
+
+	// Socket notificationlarni API notes bilan birlashtirish (duplikatlarni olib tashlash)
+	const combinedUnreadNotes = useMemo(() => {
+		const apiNoteIds = new Set(unreadNotes.map((n) => n.id));
+		const uniqueSocketNotes = socketNotifications
+			.filter((sn) => !apiNoteIds.has(sn.id))
+			.map((sn) => ({
+				id: sn.id,
+				title: sn.note_title || sn.title,
+				text: sn.text,
+				date: sn.date,
+				status: sn.status,
+				is_read: false,
+				created_at: sn.date,
+			}));
+		return [...uniqueSocketNotes, ...unreadNotes];
+	}, [unreadNotes, socketNotifications]);
+
+	const totalUnreadCount = combinedUnreadNotes.length;
+
+	// Socket notification'ni o'chirish (ko'rilganda)
+	const dismissSocketNotification = (id: number) => {
+		setSocketNotifications((prev) => prev.filter((n) => n.id !== id));
+	};
+
+	// Superadmin tekshiruvi
+	const isSuperadmin = useMemo(() => {
+		return (
+			user?.role_detail?.some(
+				(role) => role.name.toLowerCase() === 'superadmin' || role.name.toLowerCase() === 'super admin'
+			) ?? false
+		);
+	}, [user]);
+
+	// Exchange rates olish (is_active false bo'lganini topish uchun)
+	const { data: exchangeRatesData, refetch: refetchExchangeRate } = useQuery({
+		queryKey: ['exchange-rates'],
+		queryFn: () => exchangeRateService.getExchangeRates(),
+		enabled: isSuperadmin,
+		staleTime: 60_000,
+	});
+
+	// is_active false bo'lgan exchange rate yoki mavjud bo'lmagan holat
+	const inactiveExchangeRate = useMemo(() => {
+		if (!exchangeRatesData) return null;
+		return exchangeRatesData.results.find((rate) => rate.is_active === false) || null;
+	}, [exchangeRatesData]);
+
+	// Dialog ochilishi kerakmi (is_active false yoki mavjud bo'lmasa)
+	const shouldShowExchangeRateDialog = inactiveExchangeRate !== null || !exchangeRatesData?.results.length;
+
+	// Exchange rate yangilash/create qilish mutation
+	const updateExchangeRateMutation = useMutation({
+		mutationFn: async ({ id, rate }: { id?: number; rate: number }) => {
+			if (id) {
+				return exchangeRateService.updateExchangeRate(id, rate, true);
+			} else {
+				return exchangeRateService.createExchangeRate(rate);
+			}
+		},
+		onSuccess: () => {
+			showSuccess('Dollar kursi muvaffaqiyatli yangilandi');
+			refetchExchangeRate();
+			setIsExchangeRateDialogOpen(false);
+			setExchangeRateValue('');
+		},
+		onError: (error: any) => {
+			showError(error?.response?.data?.detail || 'Dollar kursini yangilashda xatolik');
+		},
+	});
+
+	// Exchange rate dialog'ini ochish
+	const handleOpenExchangeRateDialog = () => {
+		if (!isSuperadmin || !shouldShowExchangeRateDialog) return;
+		// Agar is_active false bo'lsa yoki mavjud bo'lmasa, dialog ochiladi
+		if (inactiveExchangeRate) {
+			// Update mode - is_active false bo'lgan rate
+			setExchangeRateValue(String(inactiveExchangeRate.rate));
+		} else {
+			// Create mode - rate mavjud emas
+			setExchangeRateValue(String(USD_RATE));
+		}
+		setIsExchangeRateDialogOpen(true);
+	};
+
+	// Exchange rate saqlash
+	const handleSaveExchangeRate = async () => {
+		const rate = Number(exchangeRateValue);
+		if (isNaN(rate) || rate <= 0) {
+			showError('Noto\'g\'ri kurs qiymati');
+			return;
+		}
+
+		setIsSavingRate(true);
+		try {
+			if (inactiveExchangeRate) {
+				// Update existing inactive rate
+				await updateExchangeRateMutation.mutateAsync({
+					id: inactiveExchangeRate.id,
+					rate,
+				});
+			} else {
+				// Create new rate
+				await updateExchangeRateMutation.mutateAsync({
+					rate,
+				});
+			}
+		} catch (error) {
+			console.error('Failed to save exchange rate:', error);
+		} finally {
+			setIsSavingRate(false);
+		}
+	};
+
+	// Display exchange rate - faol rate yoki default
+	const activeRate = exchangeRatesData?.results.find((rate) => rate.is_active === true);
+	const displayRate = activeRate?.rate || USD_RATE;
 
 	// Back button faqat order pagelarda ko'rsatiladi
 	const shouldShowBack = showBackButton && location.pathname.startsWith('/order');
@@ -292,10 +481,22 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 									<span className='text-xs font-semibold'>{user.order_filial_detail?.name}</span>
 								</div>
 							)}
-							<div className='hidden md:flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm'>
+							<div
+								className={`hidden md:flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm ${
+									isSuperadmin && shouldShowExchangeRateDialog
+										? 'cursor-pointer hover:bg-white/30 transition-colors'
+										: ''
+								}`}
+								onClick={isSuperadmin && shouldShowExchangeRateDialog ? handleOpenExchangeRateDialog : undefined}
+								title={
+									isSuperadmin && shouldShowExchangeRateDialog
+										? 'Dollar kursini o\'zgartirish'
+										: undefined
+								}
+							>
 								<DollarSign className='w-4 h-4 text-white/90 shrink-0' />
 								<span className='text-xs font-semibold whitespace-nowrap'>
-									1 USD = {USD_RATE.toLocaleString()} UZS
+									1 USD = {displayRate.toLocaleString()} UZS
 								</span>
 							</div>
 						</div>
@@ -335,9 +536,9 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 								{pulseActive && (
 									<span className='pointer-events-none absolute -inset-1 rounded-xl ring-2 ring-amber-300/70 opacity-90 animate-ping' />
 								)}
-								{unreadNotesCount > 0 && (
+								{totalUnreadCount > 0 && (
 									<span className='absolute right-1.5 top-1.5 flex h-[18px] min-w-[18px] px-1 items-center justify-center rounded-full bg-amber-500 text-[10px] font-extrabold text-white border-2 border-white/10'>
-										{unreadNotesCount > 99 ? '99+' : unreadNotesCount}
+										{totalUnreadCount > 99 ? '99+' : totalUnreadCount}
 									</span>
 								)}
 							</div>
@@ -346,20 +547,24 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 								<div className='absolute right-0 mt-2 w-[340px] p-1.5 z-50 rounded-lg border border-white/20 bg-slate-900/85 backdrop-blur-sm text-white shadow-lg'>
 									<p className='px-2 py-1.5 text-xs font-semibold text-white/80'>Bildirishnomalar</p>
 									<div className='max-h-[360px] overflow-y-auto'>
-										{unreadNotes.length === 0 ? (
+										{combinedUnreadNotes.length === 0 ? (
 											<p className='px-2 py-4 text-sm text-white/70 text-center'>
 												O'qilmagan bildirishnoma yo'q
 											</p>
 										) : (
 											<div className='space-y-1 pb-1'>
-												{unreadNotes.map((note) => (
+												{combinedUnreadNotes.map((note) => (
 													<div
 														key={note.id}
 														className='cursor-pointer rounded-xl border border-white/10 bg-slate-800/70 p-0 hover:bg-slate-800/80 transition-colors'
 														onClick={(e) => {
 															e.preventDefault();
 															e.stopPropagation();
-															handleNoteClick(note);
+															// Socket notification bo'lsa, o'chiramiz
+															if (socketNotifications.some((sn) => sn.id === note.id)) {
+																dismissSocketNotification(note.id);
+															}
+															handleNoteClick(note as NoteItem);
 														}}
 													>
 														<div className='w-full p-2.5'>
@@ -367,8 +572,16 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 																<p className='text-sm font-semibold leading-5 line-clamp-1 text-white'>
 																	{note.title || 'Sarlavha'}
 																</p>
-																<span className='shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-500/20 text-blue-100'>
-																	Yangi
+																<span
+																	className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+																		note.status === 'expired'
+																			? 'bg-red-500/20 text-red-200'
+																			: 'bg-blue-500/20 text-blue-100'
+																	}`}
+																>
+																	{note.status === 'expired'
+																		? "Muddati o'tgan"
+																		: 'Yangi'}
 																</span>
 															</div>
 															<p className='mt-1 text-xs text-white/80 line-clamp-2'>
@@ -378,13 +591,6 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 																<p className='text-[11px] text-white/70'>
 																	{formatNoteDate(note.date || note.created_at)}
 																</p>
-																<span className='text-[11px] text-white/70'>
-																	{note.status === 'done'
-																		? 'Bajarilgan'
-																		: note.status === 'expired'
-																			? "Muddati o'tgan"
-																			: 'Yangi'}
-																</span>
 															</div>
 														</div>
 													</div>
@@ -473,6 +679,58 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
+
+			{/* Exchange Rate Dialog - Faqat Superadmin uchun */}
+			{isSuperadmin && (
+				<Dialog open={isExchangeRateDialogOpen} onOpenChange={setIsExchangeRateDialogOpen}>
+					<DialogContent className='sm:max-w-[400px]'>
+						<DialogHeader>
+							<DialogTitle>
+								{inactiveExchangeRate
+									? 'Dollar kursini o\'zgartirish'
+									: 'Dollar kursini yaratish'}
+							</DialogTitle>
+							<DialogDescription>
+								{inactiveExchangeRate
+									? 'Joriy dollar kursini yangilang'
+									: 'Yangi dollar kursini kiriting'}
+							</DialogDescription>
+						</DialogHeader>
+						<div className='space-y-4 py-4'>
+							<div>
+								<label className='block text-sm font-medium text-gray-700 mb-2'>
+									Dollar kursi (UZS)
+								</label>
+								<Input
+									type='number'
+									min='0'
+									step='1'
+									value={exchangeRateValue}
+									onChange={(e) => setExchangeRateValue(e.target.value)}
+									placeholder='Masalan: 12350'
+									className='w-full'
+									disabled={isSavingRate}
+								/>
+							</div>
+						</div>
+						<DialogFooter>
+							<Button
+								variant='outline'
+								onClick={() => {
+									setIsExchangeRateDialogOpen(false);
+									setExchangeRateValue('');
+								}}
+								disabled={isSavingRate}
+							>
+								Bekor qilish
+							</Button>
+							<Button onClick={handleSaveExchangeRate} disabled={isSavingRate || !exchangeRateValue}>
+								{isSavingRate ? 'Saqlanmoqda...' : 'Saqlash'}
+							</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
+			)}
 		</div>
 	);
 }

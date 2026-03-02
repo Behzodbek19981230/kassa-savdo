@@ -251,18 +251,23 @@ export function PaymentModal({
 							</div>
 						</div>
 						<div className='flex items-center gap-2'>
-							<div className='flex items-center gap-1 bg-white/80 border-2 border-indigo-200 rounded-xl px-3 py-1.5 shadow-sm'>
+							<label
+								htmlFor='orderStatus'
+								className={`flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-md border-2 cursor-pointer transition-all ${
+									orderStatusChecked
+										? 'bg-gradient-to-r from-emerald-500 to-green-600 border-emerald-400'
+										: 'bg-gradient-to-r from-red-500 to-rose-600 border-red-400 animate-pulse'
+								}`}
+							>
 								<input
 									type='checkbox'
 									id='orderStatus'
 									checked={orderStatusChecked}
 									onChange={(e) => setOrderStatusChecked(e.target.checked)}
-									className='w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500'
+									className='w-5 h-5 text-white border-2 border-white rounded focus:ring-0 cursor-pointer accent-white'
 								/>
-								<label htmlFor='orderStatus' className='text-sm text-gray-700'>
-									Tasdiqlandimi?
-								</label>
-							</div>
+								<span className='text-base font-bold text-white select-none'>Tasdiqlandimi?</span>
+							</label>
 							<button
 								onClick={handlePrint}
 								className='px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors flex items-center space-x-2'

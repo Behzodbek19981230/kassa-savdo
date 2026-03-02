@@ -32,8 +32,11 @@ export interface Product {
 	size?: number | string;
 	unitCode?: string;
 	branchId?: number;
+	branch?: number;
 	modelId?: number;
+	model?: number;
 	typeId?: number;
+	type?: number;
 	sizeId?: number;
 	unitPrice?: number; // unit_price
 	wholesalePrice?: number; // wholesale_price

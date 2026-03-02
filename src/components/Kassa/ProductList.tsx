@@ -173,14 +173,16 @@ export function ProductList({
 
 	// Image click handler
 	const handleImageClick = async (product: Product) => {
-		if (!product.productId) return;
+		console.log(product.id);
+
+		if (!product.id) return;
 
 		setIsImageModalOpen(true);
 		setIsLoadingImages(true);
 		setCurrentImageIndex(0);
 
 		try {
-			const images = await productService.getProductImages(product.productId);
+			const images = await productService.getProductImages(Number(product.id));
 			setSelectedProductImages(images);
 		} catch (error) {
 			console.error('Failed to load product images:', error);

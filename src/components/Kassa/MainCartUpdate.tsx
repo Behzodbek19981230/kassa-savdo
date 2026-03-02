@@ -56,7 +56,7 @@ export function MainCartUpdate({
 		const typeDetail = op.type_detail ?? null;
 		const sizeDetail = op.size_detail ?? null;
 
-		const quantity = op.given_count != null ? op.given_count : (op.count ?? 0);
+		const quantity = op.count ?? 0;
 
 		const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : USD_RATE;
 
@@ -177,7 +177,9 @@ export function MainCartUpdate({
 			id: String(raw.id),
 			productId: productDetail.id ?? raw.product,
 			name: nameParts || `Mahsulot #${productDetail.id ?? raw.product}`,
-			price: parseFloat(raw.unit_price ?? raw.real_price ?? raw.price_sum ?? '0') || 0,
+			price: parseFloat(raw.price_sum ?? '0') || 0,
+			price_sum: parseFloat(raw.price_sum ?? '0') || 0,
+			price_dollar: parseFloat(raw.price_dollar ?? '0') || 0,
 			stock: productDetail.count ?? raw.count ?? 0,
 			unit: sizeDetail.unit_code ?? sizeDetail.unit_detail?.code ?? 'dona',
 			unitCode: sizeDetail.unit_code ?? sizeDetail.unit_detail?.code ?? 'dona',
@@ -200,7 +202,6 @@ export function MainCartUpdate({
 	const handleConfirmEditOrderProduct = async (
 		quantity: number,
 		priceInSum: number,
-		_priceType: 'unit' | 'wholesale',
 		options: { skladId: number; currencyId?: number; priceDollar?: number; priceSum?: number },
 	) => {
 		// find corresponding raw record by matching productForModal id
@@ -210,9 +211,9 @@ export function MainCartUpdate({
 			await orderService.updateOrderProduct(rawId, {
 				count: quantity,
 				sklad: options.skladId,
-				price_sum: options.priceSum,
-				price_dollar: options.priceDollar,
-				currency: options.currencyId,
+				// price_sum: options.priceSum,
+				// price_dollar: options.priceDollar,
+				// currency: options.currencyId,
 			});
 			showSuccess('Mahsulot muvaffaqiyatli yangilandi');
 			setIsProductModalOpen(false);

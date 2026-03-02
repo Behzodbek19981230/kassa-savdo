@@ -83,7 +83,7 @@ export function Cart({
 		const typeDetail = op.type_detail ?? null;
 		const sizeDetail = op.size_detail ?? null;
 
-		const quantity = op.given_count != null ? op.given_count : (op.count ?? 0);
+		const quantity = op.count ?? 0;
 
 		const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : USD_RATE;
 

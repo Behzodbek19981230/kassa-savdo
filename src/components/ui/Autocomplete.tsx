@@ -48,6 +48,12 @@ export function Autocomplete({
 	const listRef = React.useRef<HTMLDivElement>(null);
 	const serverSearch = typeof onSearchChange === 'function';
 
+	// onSearchChange funksiyasini ref da saqlash - dependency muammosini oldini olish
+	const onSearchChangeRef = React.useRef(onSearchChange);
+	React.useEffect(() => {
+		onSearchChangeRef.current = onSearchChange;
+	}, [onSearchChange]);
+
 	React.useEffect(() => {
 		const option = options.find((opt) => opt.value === value);
 		setSelectedOption(option || null);
@@ -57,10 +63,10 @@ export function Autocomplete({
 	React.useEffect(() => {
 		if (!serverSearch) return;
 		const t = setTimeout(() => {
-			onSearchChange?.(searchQuery.trim());
+			onSearchChangeRef.current?.(searchQuery.trim());
 		}, SEARCH_DEBOUNCE_MS);
 		return () => clearTimeout(t);
-	}, [searchQuery, serverSearch, onSearchChange]);
+	}, [searchQuery, serverSearch]);
 
 	// Reset search when popover closes
 	React.useEffect(() => {

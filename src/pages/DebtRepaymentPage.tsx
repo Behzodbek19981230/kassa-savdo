@@ -139,6 +139,18 @@ export function DebtRepaymentPage() {
 		queryClient.invalidateQueries({ queryKey: ['debt-repayments-grouped'] });
 	};
 
+	const onSearchEmployeeQueryChange = async (q: string) => {
+		const res = await userService.getUsers({ search: q || '', limit: 100 });
+		const items = res.results || [];
+		setEmployeeOptions(
+			items.map((u: any) => ({
+				id: String(u.id),
+				label: u.full_name || u.username || `ID:${u.id}`,
+				value: String(u.id),
+			})),
+		);
+	};
+
 	return (
 		<div className='h-full flex flex-col p-4 sm:p-6'>
 			<div className='bg-white rounded-2xl shadow-xl p-4 sm:p-6 min-h-[400px] border border-gray-100 overflow-hidden flex-1 flex flex-col'>
@@ -177,17 +189,7 @@ export function DebtRepaymentPage() {
 								options={employeeOptions}
 								value={selectedEmployeeId ? String(selectedEmployeeId) : ''}
 								onChange={(v) => setSelectedEmployeeId(v ? Number(v) : null)}
-								onSearchChange={async (q) => {
-									const res = await userService.getUsers({ search: q || '', limit: 100 });
-									const items = res.results || [];
-									setEmployeeOptions(
-										items.map((u: any) => ({
-											id: String(u.id),
-											label: u.full_name || u.username || `ID:${u.id}`,
-											value: String(u.id),
-										})),
-									);
-								}}
+								onSearchChange={onSearchEmployeeQueryChange}
 								placeholder="Xodim bo'yicha filtrlash"
 							/>
 						</div>
