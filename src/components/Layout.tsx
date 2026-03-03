@@ -2,6 +2,7 @@ import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import {
 	ArrowLeft,
 	DollarSign,
+	AlertTriangle,
 	User,
 	Building2,
 	LogOut,
@@ -735,15 +736,23 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 			{/* Active rate bo'lmaganda bloklovchi info modal */}
 			<Dialog open={shouldBlockByMissingActiveRate} onOpenChange={() => {}}>
 				<DialogContent
-					className='sm:max-w-[420px] [&>button]:hidden'
+					className='sm:max-w-[460px] [&>button]:hidden border-0 bg-gradient-to-br from-amber-50 via-white to-red-50 shadow-2xl'
 					onEscapeKeyDown={(e) => e.preventDefault()}
 					onPointerDownOutside={(e) => e.preventDefault()}
 					aria-describedby='missing-active-rate-desc'
 				>
-					<DialogHeader>
-						<DialogTitle>Ma'lumot kiritilmagan</DialogTitle>
-						<DialogDescription id='missing-active-rate-desc'>
-							Kunlik ko'rsatkich kiritilmagan. Iltimos, faol dollar kursi kiritilguncha kuting.
+					<DialogHeader className='space-y-4'>
+						<div className='mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-amber-600 shadow-sm'>
+							<AlertTriangle className='h-7 w-7' />
+						</div>
+						<DialogTitle className='text-center text-xl font-bold text-slate-900'>
+							Dollar kursi yangilanmagan!
+						</DialogTitle>
+						<DialogDescription
+							id='missing-active-rate-desc'
+							className='text-center text-sm leading-6 text-slate-600'
+						>
+							Admin bilan bog'lanib kursni yangilashni so'rang.
 						</DialogDescription>
 					</DialogHeader>
 				</DialogContent>
