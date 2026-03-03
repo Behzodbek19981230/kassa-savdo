@@ -67,26 +67,25 @@ export function renderReceiptHtml(props: ReceiptProps) {
 	const rows = items
 		.map((it, i) => {
 			const priceInUsd = Math.round(Number(it.price || 0) / usdRate);
-			const totalPriceInUsd = Math.round(Number(it.totalPrice || 0) / usdRate);
+			const totalPriceInUsd = Math.round(Number((it as any).totalPrice ?? it.priceSum ?? 0) / usdRate);
 			const model = (it as any).modelName || '-';
 			const unit = it.unit || (it as any).unitCode || '-';
-			const joy = (it as any).joy || '';
 			return `
         <tr>
-          <td style="border:1px solid #000;padding:6px;text-align:center">${i + 1}</td>
-          <td style="border:1px solid #000;padding:6px;text-align:center">${escapeHtml(model)}</td>
-          <td style="border:1px solid #000;padding:6px;text-align:center">${escapeHtml(String(it.name || '-'))}</td>
-          <td style="border:1px solid #000;padding:6px;text-align:center">${Number(it.quantity || 0)}</td>
-					<td style="border:1px solid #000;padding:6px;text-align:center">${escapeHtml(unit)}</td>
-          <td style="border:1px solid #000;padding:6px;text-align:center">${priceInUsd}</td>
-          <td style="border:1px solid #000;padding:6px;text-align:center">${totalPriceInUsd}</td>
+						<td class="cell cell-center">${i + 1}</td>
+						<td class="cell cell-left">${escapeHtml(model)}</td>
+						<td class="cell cell-left">${escapeHtml(String(it.name || '-'))}</td>
+						<td class="cell cell-center">${Number(it.quantity || 0)}</td>
+						<td class="cell cell-center">${escapeHtml(unit)}</td>
+						<td class="cell cell-right">${priceInUsd}</td>
+						<td class="cell cell-right">${totalPriceInUsd}</td>
         </tr>`;
 		})
 		.join('\n');
 
 	// If hodimLayout requested, build a simplified rows string using JOY, MODEL, NOMI, TIP, SONI
 	const hodimRows = items
-		.map((it, i) => {
+		.map((it) => {
 			const joy = escapeHtml(((it as any).joy as string) || '');
 			const model = escapeHtml(((it as any).modelName as string) || '-');
 			const name = escapeHtml(String(it.name || '-'));
@@ -167,74 +166,123 @@ export function renderReceiptHtml(props: ReceiptProps) {
     <meta charset="utf-8" />
     <title>Receipt ${orderNumber}</title>
     <style>
-      @page { size: A4 landscape; margin: 10mm; }
-      body { font-family: "Times New Roman", serif; margin:0; padding:0; background:#fff }
-      .page { width: 297mm; padding: 10mm; box-sizing: border-box }
-      img.print-logo { display:block; width:120px; height:auto; margin-bottom:12px }
-      table { width:100%; border-collapse:collapse; margin-top:25px; font-size:14px }
-      th, td { border:1px solid #000; padding:6px; text-align:center }
-      th { background:#f5f5f5; font-weight:bold }
+			* {
+				box-sizing: border-box;
+				-webkit-print-color-adjust: exact !important;
+				print-color-adjust: exact !important;
+				color-adjust: exact !important;
+			}
+			@page { size: A4 portrait; margin: 10mm; }
+			body { font-family: "Times New Roman", serif; margin:0; padding:0; background:#fff; color:#000 }
+			.page { width: 190mm; padding: 0; margin: 0 auto; }
+			img.print-logo { display:block; width:90px; height:auto; margin-bottom:8px }
+			table { width:100%; border-collapse:collapse; margin-top:16px; font-size:10px; table-layout:fixed }
+			th, td {
+				border:1px solid #000;
+				padding:3px 2px;
+				text-align:center;
+				vertical-align:middle;
+				word-break:break-word;
+				overflow-wrap:anywhere;
+			}
+			th { background:#e9eef8 !important; font-weight:bold; font-size:9.5px; line-height:1.2 }
+			.cell { border:1px solid #000; padding:3px 2px; }
+			.cell-left { text-align:left; }
+			.cell-center { text-align:center; }
+			.cell-right { text-align:right; }
+			.col-no { width:7% }
+			.col-model { width:19% }
+			.col-name { width:25% }
+			.col-qty { width:9% }
+			.col-type { width:14% }
+			.col-price { width:13% }
+			.col-total { width:13% }
+			.head-wrap { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px }
+			.info-wrap { display:flex; justify-content:space-between; gap:20px; font-size:12px }
+			.summary { margin-top:18px; display:flex; justify-content:space-between; gap:14px; font-size:12px; line-height:1.35 }
+			.summary-main { width:62% }
+			.summary-side { width:36%; text-align:right }
+			.debt { color:red; font-weight:bold; font-size:16px; margin-top:12px }
+
+			@media print {
+				html, body { width: 210mm; height: 297mm; }
+				body { background:#fff !important; }
+				.page { width: 190mm !important; }
+				table { page-break-inside:auto; }
+				tr { page-break-inside:avoid; page-break-after:auto; }
+				thead { display:table-header-group; }
+				th { background:#e9eef8 !important; }
+			}
     </style>
   </head>
   <body>
     <div id="receipt-print" class="page">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-        <div style="width:140px;flex-shrink:0">
+			<div class="head-wrap">
+				<div style="width:95px;flex-shrink:0">
           <img class="print-logo" src="${logoUrl}" alt="Logo" onerror="this.style.display='none'" />
         </div>
         <div style="flex:1;text-align:center;padding:0 10px">
-          <div style="font-size:20px;font-weight:bold;margin-bottom:6px">${formattedDate}</div>
-          <div style="font-size:20px;font-weight:bold;color:red">${escapeHtml(customerName)}</div>
+					<div style="font-size:16px;font-weight:bold;margin-bottom:4px">${formattedDate}</div>
+					<div style="font-size:17px;font-weight:bold;color:red">${escapeHtml(customerName)}</div>
         </div>
-        <div style="width:140px"></div>
+				<div style="width:95px"></div>
       </div>
-      <hr style="margin:20px 0 30px" />
+			<hr style="margin:10px 0 14px" />
 
-      <div style="display:flex;justify-content:space-between;gap:40px;font-size:15px">
+			<div class="info-wrap">
         <div style="width:48%">
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:bold">Do'kon:</span><span style="text-align:right">${escapeHtml(filialName)}</span></div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:bold">Firma:</span><span style="text-align:right">${escapeHtml(filialName)}</span></div>
-          ${filialPhone ? `<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:bold">Telefon:</span><span style="text-align:right">${escapeHtml(filialPhone)}</span></div>` : ''}
+					<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold">Do'kon:</span><span style="text-align:right">${escapeHtml(filialName)}</span></div>
+					<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold">Firma:</span><span style="text-align:right">${escapeHtml(filialName)}</span></div>
+					${filialPhone ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold">Telefon:</span><span style="text-align:right">${escapeHtml(filialPhone)}</span></div>` : ''}
         </div>
         <div style="width:48%">
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:bold">${escapeHtml(filialName)}</span><span></span></div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:bold;color:green">Dollar kursi:</span><span style="text-align:right;color:green;font-weight:bold">${Number(usdRate).toLocaleString()} so'm</span></div>
-          ${filialAddress ? `<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:bold">Manzil:</span><span style="text-align:right">${escapeHtml(filialAddress)}</span></div>` : ''}
-          ${filialPhone ? `<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:bold">Telefon:</span><span style="text-align:right">${escapeHtml(filialPhone)}</span></div>` : ''}
+					<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold">${escapeHtml(filialName)}</span><span></span></div>
+					<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold;color:green">Dollar kursi:</span><span style="text-align:right;color:green;font-weight:bold">${Number(usdRate).toLocaleString()} so'm</span></div>
+					${filialAddress ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold">Manzil:</span><span style="text-align:right">${escapeHtml(filialAddress)}</span></div>` : ''}
+					${filialPhone ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold">Telefon:</span><span style="text-align:right">${escapeHtml(filialPhone)}</span></div>` : ''}
         </div>
       </div>
 
-      <table>
+			<table>
+				<colgroup>
+					<col class="col-no" />
+					<col class="col-model" />
+					<col class="col-name" />
+					<col class="col-qty" />
+					<col class="col-type" />
+					<col class="col-price" />
+					<col class="col-total" />
+				</colgroup>
         <thead>
           <tr>
-            <th>№</th>
-            <th>MODEL</th>
-            <th>NOMI</th>
-            <th>SONI</th>
-            <th>TIP</th>
-            <th>NARXI ($)</th>
-            <th>UMUMIY NARXI ($)</th>
+						<th class="col-no">№</th>
+						<th class="col-model">MODEL</th>
+						<th class="col-name">NOMI</th>
+						<th class="col-qty">SONI</th>
+						<th class="col-type">TIP</th>
+						<th class="col-price">NARXI ($)</th>
+						<th class="col-total">UMUMIY NARXI ($)</th>
           </tr>
         </thead>
         <tbody>
           ${rows}
           <tr>
-            <td colspan="6" style="text-align:center"><b>Jami</b></td>
-            <td style="text-align:center"><b>${totalInUsd.toFixed(2)}</b></td>
+						<td colspan="6" class="cell cell-center"><b>Jami</b></td>
+						<td class="cell cell-right"><b>${totalInUsd.toFixed(2)}</b></td>
           </tr>
         </tbody>
       </table>
 
-      <div style="margin-top:30px;display:flex;justify-content:space-between;font-size:16px">
-        <div style="width:60%">
-          <div style="color:orange;font-weight:bold;font-size:18px">Ostatka ($): ${totalInUsd.toFixed(2)} $</div>
+			<div class="summary">
+				<div class="summary-main">
+					<div style="color:orange;font-weight:bold;font-size:14px">Ostatka ($): ${totalInUsd.toFixed(2)} $</div>
           <div>Olingan tovarlar summasi ($): ${totalInUsd.toFixed(2)} $</div>
           <div>Jami to'langan summa ($): ${paidInUsd.toFixed(2)} $</div>
         </div>
-        <div style="width:38%;text-align:right">To'langan summa dollarda ($): ${paidInUsd.toFixed(2)} $</div>
+				<div class="summary-side">To'langan summa dollarda ($): ${paidInUsd.toFixed(2)} $</div>
       </div>
 
-      <div style="color:red;font-weight:bold;font-size:20px;margin-top:20px">Qolgan qarz ($): ${remainingInUsd.toFixed(2)} $</div>
+			<div class="debt">Qolgan qarz ($): ${remainingInUsd.toFixed(2)} $</div>
     </div>
   </body>
   </html>`;
@@ -251,11 +299,11 @@ function escapeHtml(str: string) {
 export function Receipt({
 	items,
 	totalAmount,
-	usdAmount,
+	usdAmount: _usdAmount,
 	usdRate,
 	customer,
-	kassirName,
-	orderNumber,
+	kassirName: _kassirName,
+	orderNumber: _orderNumber,
 	date,
 	paidAmount = 0,
 	remainingDebt,
@@ -470,7 +518,7 @@ export function Receipt({
 							<th
 								style={{
 									border: '1px solid #000',
-									padding: '3px 4px',
+									padding: '3px 1px',
 									textAlign: 'center',
 									background: '#f5f5f5',
 									fontWeight: 'bold',
@@ -481,7 +529,7 @@ export function Receipt({
 							<th
 								style={{
 									border: '1px solid #000',
-									padding: '3px 4px',
+									padding: '3px 1px',
 									textAlign: 'center',
 									background: '#f5f5f5',
 									fontWeight: 'bold',
@@ -492,7 +540,7 @@ export function Receipt({
 							<th
 								style={{
 									border: '1px solid #000',
-									padding: '3px 4px',
+									padding: '3px 1px',
 									textAlign: 'center',
 									background: '#f5f5f5',
 									fontWeight: 'bold',
@@ -503,7 +551,7 @@ export function Receipt({
 							<th
 								style={{
 									border: '1px solid #000',
-									padding: '3px 4px',
+									padding: '3px 1px',
 									textAlign: 'center',
 									background: '#f5f5f5',
 									fontWeight: 'bold',
@@ -514,7 +562,7 @@ export function Receipt({
 							<th
 								style={{
 									border: '1px solid #000',
-									padding: '3px 4px',
+									padding: '3px 1px',
 									textAlign: 'center',
 									background: '#f5f5f5',
 									fontWeight: 'bold',
@@ -525,7 +573,7 @@ export function Receipt({
 							<th
 								style={{
 									border: '1px solid #000',
-									padding: '3px 4px',
+									padding: '3px 1px',
 									textAlign: 'center',
 									background: '#f5f5f5',
 									fontWeight: 'bold',
@@ -536,7 +584,7 @@ export function Receipt({
 							<th
 								style={{
 									border: '1px solid #000',
-									padding: '3px 4px',
+									padding: '3px 1px',
 									textAlign: 'center',
 									background: '#f5f5f5',
 									fontWeight: 'bold',
@@ -549,28 +597,36 @@ export function Receipt({
 					<tbody>
 						{items.map((it, i) => {
 							const priceInUsd = (it.price / usdRate).toFixed(0);
-							const totalPriceInUsd = (it.totalPrice / usdRate).toFixed(0);
+							const totalPriceInUsd = (
+								Number((it as any).totalPrice ?? it.priceSum ?? 0) / usdRate
+							).toFixed(0);
 							return (
 								<tr key={it.id}>
-									<td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'center' }}>
+									<td style={{ border: '1px solid #000', padding: '2px 1px', textAlign: 'center' }}>
 										{i + 1}
 									</td>
-									<td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'center' }}>
+									<td
+										style={{
+											border: '1px solid #000',
+											padding: '2px 1px    ',
+											textAlign: 'center',
+										}}
+									>
 										{(it as any).modelName || '-'}
 									</td>
-									<td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'left' }}>
+									<td style={{ border: '1px solid #000', padding: '2px 1px', textAlign: 'left' }}>
 										{it.name}
 									</td>
-									<td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'center' }}>
+									<td style={{ border: '1px solid #000', padding: '2px 1px', textAlign: 'center' }}>
 										{it.quantity}
 									</td>
-									<td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'center' }}>
+									<td style={{ border: '1px solid #000', padding: '2px 1px', textAlign: 'center' }}>
 										{it.unit || it.unitCode || '-'}
 									</td>
-									<td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'right' }}>
+									<td style={{ border: '1px solid #000', padding: '2px 1px', textAlign: 'right' }}>
 										{priceInUsd}
 									</td>
-									<td style={{ border: '1px solid #000', padding: '2px 4px', textAlign: 'right' }}>
+									<td style={{ border: '1px solid #000', padding: '2px 1px', textAlign: 'right' }}>
 										{totalPriceInUsd}
 									</td>
 								</tr>
