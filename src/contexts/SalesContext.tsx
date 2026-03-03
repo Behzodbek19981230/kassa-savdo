@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Sale } from '../types';
-import { USD_RATE } from '../constants';
+import { useExchangeRate } from './ExchangeRateContext';
 
-const MOCK_SALES: Sale[] = (() => {
+const createMockSales = (displayRate: number): Sale[] => {
 	const now = new Date();
 	const mkDate = (daysAgo: number, hh: number, mm: number) => {
 		const d = new Date(now);
@@ -145,21 +145,21 @@ const MOCK_SALES: Sale[] = (() => {
 				{
 					id: 'p-6-1',
 					name: 'USD (hisob-kitob)',
-					price: USD_RATE,
+					price: displayRate,
 					stock: 0,
 					unit: 'xizmat',
 					quantity: 10,
-					totalPrice: 10 * USD_RATE,
+					totalPrice: 10 * displayRate,
 				},
 			],
-			totalAmount: 10 * USD_RATE,
-			paidAmount: 10 * USD_RATE,
+			totalAmount: 10 * displayRate,
+			paidAmount: 10 * displayRate,
 			customer: { id: 'c-6', name: 'Umumiy' },
 			kassirName: 'Admin',
-			paymentMethods: { cash: 10 * USD_RATE },
+			paymentMethods: { cash: 10 * displayRate },
 		},
 	];
-})();
+};
 
 interface SalesContextType {
 	sales: Sale[];
@@ -170,6 +170,7 @@ interface SalesContextType {
 const SalesContext = createContext<SalesContextType | undefined>(undefined);
 
 export function SalesProvider({ children }: { children: ReactNode }) {
+	const { displayRate } = useExchangeRate();
 	const [sales, setSales] = useState<Sale[]>([]);
 
 	useEffect(() => {
@@ -191,8 +192,8 @@ export function SalesProvider({ children }: { children: ReactNode }) {
 		}
 
 		// Demo/mock: agar localStorage bo'sh bo'lsa, savdolar ro'yxatiga mock data qo'yamiz
-		setSales(MOCK_SALES);
-	}, []);
+		setSales(createMockSales(displayRate));
+	}, [displayRate]);
 
 	useEffect(() => {
 		// Savdolarni saqlash

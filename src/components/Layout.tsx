@@ -12,11 +12,12 @@ import {
 	Bell,
 } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { startNotesWs, stopNotesWs } from '../services/notesWs';
 import { useNotesAll, useUpdateNote } from '../hooks/api/useNotes';
 import { useAuth } from '../contexts/AuthContext';
-import { USD_RATE, ROUTES } from '../constants';
+import { ROUTES } from '../constants';
+import { useExchangeRate } from '../contexts/ExchangeRateContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from './ui/sheet';
 import { NotesPanel } from './NotesPanel';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -53,8 +54,15 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const ddRef = useRef<HTMLDivElement | null>(null);
 	const [isExchangeRateDialogOpen, setIsExchangeRateDialogOpen] = useState(false);
-	const [exchangeRateValue, setExchangeRateValue] = useState<string>('');
+	const [exchangeRateValue, setExchangeRateValue] = useState<number>(0);
 	const [isSavingRate, setIsSavingRate] = useState(false);
+	const {
+		exchangeRatesData,
+		activeRate,
+		displayRate,
+		isLoading: isExchangeRatesLoading,
+		refetchExchangeRate,
+	} = useExchangeRate();
 
 	// Socket orqali kelgan real-time notificationlar
 	const [socketNotifications, setSocketNotifications] = useState<
@@ -275,18 +283,12 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 	const isSuperadmin = useMemo(() => {
 		return (
 			user?.role_detail?.some(
-				(role) => role.name.toLowerCase() === 'superadmin' || role.name.toLowerCase() === 'super admin'
+				(role) => role.name.toLowerCase() === 'superadmin' || role.name.toLowerCase() === 'super admin',
 			) ?? false
 		);
 	}, [user]);
 
-	// Exchange rates olish (is_active false bo'lganini topish uchun)
-	const { data: exchangeRatesData, refetch: refetchExchangeRate } = useQuery({
-		queryKey: ['exchange-rates'],
-		queryFn: () => exchangeRateService.getExchangeRates(),
-		enabled: isSuperadmin,
-		staleTime: 60_000,
-	});
+	const shouldBlockByMissingActiveRate = !isExchangeRatesLoading && !activeRate;
 
 	// is_active false bo'lgan exchange rate yoki mavjud bo'lmagan holat
 	const inactiveExchangeRate = useMemo(() => {
@@ -310,7 +312,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 			showSuccess('Dollar kursi muvaffaqiyatli yangilandi');
 			refetchExchangeRate();
 			setIsExchangeRateDialogOpen(false);
-			setExchangeRateValue('');
+			setExchangeRateValue(displayRate);
 		},
 		onError: (error: any) => {
 			showError(error?.response?.data?.detail || 'Dollar kursini yangilashda xatolik');
@@ -323,10 +325,10 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 		// Agar is_active false bo'lsa yoki mavjud bo'lmasa, dialog ochiladi
 		if (inactiveExchangeRate) {
 			// Update mode - is_active false bo'lgan rate
-			setExchangeRateValue(String(inactiveExchangeRate.rate));
+			setExchangeRateValue(inactiveExchangeRate.dollar);
 		} else {
 			// Create mode - rate mavjud emas
-			setExchangeRateValue(String(USD_RATE));
+			setExchangeRateValue(displayRate);
 		}
 		setIsExchangeRateDialogOpen(true);
 	};
@@ -335,7 +337,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 	const handleSaveExchangeRate = async () => {
 		const rate = Number(exchangeRateValue);
 		if (isNaN(rate) || rate <= 0) {
-			showError('Noto\'g\'ri kurs qiymati');
+			showError("Noto'g'ri kurs qiymati");
 			return;
 		}
 
@@ -359,10 +361,6 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 			setIsSavingRate(false);
 		}
 	};
-
-	// Display exchange rate - faol rate yoki default
-	const activeRate = exchangeRatesData?.results.find((rate) => rate.is_active === true);
-	const displayRate = activeRate?.rate || USD_RATE;
 
 	// Back button faqat order pagelarda ko'rsatiladi
 	const shouldShowBack = showBackButton && location.pathname.startsWith('/order');
@@ -487,16 +485,20 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 										? 'cursor-pointer hover:bg-white/30 transition-colors'
 										: ''
 								}`}
-								onClick={isSuperadmin && shouldShowExchangeRateDialog ? handleOpenExchangeRateDialog : undefined}
+								onClick={
+									isSuperadmin && shouldShowExchangeRateDialog
+										? handleOpenExchangeRateDialog
+										: undefined
+								}
 								title={
 									isSuperadmin && shouldShowExchangeRateDialog
-										? 'Dollar kursini o\'zgartirish'
+										? "Dollar kursini o'zgartirish"
 										: undefined
 								}
 							>
 								<DollarSign className='w-4 h-4 text-white/90 shrink-0' />
 								<span className='text-xs font-semibold whitespace-nowrap'>
-									1 USD = {displayRate.toLocaleString()} UZS
+									1 USD = {displayRate} UZS
 								</span>
 							</div>
 						</div>
@@ -686,9 +688,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 					<DialogContent className='sm:max-w-[400px]'>
 						<DialogHeader>
 							<DialogTitle>
-								{inactiveExchangeRate
-									? 'Dollar kursini o\'zgartirish'
-									: 'Dollar kursini yaratish'}
+								{inactiveExchangeRate ? "Dollar kursini o'zgartirish" : 'Dollar kursini yaratish'}
 							</DialogTitle>
 							<DialogDescription>
 								{inactiveExchangeRate
@@ -706,7 +706,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 									min='0'
 									step='1'
 									value={exchangeRateValue}
-									onChange={(e) => setExchangeRateValue(e.target.value)}
+									onChange={(e) => setExchangeRateValue(Number(e.target.value))}
 									placeholder='Masalan: 12350'
 									className='w-full'
 									disabled={isSavingRate}
@@ -718,7 +718,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 								variant='outline'
 								onClick={() => {
 									setIsExchangeRateDialogOpen(false);
-									setExchangeRateValue('');
+									setExchangeRateValue(displayRate);
 								}}
 								disabled={isSavingRate}
 							>
@@ -731,6 +731,23 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 					</DialogContent>
 				</Dialog>
 			)}
+
+			{/* Active rate bo'lmaganda bloklovchi info modal */}
+			<Dialog open={shouldBlockByMissingActiveRate} onOpenChange={() => {}}>
+				<DialogContent
+					className='sm:max-w-[420px] [&>button]:hidden'
+					onEscapeKeyDown={(e) => e.preventDefault()}
+					onPointerDownOutside={(e) => e.preventDefault()}
+					aria-describedby='missing-active-rate-desc'
+				>
+					<DialogHeader>
+						<DialogTitle>Ma'lumot kiritilmagan</DialogTitle>
+						<DialogDescription id='missing-active-rate-desc'>
+							Kunlik ko'rsatkich kiritilmagan. Iltimos, faol dollar kursi kiritilguncha kuting.
+						</DialogDescription>
+					</DialogHeader>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

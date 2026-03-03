@@ -4,7 +4,7 @@ import { Loader2, Banknote, CreditCard, AlertTriangle, Pencil, ChevronLeft, Prin
 import { orderService } from '../../services/orderService';
 import { OrderResponse } from '../../types';
 import { showError, showSuccess } from '../../lib/toast';
-import { USD_RATE } from '../../constants';
+import { useExchangeRate } from '../../contexts/ExchangeRateContext';
 import { Input } from '../ui/Input';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -24,6 +24,7 @@ interface OrderProductsByModelResponse {
 
 export function OrderShowPage() {
 	const { id } = useParams<{ id: string }>();
+	const { displayRate } = useExchangeRate();
 	const [data, setData] = useState<OrderProductsByModelResponse | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const handleBack = () => window.history.back();
@@ -138,7 +139,7 @@ export function OrderShowPage() {
 	}
 
 	const { order_history, products } = data;
-	const usdRate = order_history?.exchange_rate != null ? Number(order_history.exchange_rate) : USD_RATE;
+	const usdRate = order_history?.exchange_rate != null ? Number(order_history.exchange_rate) : displayRate;
 	const totalPaidUZS =
 		Number(order_history.summa_naqt || 0) +
 		Number(order_history.summa_dollar || 0) * usdRate +

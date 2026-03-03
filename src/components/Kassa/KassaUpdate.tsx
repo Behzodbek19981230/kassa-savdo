@@ -12,7 +12,8 @@ import { OrderResponse } from '../../types';
 import { productService, ProductResponse, ProductImage } from '../../services/productService';
 import { skladService, Sklad } from '../../services/skladService';
 import { showError, showSuccess } from '../../lib/toast';
-import { USD_RATE, ROUTES } from '../../constants';
+import { ROUTES } from '../../constants';
+import { useExchangeRate } from '../../contexts/ExchangeRateContext';
 import type { ProductModalConfirmOptions } from './ProductModal';
 import { MainCartUpdate } from './MainCartUpdate';
 
@@ -23,6 +24,7 @@ interface KassaUpdateProps {
 }
 export function KassaUpdate({ orderId, readOnly = false, updateMode = false }: KassaUpdateProps) {
 	const { user } = useAuth();
+	const { displayRate } = useExchangeRate();
 	const [cart, setCart] = useState<CartItem[]>([]);
 	const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 	const [searchQuery, setSearchQuery] = useState('');
@@ -303,7 +305,7 @@ export function KassaUpdate({ orderId, readOnly = false, updateMode = false }: K
 
 	const totalAmount =
 		(orderId ?? orderData?.id) ? totalAmountFromCart : cart.reduce((sum, item) => sum + (item.priceSum || 0), 0);
-	const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : USD_RATE;
+	const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : displayRate;
 
 	// order_filial yo'q bo'lsa, xabar ko'rsatish
 	if (user && !user.order_filial) {

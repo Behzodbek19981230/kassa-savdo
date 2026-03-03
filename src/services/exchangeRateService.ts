@@ -2,7 +2,7 @@ import api from './api';
 
 export interface ExchangeRate {
 	id: number;
-	rate: number;
+	dollar: number;
 	is_active: boolean;
 	created_at?: string;
 	updated_at?: string;
@@ -17,8 +17,12 @@ export interface ExchangeRateResponse {
 
 export const exchangeRateService = {
 	// Barcha exchange ratelarni olish
-	getExchangeRates: async (): Promise<ExchangeRateResponse> => {
-		const response = await api.get<ExchangeRateResponse>('/v1/exchange-rate/');
+	getExchangeRates: async ({ filial }: { filial?: number }): Promise<ExchangeRateResponse> => {
+		const params = new URLSearchParams();
+		if (filial !== undefined) {
+			params.append('filial', filial.toString());
+		}
+		const response = await api.get<ExchangeRateResponse>('/v1/exchange-rate', { params });
 		return response.data;
 	},
 

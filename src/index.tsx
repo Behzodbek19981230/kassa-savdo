@@ -1,10 +1,11 @@
 import './index.css';
-import React from "react";
-import { render } from "react-dom";
+import React from 'react';
+import { render } from 'react-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { App } from "./App";
-import { AuthProvider } from "./contexts/AuthContext";
-import { SalesProvider } from "./contexts/SalesContext";
+import { App } from './App';
+import { AuthProvider } from './contexts/AuthContext';
+import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
+import { SalesProvider } from './contexts/SalesContext';
 
 // React Query client yaratish
 const queryClient = new QueryClient({
@@ -18,12 +19,14 @@ const queryClient = new QueryClient({
 });
 
 render(
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <SalesProvider>
-        <App />
-      </SalesProvider>
-    </AuthProvider>
-  </QueryClientProvider>,
-  document.getElementById("root")
+	<QueryClientProvider client={queryClient}>
+		<AuthProvider>
+			<ExchangeRateProvider>
+				<SalesProvider>
+					<App />
+				</SalesProvider>
+			</ExchangeRateProvider>
+		</AuthProvider>
+	</QueryClientProvider>,
+	document.getElementById('root'),
 );

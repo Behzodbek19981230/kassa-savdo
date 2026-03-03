@@ -1,6 +1,5 @@
 import { Trash2, Plus, User, Loader2, DollarSign, X, Edit2 } from 'lucide-react';
 import { CartItem, Customer, OrderItem, OrderResponse } from '../../types';
-import { USD_RATE } from '../../constants';
 import { Autocomplete, AutocompleteOption } from '../ui/Autocomplete';
 import { useState, useEffect, useCallback } from 'react';
 import { clientService, Client } from '../../services/clientService';
@@ -11,6 +10,7 @@ import { ProductModal } from './ProductModal';
 import { orderService, vozvratOrderService } from '../../services/orderService';
 import { skladService } from '../../services/skladService';
 import { useNavigate } from 'react-router-dom';
+import { useExchangeRate } from '../../contexts/ExchangeRateContext';
 
 interface CartProps {
 	items: CartItem[];
@@ -55,6 +55,7 @@ export function Cart({
 	isVozvratOrder = false,
 }: CartProps) {
 	const { user } = useAuth();
+	const { displayRate } = useExchangeRate();
 	const navigate = useNavigate();
 	const [clients, setClients] = useState<Client[]>([]);
 	const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
@@ -85,10 +86,9 @@ export function Cart({
 
 		const quantity = op.count ?? 0;
 
-		const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : USD_RATE;
+		const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : displayRate;
 
 		let unitPriceSum = Number(op.price_sum) / op.count;
-		let totalPriceSum = op.price_sum;
 
 		let unitPriceDollar = unitPriceSum / exchangeRate;
 		let totalPriceDollar = unitPriceDollar * quantity;
@@ -167,7 +167,7 @@ export function Cart({
 	const clientDebtNumber = parseFloat(String(clientDebtValue)) || 0;
 
 	// Exchange rate to use for USD calculations
-	const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : USD_RATE;
+	const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : displayRate;
 
 	// Order mavjud bo'lsa API dan kelgan ro'yxat, yo'q bo'lsa parent dan kelgan items
 	const displayItems = (orderId ?? orderData?.id) ? cartItemsFromApi : items;
@@ -234,8 +234,7 @@ export function Cart({
 
 	const handleConfirmEditOrderProduct = async (
 		quantity: number,
-		priceInSum: number,
-		_priceType: 'unit' | 'wholesale',
+		_priceInSum: number,
 		options: { skladId: number; currencyId?: number; priceDollar?: number; priceSum?: number },
 	) => {
 		// find corresponding raw record by matching productForModal id

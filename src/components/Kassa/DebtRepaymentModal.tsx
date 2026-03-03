@@ -10,7 +10,7 @@ import { debtRepaymentService, DebtRepaymentRequest } from '../../services/order
 import { clientService, Client } from '../../services/clientService';
 import { showError, showSuccess } from '../../lib/toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { USD_RATE } from '../../constants';
+import { useExchangeRate } from '../../contexts/ExchangeRateContext';
 
 interface DebtRepaymentModalProps {
 	isOpen: boolean;
@@ -20,9 +20,10 @@ interface DebtRepaymentModalProps {
 
 export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepaymentModalProps) {
 	const { user } = useAuth();
+	const { displayRate } = useExchangeRate();
 	const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 	const [clients, setClients] = useState<Client[]>([]);
-	const [isSearchingClients, setIsSearchingClients] = useState(false);
+	const [, setIsSearchingClients] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [debtStatus, setDebtStatus] = useState(true);
 
@@ -38,7 +39,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 	const [zdachaDollar, setZdachaDollar] = useState<string>('0');
 	const [zdachaSom, setZdachaSom] = useState<string>('0');
 
-	const exchangeRate = USD_RATE;
+	const exchangeRate = displayRate;
 	const clientDebt = selectedClient?.total_debt ? Number(selectedClient.total_debt) / exchangeRate : 0;
 
 	// Mijozlarni qidirish - useCallback bilan memoize qilish (debounce uchun)
@@ -93,7 +94,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 	const {
 		control,
 		handleSubmit: rhfHandleSubmit,
-		formState: { errors, isValid },
+		formState: { errors },
 		reset,
 	} = useForm<FormValues>({
 		mode: 'onChange',

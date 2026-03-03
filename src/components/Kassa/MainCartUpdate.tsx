@@ -1,9 +1,9 @@
 import { Trash2, User, Loader2, Edit2 } from 'lucide-react';
 import { CartItem, Customer, OrderItem, OrderResponse } from '../../types';
-import { USD_RATE } from '../../constants';
 import { useState, useEffect, useCallback } from 'react';
 import { showError, showSuccess } from '../../lib/toast';
 import { useAuth } from '../../contexts/AuthContext';
+import { useExchangeRate } from '../../contexts/ExchangeRateContext';
 import { ProductModal } from './ProductModal';
 import { orderService } from '../../services/orderService';
 import { skladService } from '../../services/skladService';
@@ -37,6 +37,7 @@ export function MainCartUpdate({
 	readOnly = false,
 }: MainCartUpdateProps) {
 	const { user } = useAuth();
+	const { displayRate } = useExchangeRate();
 	const [cartItemsFromApi, setCartItemsFromApi] = useState<CartItem[]>([]);
 	const [orderProductsRaw, setOrderProductsRaw] = useState<any[]>([]);
 	const [skladlar, setSkladlar] = useState<{ id: number; name: string }[]>([]);
@@ -58,7 +59,7 @@ export function MainCartUpdate({
 
 		const quantity = op.count ?? 0;
 
-		const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : USD_RATE;
+		const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : displayRate;
 
 		let unitPriceSum = Number(op.price_sum) / op.count;
 
@@ -132,7 +133,7 @@ export function MainCartUpdate({
 	const clientDebtNumber = parseFloat(String(clientDebtValue)) || 0;
 
 	// Exchange rate to use for USD calculations
-	const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : USD_RATE;
+	const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : displayRate;
 
 	// Order mavjud bo'lsa API dan kelgan ro'yxat, yo'q bo'lsa parent dan kelgan items
 	const displayItems = (orderId ?? orderData?.id) ? cartItemsFromApi : items;
@@ -201,7 +202,7 @@ export function MainCartUpdate({
 
 	const handleConfirmEditOrderProduct = async (
 		quantity: number,
-		priceInSum: number,
+		_priceInSum: number,
 		options: { skladId: number; currencyId?: number; priceDollar?: number; priceSum?: number },
 	) => {
 		// find corresponding raw record by matching productForModal id
@@ -389,7 +390,7 @@ export function MainCartUpdate({
 						</div>
 					))
 				)}
-				<OrderPaymentFields orderData={orderData ?? null} onOrderUpdate={(updatedOrder) => {}} />
+				<OrderPaymentFields orderData={orderData ?? null} onOrderUpdate={() => {}} />
 			</div>
 		</div>
 	);

@@ -16,7 +16,8 @@ import { productService, ProductResponse, ProductImage } from '../../services/pr
 import { skladService, Sklad } from '../../services/skladService';
 import { clientService } from '../../services/clientService';
 import { showError, showSuccess } from '../../lib/toast';
-import { USD_RATE, ROUTES } from '../../constants';
+import { ROUTES } from '../../constants';
+import { useExchangeRate } from '../../contexts/ExchangeRateContext';
 import type { ProductModalConfirmOptions } from './ProductModal';
 
 interface KassaPageProps {
@@ -28,6 +29,7 @@ interface KassaPageProps {
 export function KassaPage({ orderId, readOnly = false, updateMode = false, isVozvratOrder = false }: KassaPageProps) {
 	const navigate = useNavigate();
 	const { user } = useAuth();
+	const { displayRate } = useExchangeRate();
 	const [cart, setCart] = useState<CartItem[]>([]);
 	const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 	const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -86,7 +88,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
 							order_filial: order.filial,
 							order_filial_detail: order.filial_detail,
 							created_time: order.date,
-							all_product_summa: String(order.summa_total_dollar * USD_RATE),
+							all_product_summa: String(order.summa_total_dollar * displayRate),
 							exchange_rate: String(order.exchange_rate),
 						};
 						setOrderData(orderResponse);
@@ -287,7 +289,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
 					filial: user?.order_filial || 0,
 					client: selectedClientId,
 					employee: user?.id || 0,
-					exchange_rate: USD_RATE,
+					exchange_rate: displayRate,
 					date: new Date().toISOString().split('T')[0],
 					note: '',
 					old_total_debt_client: client.total_debt ? Number(client.total_debt) : 0,
@@ -307,7 +309,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
 				const response = await orderService.createOrder({
 					client: selectedClientId,
 					employee: user?.id || 0,
-					exchange_rate: USD_RATE,
+					exchange_rate: displayRate,
 					is_karzinka: true,
 				});
 
@@ -341,12 +343,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
 			setSelectedClientId(null);
 		}
 	};
-	const handleAddToCart = async (
-		quantity: number,
-		priceInSum: number,
-		priceType: 'unit' | 'wholesale',
-		_options: ProductModalConfirmOptions,
-	) => {
+	const handleAddToCart = async (quantity: number, priceInSum: number, _options: ProductModalConfirmOptions) => {
 		if (!selectedProduct || !isSaleStarted) return;
 
 		const currentOrderId = orderId || orderData?.id;
@@ -443,7 +440,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
 	};
 	const totalAmount =
 		(orderId ?? orderData?.id) ? totalAmountFromCart : cart.reduce((sum, item) => sum + (item.priceSum || 0), 0);
-	const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : USD_RATE;
+	const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : displayRate;
 
 	// order_filial yo'q bo'lsa, xabar ko'rsatish
 	if (user && !user.order_filial) {
@@ -569,7 +566,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
 							onClose={() => setIsPaymentModalOpen(false)}
 							onComplete={handlePaymentComplete}
 							totalAmount={totalAmount}
-							usdRate={USD_RATE}
+							usdRate={exchangeRate}
 							items={(orderId ?? orderData?.id) ? cartItemsForPayment : cart}
 							customer={selectedCustomer || undefined}
 							kassirName={user?.full_name || undefined}
