@@ -7,6 +7,7 @@ import { DatePicker } from './ui/DatePicker';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { useCreateNote, useDeleteNote, useNotesAll, useUpdateNote } from '../hooks/api/useNotes';
 import { getNotesWsUrl, type NoteItem } from '../services/note.service';
+import clsx from 'clsx';
 
 type WsNotePayload = {
 	type?: string;
@@ -323,14 +324,30 @@ export function NotesPanel({ embedded = false }: NotesPanelProps) {
 							return (
 								<div
 									key={note.id}
-									className={`group flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-gray-50 cursor-pointer ${
-										note.is_read === false ? 'bg-amber-50/60' : ''
-									}`}
+									className={clsx(
+										`group flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-gray-50 cursor-pointer  `,
+										{
+											'bg-amber-100': canDone && note.is_read,
+											'bg-blue-50': note.is_read === false,
+											'bg-red-50': isDueNow(note.date) && st === 'expired',
+											'bg-amber-50': isDueNow(note.date) && st === 'new',
+											'bg-green-50':
+												st === 'new' &&
+												note.date &&
+												new Date(note.date).getTime() - Date.now() > 86400000,
+										},
+									)}
 									onClick={() => openView(note)}
 								>
 									{/* Status dot */}
 									<span
-										className={`h-2 w-2 flex-shrink-0 rounded-full ${statusDot[st] || statusDot.new}`}
+										className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-white ${
+											st === 'new' &&
+											note.date &&
+											new Date(note.date).getTime() - Date.now() > 86400000
+												? 'bg-green-500'
+												: statusDot[st] || statusDot.new
+										}`}
 										title={statusLabel[st] || 'Yangi'}
 									/>
 

@@ -10,11 +10,13 @@ interface NumberInputProps {
 	// size prop: small | middle | large
 	size?: 'small' | 'middle' | 'large';
 	step?: string;
+	disabled?: boolean;
 }
 
 export function NumberInput({
 	value,
 	onChange,
+	disabled,
 	allowDecimal = true,
 	placeholder,
 	className,
@@ -65,6 +67,7 @@ export function NumberInput({
 					: `${sizeClasses} text-gray-800 ${className}`
 			}
 			data-step={step}
+			disabled={disabled}
 		/>
 	);
 }

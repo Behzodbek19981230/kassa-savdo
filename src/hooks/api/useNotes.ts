@@ -31,8 +31,7 @@ export function useCreateNote() {
 export function useUpdateNote() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, payload }: { id: number; payload: NotePayload }) =>
-			noteService.updateNote(id, payload),
+		mutationFn: ({ id, payload }: { id: number; payload: NotePayload }) => noteService.updateNote(id, payload),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['notes'] });
 			queryClient.invalidateQueries({ queryKey: ['notes-all'] });
@@ -44,6 +43,17 @@ export function useDeleteNote() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: (id: number) => noteService.deleteNote(id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['notes'] });
+			queryClient.invalidateQueries({ queryKey: ['notes-all'] });
+		},
+	});
+}
+
+export function useMarkAllAsRead() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: () => noteService.markAllAsRead(),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['notes'] });
 			queryClient.invalidateQueries({ queryKey: ['notes-all'] });

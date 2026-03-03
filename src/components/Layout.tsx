@@ -15,7 +15,7 @@ import {
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { startNotesWs, stopNotesWs } from '../services/notesWs';
-import { useNotesAll, useUpdateNote } from '../hooks/api/useNotes';
+import { useNotesAll, useUpdateNote, useMarkAllAsRead } from '../hooks/api/useNotes';
 import { useAuth } from '../contexts/AuthContext';
 import { ROUTES } from '../constants';
 import { useExchangeRate } from '../contexts/ExchangeRateContext';
@@ -44,6 +44,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 	const { data: notesData } = useNotesAll();
 	const queryClient = useQueryClient();
 	const updateNote = useUpdateNote();
+	const markAllRead = useMarkAllAsRead();
 	const unreadNotesCount = notesData ? notesData.filter((n) => n.is_read === false).length : 0;
 	const sortedNotes = notesData
 		? [...notesData].sort((a, b) => {
@@ -601,6 +602,22 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 											</div>
 										)}
 									</div>
+									{combinedUnreadNotes.length > 0 && (
+										<div className='pt-2 border-t border-white/10 mt-1'>
+											<Button
+												variant='ghost'
+												className='w-full h-8 text-xs text-white/90 hover:text-white hover:bg-white/10'
+												onClick={(e) => {
+													e.preventDefault();
+													e.stopPropagation();
+													markAllRead.mutate();
+												}}
+												disabled={markAllRead.isPending}
+											>
+												{markAllRead.isPending ? 'Yuklanmoqda...' : "Barchasini o'qish"}
+											</Button>
+										</div>
+									)}
 								</div>
 							)}
 						</div>
