@@ -183,6 +183,34 @@ export interface Expense {
 	is_salary?: boolean;
 	employee?: number;
 }
+interface ExpenseItem {
+	id: number;
+	date: string;
+	summa_total_dollar: string;
+	summa_dollar?: string;
+	summa_naqt?: string;
+	summa_kilik?: string;
+	summa_terminal?: string;
+	summa_transfer?: string;
+	note?: string;
+	category?: number;
+	category_detail?: { id: number; name?: string };
+	employee_detail?: { full_name?: string };
+	filial?: number;
+	is_salary?: boolean;
+}
+export interface ExpenseGroup {
+	date: string;
+	items: ExpenseItem[];
+	totals?: {
+		summa_total_dollar?: string;
+		summa_dollar?: string;
+		summa_naqt?: string;
+		summa_kilik?: string;
+		summa_terminal?: string;
+		summa_transfer?: string;
+	};
+}
 
 /* ================= VOZVRAT ORDER ================= */
 

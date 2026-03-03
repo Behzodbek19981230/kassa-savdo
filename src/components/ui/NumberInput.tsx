@@ -29,6 +29,10 @@ export function NumberInput({
 		const parts = s.split('.');
 		parts[0] = parts[0].replace(/^0+(?=\d)/, '');
 		parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+		// Limit decimal places to 2 in display
+		if (parts.length > 1) {
+			parts[1] = parts[1].slice(0, 2);
+		}
 		return parts.join('.');
 	};
 
@@ -40,7 +44,11 @@ export function NumberInput({
 			.replace(/[^0-9.]/g, '');
 		const parts = cleaned.split('.');
 		if (!allowDecimal && parts.length > 1) cleaned = parts[0];
-		if (parts.length > 1) cleaned = parts[0] + '.' + parts.slice(1).join('');
+		if (parts.length > 1) {
+			// Limit decimal places to 2
+			const decimalPart = parts.slice(1).join('').slice(0, 2);
+			cleaned = parts[0] + '.' + decimalPart;
+		}
 		return cleaned;
 	};
 

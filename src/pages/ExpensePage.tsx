@@ -1,5 +1,5 @@
 import { useState, useMemo, Fragment } from 'react';
-import { Loader2, Plus, Trash2, Edit, Search, RotateCcw } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit, Search, RotateCcw, X, Pencil } from 'lucide-react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { DateRangePicker } from '../components/ui/date-picker';
@@ -11,12 +11,17 @@ import { expenseService } from '../services/expenseService';
 import { showError, showSuccess } from '../lib/toast';
 import { useAuth } from '../contexts/AuthContext';
 import ExpenseModal from '../components/Kassa/ExpenseModal';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Expense, ExpenseGroup } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export function ExpensePage() {
 	const { user } = useAuth();
 	const queryClient = useQueryClient();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editItem, setEditItem] = useState<any | null>(null);
+	const [viewItem, setViewItem] = useState<any | null>(null);
 	const today = new Date();
 	const oneMonthAgo = new Date(today);
 	oneMonthAgo.setMonth(today.getMonth() - 1);
@@ -55,7 +60,11 @@ export function ExpensePage() {
 			mounted = false;
 		};
 	}, []);
-
+	const formatCurrency = (value: string | number | undefined) => {
+		if (!value) return '0.00';
+		const num = typeof value === 'string' ? parseFloat(value) : value;
+		return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+	};
 	const {
 		data: groupedData,
 		isLoading,
@@ -100,20 +109,16 @@ export function ExpensePage() {
 	const overallTotals = useMemo(() => {
 		let totalCount = 0;
 		let totalSumDollar = 0;
-		let totalSumNaqt = 0;
-		let totalTerminal = 0;
 
 		for (const group of groups) {
 			const items = group.items || [];
 			totalCount += items.length;
 			for (const item of items) {
 				totalSumDollar += Number(item.summa_total_dollar || 0);
-				totalSumNaqt += Number(item.summa_naqt || 0);
-				totalTerminal += Number(item.summa_terminal || 0);
 			}
 		}
 
-		return { totalCount, totalSumDollar, totalSumNaqt, totalTerminal };
+		return { totalCount, totalSumDollar };
 	}, [groups]);
 
 	const handleDelete = (id: number) => {
@@ -239,195 +244,124 @@ export function ExpensePage() {
 							<p className='text-red-600'>Ma'lumotlarni yuklashda xatolik yuz berdi</p>
 						</div>
 					) : (
-						<table className='w-full border-collapse text-sm'>
-							<thead>
-								<tr className='border-b-2 border-blue-200 bg-blue-50/50'>
-									<th className='text-left p-2 font-semibold text-gray-700 whitespace-nowrap w-12'>
-										t/r
-									</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>Sanasi</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[120px]'>
-										Kategoriya
-									</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>Oylik</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[150px]'>Hodim</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
-										Jami ($)
-									</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
-										Naqd (UZS)
-									</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
-										Terminal
-									</th>
-									<th className='text-left p-2 font-semibold text-gray-700'>Izoh</th>
-									<th className='text-left p-2 font-semibold text-gray-700 w-28'>Actions</th>
-								</tr>
-							</thead>
-							<tbody>
-								{groups.length === 0 || groups.every((g: any) => (g.items?.length || 0) === 0) ? (
-									<tr>
-										<td colSpan={10} className='text-center py-12 text-gray-400'>
-											Ma'lumotlar yo'q
-										</td>
-									</tr>
-								) : (
-									(() => {
-										let rowIndex = 0;
-										return groups.map((group: any, gIdx: number) => {
-											const items = group.items || [];
-											const sumDollar = items.reduce(
-												(s: number, item: any) => s + Number(item.summa_total_dollar || 0),
-												0,
-											);
-											const sumNaqt = items.reduce(
-												(s: number, item: any) => s + Number(item.summa_naqt || 0),
-												0,
-											);
-											const sumTerminal = items.reduce(
-												(s: number, item: any) => s + Number(item.summa_terminal || 0),
-												0,
-											);
+						<Table>
+							<TableHeader>
+								<TableRow className='border-b-2 border-blue-200 bg-blue-50/50'>
+									<TableHead className='w-[60px]'>t/r</TableHead>
+									<TableHead>Sanasi</TableHead>
+									<TableHead>Kategoriya</TableHead>
+									<TableHead>Xodim</TableHead>
+									<TableHead className='text-right'>Jami ($)</TableHead>
+									<TableHead className='text-right'>Dollar ($)</TableHead>
+									<TableHead className='text-right'>So'm</TableHead>
+									<TableHead className='text-right'>Kilik</TableHead>
+									<TableHead className='text-right'>Terminal</TableHead>
+									<TableHead className='text-right'>Transfer</TableHead>
 
-											return (
-												<Fragment key={`group-${group.date ?? gIdx}`}>
-													<tr className='bg-gray-100'>
-														<td className='p-2'></td>
-														<td className='px-2 py-1 font-semibold text-gray-700'>
-															{group.date
-																? format(new Date(group.date), 'yyyy-MM-dd')
-																: 'Barcha sanalar'}
-															<span className='ml-2 text-sm text-gray-500'>
-																({items.length})
-															</span>
-														</td>
-														<td className='p-2' />
-														<td className='p-2' />
-														<td className='p-2' />
-														<td className='p-2 text-left font-semibold text-blue-700'>
-															{sumDollar.toLocaleString()} $
-														</td>
-														<td className='p-2 text-left font-semibold text-blue-700'>
-															{sumNaqt.toLocaleString()} UZS
-														</td>
-														<td className='p-2 text-left font-semibold text-blue-700'>
-															{sumTerminal.toLocaleString()} UZS
-														</td>
-														<td className='p-2' />
-														<td className='p-2' />
-													</tr>
-
-													{items.map((item: any) => {
-														const index = ++rowIndex;
-														return (
-															<tr
-																key={item.id}
-																className='border-b border-gray-100 group hover:bg-blue-50/30 transition-colors'
+									<TableHead className='text-right'>Amallar</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{groups.map((group: ExpenseGroup) => {
+									return (
+										<Fragment key={`group-${group.date}`}>
+											<TableRow className='bg-gray-100'>
+												<TableCell>
+													<div className='flex items-center gap-2'>
+														<Badge>{group.items.length}</Badge>
+													</div>
+												</TableCell>
+												<TableCell className='font-semibold text-gray-700'>
+													{format(new Date(group.date), 'yyyy-MM-dd')}
+												</TableCell>
+												<TableCell />
+												<TableCell />
+												<TableCell className='text-right font-semibold text-blue-600'>
+													{formatCurrency(group.totals?.summa_total_dollar)}
+												</TableCell>
+												<TableCell className='text-right font-semibold text-blue-600'>
+													{formatCurrency(group.totals?.summa_dollar)}
+												</TableCell>
+												<TableCell className='text-right font-semibold text-blue-600'>
+													{formatCurrency(group.totals?.summa_naqt)}
+												</TableCell>
+												<TableCell className='text-right font-semibold text-blue-600'>
+													{formatCurrency(group.totals?.summa_kilik)}
+												</TableCell>
+												<TableCell className='text-right font-semibold text-blue-600'>
+													{formatCurrency(group.totals?.summa_terminal)}
+												</TableCell>
+												<TableCell className='text-right font-semibold text-blue-600'>
+													{formatCurrency(group.totals?.summa_transfer)}
+												</TableCell>
+												<TableCell />
+											</TableRow>
+											{group.items.map((it, idx: number) => (
+												<TableRow
+													key={it.id}
+													className='border-b border-gray-100 group hover:bg-blue-50/30 transition-colors cursor-pointer'
+													onClick={() => setViewItem(it)}
+												>
+													<TableCell className='font-medium'>
+														{group.items.length - idx}
+													</TableCell>
+													<TableCell>{it.date}</TableCell>
+													<TableCell>{it.category_detail?.name || '-'}</TableCell>
+													<TableCell>{it.employee_detail?.full_name || '-'}</TableCell>
+													<TableCell className='text-right  font-semibold'>
+														{formatCurrency(it.summa_total_dollar)}
+													</TableCell>
+													<TableCell className='text-right'>
+														{formatCurrency(it.summa_dollar)}
+													</TableCell>
+													<TableCell className='text-right'>
+														{formatCurrency(it.summa_naqt)}
+													</TableCell>
+													<TableCell className='text-right'>
+														{formatCurrency(it.summa_kilik)}
+													</TableCell>
+													<TableCell className='text-right'>
+														{formatCurrency(it.summa_terminal)}
+													</TableCell>
+													<TableCell className='text-right'>
+														{formatCurrency(it.summa_transfer)}
+													</TableCell>
+													<TableCell
+														className='text-right'
+														onClick={(e) => e.stopPropagation()}
+													>
+														<div className='flex items-center justify-end gap-1'>
+															<Button
+																size='icon'
+																variant='ghost'
+																className='h-8 w-8'
+																onClick={() => openEdit(it)}
 															>
-																<td className='p-2 text-gray-500 font-mono'>{index}</td>
-																<td className='p-2 text-gray-600 whitespace-nowrap'>
-																	{item.date
-																		? format(new Date(item.date), 'dd.MM.yyyy')
-																		: '-'}
-																</td>
-																<td className='p-2'>
-																	<span className='font-medium text-gray-800'>
-																		{item.category_detail?.name || '-'}
-																	</span>
-																</td>
-																<td className='p-2'>
-																	{item.is_salary ? (
-																		<span className='px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold'>
-																			Ha
-																		</span>
-																	) : (
-																		<span className='px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold'>
-																			Yo'q
-																		</span>
-																	)}
-																</td>
-																<td className='p-2'>
-																	{item.employee_detail ? (
-																		<span className='font-medium text-gray-800'>
-																			{item.employee_detail.full_name}
-																			{item.employee_detail.phone_number ? (
-																				<span className='text-gray-500 text-xs ml-1'>
-																					({item.employee_detail.phone_number}
-																					)
-																				</span>
-																			) : null}
-																		</span>
-																	) : (
-																		<span className='text-gray-400'>-</span>
-																	)}
-																</td>
-																<td className='p-2 text-gray-800 text-left'>
-																	{Number(
-																		item.summa_total_dollar || 0,
-																	).toLocaleString()}{' '}
-																	$
-																</td>
-																<td className='p-2 text-gray-800 text-left'>
-																	{Number(item.summa_naqt || 0).toLocaleString()} UZS
-																</td>
-																<td className='p-2 text-gray-800 text-left'>
-																	{Number(item.summa_terminal || 0).toLocaleString()}{' '}
-																	UZS
-																</td>
-																<td className='p-2 text-gray-700'>
-																	{item.note || '-'}
-																</td>
-																<td className='p-2'>
-																	<div className='flex items-center gap-1'>
-																		<button
-																			onClick={() => openEdit(item)}
-																			className='p-1.5 rounded hover:bg-blue-100 text-blue-600 transition-colors'
-																		>
-																			<Edit size={16} />
-																		</button>
-																		<button
-																			onClick={() => handleDelete(item.id)}
-																			className='p-1.5 rounded hover:bg-red-100 text-red-600 transition-colors disabled:opacity-50'
-																		>
-																			{deleteMutation.isPending &&
-																			deleteMutation.variables === item.id ? (
-																				<Loader2
-																					size={16}
-																					className='animate-spin'
-																				/>
-																			) : (
-																				<Trash2 size={16} />
-																			)}
-																		</button>
-																	</div>
-																</td>
-															</tr>
-														);
-													})}
-												</Fragment>
-											);
-										});
-									})()
-								)}
-
-								{groups.length > 0 && overallTotals.totalCount > 0 && (
-									<tr className='bg-blue-50'>
-										<td className='p-2 font-semibold'>Jami</td>
-										<td colSpan={4} />
-										<td className='p-2 text-left font-semibold text-blue-700'>
-											{overallTotals.totalSumDollar.toLocaleString()} $
-										</td>
-										<td className='p-2 text-left font-semibold text-blue-700'>
-											{overallTotals.totalSumNaqt.toLocaleString()} UZS
-										</td>
-										<td className='p-2 text-left font-semibold text-blue-700'>
-											{overallTotals.totalTerminal.toLocaleString()} UZS
-										</td>
-										<td colSpan={2} />
-									</tr>
-								)}
-							</tbody>
-						</table>
+																<Pencil className='h-4 w-4' />
+															</Button>
+															<Button
+																size='icon'
+																variant='ghost'
+																className='h-8 w-8 text-destructive hover:text-destructive'
+																onClick={() => {
+																	if (it.is_salary) {
+																		alert("Oylik xarajatni o'chirish mumkin emas");
+																		return;
+																	}
+																	handleDelete(it.id);
+																}}
+															>
+																<Trash2 className='h-4 w-4' />
+															</Button>
+														</div>
+													</TableCell>
+												</TableRow>
+											))}
+										</Fragment>
+									);
+								})}
+							</TableBody>
+						</Table>
 					)}
 				</div>
 			</div>
@@ -438,6 +372,134 @@ export function ExpensePage() {
 				initialData={editItem}
 				onSuccess={() => queryClient.invalidateQueries({ queryKey: ['expenses-grouped'] })}
 			/>
+
+			{/* View Expense Detail Modal */}
+			{viewItem && (
+				<div
+					className='fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center'
+					onClick={() => setViewItem(null)}
+				>
+					<div
+						className='bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 border-2 border-indigo-200 overflow-hidden'
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div className='flex justify-between items-center p-4 sm:p-5 border-b-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50'>
+							<h3 className='text-lg sm:text-xl font-bold text-gray-900'>Xarajat tafsilotlari</h3>
+							<button
+								onClick={() => setViewItem(null)}
+								className='text-gray-500 hover:text-indigo-600 hover:bg-white p-2 rounded-xl transition-all duration-200'
+							>
+								<X size={24} />
+							</button>
+						</div>
+						<div className='p-4 sm:p-6 space-y-4'>
+							<div className='grid grid-cols-2 gap-4'>
+								<div>
+									<span className='text-xs text-indigo-600 font-semibold'>Sana</span>
+									<p className='text-gray-800 font-medium'>
+										{viewItem.date ? format(new Date(viewItem.date), 'dd.MM.yyyy') : '-'}
+									</p>
+								</div>
+								<div>
+									<span className='text-xs text-indigo-600 font-semibold'>Kategoriya</span>
+									<p className='text-gray-800 font-medium'>{viewItem.category_detail?.name || '-'}</p>
+								</div>
+							</div>
+
+							<div className='grid grid-cols-2 gap-4'>
+								<div>
+									<span className='text-xs text-indigo-600 font-semibold'>Oylik</span>
+									<p className='text-gray-800 font-medium'>
+										{viewItem.is_salary ? (
+											<span className='px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold'>
+												Ha
+											</span>
+										) : (
+											<span className='px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold'>
+												Yo'q
+											</span>
+										)}
+									</p>
+								</div>
+								<div>
+									<span className='text-xs text-indigo-600 font-semibold'>Hodim</span>
+									<p className='text-gray-800 font-medium'>
+										{viewItem.employee_detail?.full_name || '-'}
+									</p>
+								</div>
+							</div>
+
+							<div className='border-t border-gray-200 pt-4'>
+								<span className='text-xs text-indigo-600 font-semibold block mb-2'>Summalar</span>
+								<div className='grid grid-cols-2 gap-3'>
+									<div className='bg-blue-50 rounded-lg p-3'>
+										<span className='text-xs text-gray-500'>Jami ($)</span>
+										<p className='text-lg font-bold text-blue-700'>
+											{Number(viewItem.summa_total_dollar || 0).toLocaleString()} $
+										</p>
+									</div>
+									<div className='bg-green-50 rounded-lg p-3'>
+										<span className='text-xs text-gray-500'>Dollar ($)</span>
+										<p className='text-lg font-bold text-green-700'>
+											{Number(viewItem.summa_dollar || 0).toLocaleString()} $
+										</p>
+									</div>
+									<div className='bg-purple-50 rounded-lg p-3'>
+										<span className='text-xs text-gray-500'>Naqd (UZS)</span>
+										<p className='text-lg font-bold text-purple-700'>
+											{Number(viewItem.summa_naqt || 0).toLocaleString()}
+										</p>
+									</div>
+									<div className='bg-orange-50 rounded-lg p-3'>
+										<span className='text-xs text-gray-500'>Kilik (UZS)</span>
+										<p className='text-lg font-bold text-orange-700'>
+											{Number(viewItem.summa_kilik || 0).toLocaleString()}
+										</p>
+									</div>
+									<div className='bg-cyan-50 rounded-lg p-3'>
+										<span className='text-xs text-gray-500'>Terminal (UZS)</span>
+										<p className='text-lg font-bold text-cyan-700'>
+											{Number(viewItem.summa_terminal || 0).toLocaleString()}
+										</p>
+									</div>
+									<div className='bg-pink-50 rounded-lg p-3'>
+										<span className='text-xs text-gray-500'>Transfer (UZS)</span>
+										<p className='text-lg font-bold text-pink-700'>
+											{Number(viewItem.summa_transfer || 0).toLocaleString()}
+										</p>
+									</div>
+								</div>
+							</div>
+
+							{viewItem.note && (
+								<div className='border-t border-gray-200 pt-4'>
+									<span className='text-xs text-indigo-600 font-semibold block mb-2'>Izoh</span>
+									<p className='text-gray-700 bg-gray-50 rounded-lg p-3'>{viewItem.note}</p>
+								</div>
+							)}
+
+							<div className='flex justify-end gap-3 pt-4 border-t border-gray-200'>
+								<button
+									onClick={() => setViewItem(null)}
+									className='px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors'
+								>
+									Yopish
+								</button>
+								<button
+									onClick={() => {
+										openEdit(viewItem);
+										setViewItem(null);
+									}}
+									className='bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2'
+								>
+									<Edit size={16} />
+									Tahrirlash
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

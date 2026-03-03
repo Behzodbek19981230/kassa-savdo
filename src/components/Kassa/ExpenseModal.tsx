@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import { Label, Input } from '../ui/Input';
+import { Label } from '../ui/Input';
 import NumberInput from '../ui/NumberInput';
 import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { DatePicker } from '../ui/DatePicker';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/Select';
 import { expenseService } from '../../services/expenseService';
@@ -25,29 +27,59 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 	const { displayRate } = useExchangeRate();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	interface FormValues {
-		category?: string;
-		summa_total_dollar?: string;
-		summa_dollar?: string;
-		summa_naqt?: string;
-		summa_kilik?: string;
-		summa_terminal?: string;
-		summa_transfer?: string;
-		date?: Date | undefined;
-		note?: string;
-		is_salary?: boolean;
-		employee?: string;
-	}
+	const expenseSchema = z
+		.object({
+			category: z
+				.string()
+				.min(1, 'Kategoriya tanlanishi shart')
+				.refine((val) => val !== '' && val !== undefined && val !== null, {
+					message: 'Kategoriya tanlanishi shart',
+				}),
+			summa_total_dollar: z.string().min(1, "Bo'sh bo'lmasligi kerak").default('0'),
+			summa_dollar: z.string().min(1, "Bo'sh bo'lmasligi kerak").default('0'),
+			summa_naqt: z.string().min(1, "Bo'sh bo'lmasligi kerak").default('0'),
+			summa_kilik: z.string().min(1, "Bo'sh bo'lmasligi kerak").default('0'),
+			summa_terminal: z.string().min(1, "Bo'sh bo'lmasligi kerak").default('0'),
+			summa_transfer: z.string().min(1, "Bo'sh bo'lmasligi kerak").default('0'),
+			date: z.date({ message: 'Sana tanlanishi shart' }),
+			note: z.string().optional(),
+			is_salary: z.boolean().optional(),
+			employee: z.string().optional(),
+		})
+		.refine(
+			(data) => {
+				if (data.is_salary === true) {
+					return data.employee && data.employee.length > 0;
+				}
+				return true;
+			},
+			{
+				message: 'Oylik uchun hodim tanlanishi shart',
+				path: ['employee'],
+			},
+		);
 
-	const { control, handleSubmit, reset, watch, setValue } = useForm<FormValues>({
+	type FormValues = z.input<typeof expenseSchema>;
+
+	const {
+		control,
+		handleSubmit,
+		reset,
+		watch,
+		setValue,
+		formState: { errors },
+	} = useForm<FormValues>({
+		resolver: zodResolver(expenseSchema),
+		mode: 'onSubmit',
 		defaultValues: {
 			category: initialData?.category?.toString() || '',
-			summa_total_dollar: initialData?.summa_total_dollar?.toString() || '0',
-			summa_dollar: initialData?.summa_dollar?.toString() || '0',
-			summa_naqt: initialData?.summa_naqt?.toString() || '0',
-			summa_kilik: initialData?.summa_kilik?.toString() || '0',
-			summa_terminal: initialData?.summa_terminal?.toString() || '0',
-			summa_transfer: initialData?.summa_transfer?.toString() || '0',
+			summa_total_dollar:
+				initialData?.summa_total_dollar != null ? initialData.summa_total_dollar.toString() : '0',
+			summa_dollar: initialData?.summa_dollar != null ? initialData.summa_dollar.toString() : '0',
+			summa_naqt: initialData?.summa_naqt != null ? initialData.summa_naqt.toString() : '0',
+			summa_kilik: initialData?.summa_kilik != null ? initialData.summa_kilik.toString() : '0',
+			summa_terminal: initialData?.summa_terminal != null ? initialData.summa_terminal.toString() : '0',
+			summa_transfer: initialData?.summa_transfer != null ? initialData.summa_transfer.toString() : '0',
 			date: initialData?.date ? new Date(initialData.date) : new Date(),
 			note: initialData?.note || '',
 			is_salary: initialData?.is_salary || false,
@@ -72,19 +104,7 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 		const rate = displayRate || 1;
 		const total = d + sumUzs / rate;
 
-		const hasInput = [
-			watchedSummaDollar,
-			watchedSummaNaqt,
-			watchedSummaKilik,
-			watchedSummaTerminal,
-			watchedSummaTransfer,
-		].some((v) => v !== '' && v !== undefined && v !== null);
-
-		if (!hasInput) {
-			setValue('summa_total_dollar', '');
-		} else {
-			setValue('summa_total_dollar', total > 0 ? total.toFixed(3) : total === 0 ? '0' : '');
-		}
+		setValue('summa_total_dollar', total.toFixed(3));
 	}, [
 		watchedSummaDollar,
 		watchedSummaNaqt,
@@ -98,7 +118,7 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 	const isSalary = watch('is_salary');
 
 	const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
-	const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+	const [, setIsLoadingCategories] = useState(false);
 	const [employees, setEmployees] = useState<User[]>([]);
 	const [isLoadingEmployees, setIsLoadingEmployees] = useState(false);
 
@@ -140,12 +160,13 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 	useEffect(() => {
 		reset({
 			category: initialData?.category?.toString() || '',
-			summa_total_dollar: initialData?.summa_total_dollar?.toString() || '',
-			summa_dollar: initialData?.summa_dollar?.toString() || '',
-			summa_naqt: initialData?.summa_naqt?.toString() || '',
-			summa_kilik: initialData?.summa_kilik?.toString() || '',
-			summa_terminal: initialData?.summa_terminal?.toString() || '',
-			summa_transfer: initialData?.summa_transfer?.toString() || '',
+			summa_total_dollar:
+				initialData?.summa_total_dollar != null ? Number(initialData.summa_total_dollar).toFixed(0) : '0',
+			summa_dollar: initialData?.summa_dollar != null ? Number(initialData.summa_dollar).toFixed(0) : '0',
+			summa_naqt: initialData?.summa_naqt != null ? Number(initialData.summa_naqt).toFixed(0) : '0',
+			summa_kilik: initialData?.summa_kilik != null ? Number(initialData.summa_kilik).toFixed(0) : '0',
+			summa_terminal: initialData?.summa_terminal != null ? Number(initialData.summa_terminal).toFixed(0) : '0',
+			summa_transfer: initialData?.summa_transfer != null ? Number(initialData.summa_transfer).toFixed(0) : '0',
 			date: initialData?.date ? new Date(initialData.date) : new Date(),
 			note: initialData?.note || '',
 			is_salary: initialData?.is_salary || false,
@@ -153,17 +174,29 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 		});
 	}, [initialData, reset]);
 
+	// Helper to round to 2 decimal places
+	const toFixed2 = (val: string | number | undefined): number => {
+		const num = Number(val || 0);
+		return Math.round(num * 100) / 100;
+	};
+
 	const onSubmit = async (values: FormValues) => {
+		// Manual category check
+		if (!values.category || values.category === '') {
+			showError('Kategoriya tanlanishi shart');
+			return;
+		}
+
 		setIsSubmitting(true);
 		const payload = {
 			filial: user?.order_filial || 0,
 			category: values.category ? Number(values.category) : undefined,
-			summa_total_dollar: Number(values.summa_total_dollar || 0),
-			summa_dollar: Number(values.summa_dollar || 0),
-			summa_naqt: Number(values.summa_naqt || 0),
-			summa_kilik: Number(values.summa_kilik || 0),
-			summa_terminal: Number(values.summa_terminal || 0),
-			summa_transfer: Number(values.summa_transfer || 0),
+			summa_total_dollar: toFixed2(values.summa_total_dollar),
+			summa_dollar: toFixed2(values.summa_dollar),
+			summa_naqt: toFixed2(values.summa_naqt),
+			summa_kilik: toFixed2(values.summa_kilik),
+			summa_terminal: toFixed2(values.summa_terminal),
+			summa_transfer: toFixed2(values.summa_transfer),
 			date: values.date ? values.date.toISOString().split('T')[0] : undefined,
 			note: values.note || '',
 			is_delete: false,
@@ -251,7 +284,7 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 							<div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
 								<div>
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-										Kategoriya
+										Kategoriya <span className='text-red-500'>*</span>
 									</Label>
 									<Controller
 										control={control}
@@ -261,7 +294,11 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 												value={field.value || undefined}
 												onValueChange={(v) => field.onChange(v)}
 											>
-												<SelectTrigger>
+												<SelectTrigger
+													className={
+														errors.category ? 'border-red-500 ring-1 ring-red-500' : ''
+													}
+												>
 													<SelectValue placeholder='— Tanlang —' />
 												</SelectTrigger>
 												<SelectContent>
@@ -274,11 +311,14 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 											</Select>
 										)}
 									/>
+									{errors.category && (
+										<p className='text-red-500 text-xs mt-1 ml-1'>{errors.category.message}</p>
+									)}
 								</div>
 
 								<div>
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-										Sana
+										Sana <span className='text-red-500'>*</span>
 									</Label>
 									<Controller
 										control={control}
@@ -287,10 +327,13 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 											<DatePicker
 												date={field.value}
 												onDateChange={field.onChange}
-												className='w-full'
+												className={`w-full ${errors.date ? 'border-red-500 ring-1 ring-red-500' : ''}`}
 											/>
 										)}
 									/>
+									{errors.date && (
+										<p className='text-red-500 text-xs mt-1 ml-1'>{errors.date.message}</p>
+									)}
 								</div>
 
 								<div>
@@ -300,16 +343,20 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 									<Controller
 										control={control}
 										name='summa_total_dollar'
-										rules={{ required: true }}
-										render={({ field, fieldState }) => (
+										render={({ field }) => (
 											<NumberInput
 												disabled
 												value={field.value ?? ''}
 												onChange={(v) => field.onChange(v)}
-												className={`w-full ${fieldState.invalid ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+												className={`w-full ${errors.summa_total_dollar ? 'border-red-500 ring-1 ring-red-500' : ''}`}
 											/>
 										)}
 									/>
+									{errors.summa_total_dollar && (
+										<p className='text-red-500 text-xs mt-1 ml-1'>
+											{errors.summa_total_dollar.message}
+										</p>
+									)}
 								</div>
 							</div>
 
@@ -318,7 +365,7 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 								<div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
 									<div>
 										<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-											Hodim
+											Hodim <span className='text-red-500'>*</span>
 										</Label>
 										<Controller
 											control={control}
@@ -328,7 +375,11 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 													value={field.value || undefined}
 													onValueChange={(v) => field.onChange(v)}
 												>
-													<SelectTrigger>
+													<SelectTrigger
+														className={
+															errors.employee ? 'border-red-500 ring-1 ring-red-500' : ''
+														}
+													>
 														<SelectValue placeholder='— Tanlang —' />
 													</SelectTrigger>
 													<SelectContent>
@@ -348,6 +399,9 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 												</Select>
 											)}
 										/>
+										{errors.employee && (
+											<p className='text-red-500 text-xs mt-1 ml-1'>{errors.employee.message}</p>
+										)}
 									</div>
 								</div>
 							)}
@@ -368,6 +422,9 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 											/>
 										)}
 									/>
+									{errors.summa_dollar && (
+										<p className='text-red-500 text-xs mt-1 ml-1'>{errors.summa_dollar.message}</p>
+									)}
 								</div>
 
 								<div>
@@ -385,6 +442,9 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 											/>
 										)}
 									/>
+									{errors.summa_naqt && (
+										<p className='text-red-500 text-xs mt-1 ml-1'>{errors.summa_naqt.message}</p>
+									)}
 								</div>
 
 								<div>
@@ -402,6 +462,9 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 											/>
 										)}
 									/>
+									{errors.summa_kilik && (
+										<p className='text-red-500 text-xs mt-1 ml-1'>{errors.summa_kilik.message}</p>
+									)}
 								</div>
 							</div>
 
@@ -421,6 +484,11 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 											/>
 										)}
 									/>
+									{errors.summa_terminal && (
+										<p className='text-red-500 text-xs mt-1 ml-1'>
+											{errors.summa_terminal.message}
+										</p>
+									)}
 								</div>
 
 								<div>
@@ -438,9 +506,12 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 											/>
 										)}
 									/>
+									{errors.summa_transfer && (
+										<p className='text-red-500 text-xs mt-1 ml-1'>
+											{errors.summa_transfer.message}
+										</p>
+									)}
 								</div>
-
-								{/* note moved below as textarea */}
 							</div>
 							{/* Izoh (full width textarea) */}
 							<div>
