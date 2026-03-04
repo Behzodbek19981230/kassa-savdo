@@ -10,6 +10,7 @@ import { Layout } from '../components/Layout';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { ROUTES } from '../constants';
 import UpdateOrder from '@/pages/UpdateOrder';
+import UpdateVozvratOrder from '@/pages/UpdateVozvratOrder';
 
 export interface RouteConfig {
 	path: string;
@@ -161,7 +162,7 @@ export const privateRoutes: RouteConfig[] = [
 		element: (
 			<ProtectedRoute>
 				<Layout>
-					<VozvratOrderPage />
+					<UpdateVozvratOrder />
 				</Layout>
 			</ProtectedRoute>
 		),

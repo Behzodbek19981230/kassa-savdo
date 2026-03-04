@@ -25,7 +25,7 @@ export function VozvratPaymentModal({
     onComplete,
     totalAmount,
     totalCount,
-    usdRate: _usdRate,
+    usdRate,
     orderData,
     onOrderUpdate,
 }: VozvratPaymentModalProps) {
@@ -39,15 +39,26 @@ export function VozvratPaymentModal({
     const [note, setNote] = useState('');
     const [isConfirmed, setIsConfirmed] = useState(true);
 
-    // OrderData o'zgarganda default qiymatlarni yuklash
+    // Jami qaytarilgan summa ($) avtomatik: summaDollar + (summaSom + summaKarta) / kurs
+    useEffect(() => {
+        const d = Number(summaDollar || 0);
+        const s = Number(summaSom || 0);
+        const k = Number(summaKarta || 0);
+        const rate = usdRate || 1;
+        const total = d + (s + k) / rate;
+        const formatted = Math.max(0, total).toFixed(2);
+        setSummaTotalDollar(formatted);
+    }, [summaDollar, summaSom, summaKarta, usdRate]);
+
+    // OrderData o'zgarganda default qiymatlarni yuklash (0 bo'lsa ham 0 qoladi)
     useEffect(() => {
         if (orderData && isOpen) {
             setDate(orderData.date ? new Date(orderData.date) : new Date());
             setNote(orderData.note || '');
-            setSummaTotalDollar(orderData.summa_total_dollar ? String(orderData.summa_total_dollar) : '0');
-            setSummaDollar(orderData.summa_dollar ? String(orderData.summa_dollar) : '0');
-            setSummaSom(orderData.summa_naqt ? String(orderData.summa_naqt) : '0');
-            setSummaKarta(orderData.summa_transfer ? String(orderData.summa_transfer) : '0');
+            setSummaDollar(orderData.summa_dollar != null ? String(orderData.summa_dollar) : '0');
+            setSummaSom(orderData.summa_naqt != null ? String(orderData.summa_naqt) : '0');
+            setSummaKarta(orderData.summa_transfer != null ? String(orderData.summa_transfer) : '0');
+            // summaTotalDollar avto hisoblanadi, orderData dan yuklamaymiz
         }
     }, [orderData, isOpen]);
 
@@ -61,7 +72,7 @@ export function VozvratPaymentModal({
         try {
             const updateData: any = {
                 date: date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                note: note,
+                note: note || '',
                 summa_total_dollar: Number(summaTotalDollar || 0),
                 summa_dollar: Number(summaDollar || 0),
                 summa_naqt: Number(summaSom || 0),
@@ -142,10 +153,11 @@ export function VozvratPaymentModal({
                                     <div className='relative'>
                                         <NumberInput
                                             value={summaTotalDollar}
-                                            onChange={(val) => setSummaTotalDollar(val)}
+                                            onChange={() => {}}
                                             allowDecimal={true}
                                             placeholder='0'
                                             className='w-full border-2 border-indigo-200 focus:border-2 focus:border-indigo-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-indigo-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                            disabled
                                         />
                                         <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
                                             USD

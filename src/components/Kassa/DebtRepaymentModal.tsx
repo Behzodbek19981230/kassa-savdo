@@ -36,6 +36,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 	const [summaSom, setSummaSom] = useState<string>('0');
 	const [summaKarta, setSummaKarta] = useState<string>('0');
 	const [summaTerminal, setSummaTerminal] = useState<string>('0');
+	const [summaKilik, setSummaKilik] = useState<string>('0');
 	const [zdachaDollar, setZdachaDollar] = useState<string>('0');
 	const [zdachaSom, setZdachaSom] = useState<string>('0');
 
@@ -80,13 +81,14 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 
 	// react-hook-form setup (inline validation)
 	interface FormValues {
-		note: string;
+		note?: string;
 		summaTotalDollar: string;
 		discountAmount: string;
 		summaDollar: string;
 		summaSom: string;
 		summaKarta: string;
 		summaTerminal: string;
+		summaKilik: string;
 		zdachaDollar: string;
 		zdachaSom: string;
 	}
@@ -95,6 +97,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 		control,
 		handleSubmit: rhfHandleSubmit,
 		formState: { errors },
+		setValue,
 		reset,
 	} = useForm<FormValues>({
 		mode: 'onChange',
@@ -106,10 +109,55 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 			summaSom,
 			summaKarta,
 			summaTerminal,
+			summaKilik,
 			zdachaDollar,
 			zdachaSom,
 		},
 	});
+
+	// Qaytim dollar kiritilganda qaytim so'm avtomatik to'ldiriladi (kurs bo'yicha)
+	useEffect(() => {
+		const zdD = Number(zdachaDollar || 0);
+		const rate = exchangeRate || 1;
+		const zdachaSomVal = (zdD * rate).toFixed(0);
+		setZdachaSom(zdachaSomVal);
+		try {
+			setValue('zdachaSom', zdachaSomVal);
+		} catch (err) {
+			// ignore
+		}
+	}, [zdachaDollar, exchangeRate, setValue]);
+
+	// Auto-calculate total in dollars: to'lovlar - chegirma - qaytim (dollar va so'm)
+	useEffect(() => {
+		const d = Number(summaDollar || 0);
+		const s = Number(summaSom || 0);
+		const k = Number(summaKarta || 0);
+		const t = Number(summaTerminal || 0);
+		const kilik = Number(summaKilik || 0);
+		const disc = Number(discountAmount || 0);
+		const zdD = Number(zdachaDollar || 0);
+		const rate = exchangeRate || 1;
+		const total = d + (s + k + t + kilik) / rate - disc - zdD;
+		const final = Math.max(0, total);
+		const formatted = final.toFixed(2);
+		setSummaTotalDollar(formatted);
+		try {
+			setValue('summaTotalDollar', formatted);
+		} catch (err) {
+			// ignore if setValue not available for any reason
+		}
+	}, [
+		summaDollar,
+		summaSom,
+		summaKarta,
+		summaTerminal,
+		summaKilik,
+		discountAmount,
+		zdachaDollar,
+		exchangeRate,
+		setValue,
+	]);
 
 	const autocompleteOptions: AutocompleteOption[] = clients.map((client) => ({
 		id: client.id.toString(),
@@ -130,6 +178,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 			summaSom: '0',
 			summaKarta: '0',
 			summaTerminal: '0',
+			summaKilik: '0',
 			zdachaDollar: '0',
 			zdachaSom: '0',
 		});
@@ -140,6 +189,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 		setSummaSom('0');
 		setSummaKarta('0');
 		setSummaTerminal('0');
+		setSummaKilik('0');
 		setZdachaDollar('0');
 		setZdachaSom('0');
 		setDebtStatus(true);
@@ -163,6 +213,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 			summaSom: string;
 			summaKarta: string;
 			summaTerminal: string;
+			summaKilik: string;
 			zdachaDollar: string;
 			zdachaSom: string;
 		};
@@ -184,7 +235,8 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 				Number(data?.summaSom || 0) +
 				Number(data?.summaDollar || 0) * exchangeRate +
 				Number(data?.summaKarta || 0) +
-				Number(data?.summaTerminal || 0);
+				Number(data?.summaTerminal || 0) +
+				Number(data?.summaKilik || 0);
 
 			const newTotalDebt = Math.max(0, oldTotalDebt - totalPaid + Number(data?.discountAmount || 0));
 
@@ -200,7 +252,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 				summa_total_dollar: Number(data?.summaTotalDollar || 0),
 				summa_dollar: Number(data?.summaDollar || 0),
 				summa_naqt: Number(data?.summaSom || 0),
-				summa_kilik: 0,
+				summa_kilik: Number(data?.summaKilik || 0),
 				summa_terminal: Number(data?.summaTerminal || 0),
 				summa_transfer: Number(data?.summaKarta || 0),
 				discount_amount: Number(data?.discountAmount || 0),
@@ -336,35 +388,13 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 												placeholder='0.00'
 												className='w-full'
 												aria-required='true'
+												disabled
 											/>
 										)}
 									/>
 									{errors.summaTotalDollar && (
 										<p className='text-rose-600 text-xs mt-1'>{errors.summaTotalDollar.message}</p>
 									)}
-								</div>
-
-								{/* Chegirma ($) */}
-								<div>
-									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-										Chegirma ($)
-									</Label>
-									<Controller
-										control={control}
-										name='discountAmount'
-										render={({ field }) => (
-											<NumberInput
-												value={field.value}
-												onChange={(val) => {
-													field.onChange(val);
-													setDiscountAmount(val);
-												}}
-												allowDecimal={true}
-												placeholder='0.00'
-												className='w-full'
-											/>
-										)}
-									/>
 								</div>
 
 								{/* Summa ($) */}
@@ -478,6 +508,52 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 									)}
 								</div>
 
+								{/* Summa kilik */}
+								<div>
+									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
+										Summa kilik
+									</Label>
+									<Controller
+										control={control}
+										name='summaKilik'
+										render={({ field }) => (
+											<NumberInput
+												value={field.value}
+												onChange={(val) => {
+													field.onChange(val);
+													setSummaKilik(val);
+												}}
+												allowDecimal={true}
+												placeholder='0'
+												className='w-full'
+											/>
+										)}
+									/>
+								</div>
+
+								{/* Chegirma ($) */}
+								<div>
+									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
+										Chegirma ($)
+									</Label>
+									<Controller
+										control={control}
+										name='discountAmount'
+										render={({ field }) => (
+											<NumberInput
+												value={field.value}
+												onChange={(val) => {
+													field.onChange(val);
+													setDiscountAmount(val);
+												}}
+												allowDecimal={true}
+												placeholder='0.00'
+												className='w-full'
+											/>
+										)}
+									/>
+								</div>
+
 								{/* Qaytim ($) */}
 								<div>
 									<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
@@ -511,6 +587,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 										name='zdachaSom'
 										render={({ field }) => (
 											<NumberInput
+												disabled
 												value={field.value}
 												onChange={(val) => {
 													field.onChange(val);
@@ -528,19 +605,17 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 							{/* Izoh */}
 							<div>
 								<Label className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
-									Izoh <span className='text-red-600'>*</span>
+									Izoh (ixtiyoriy)
 								</Label>
 								<Controller
 									control={control}
 									name='note'
-									rules={{ required: 'Izoh majburiy' }}
 									render={({ field }) => (
 										<textarea
 											{...field}
 											placeholder='Izoh kiriting...'
-											className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none'
+											className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500  resize-none'
 											rows={3}
-											aria-required='true'
 											onChange={(e) => {
 												field.onChange(e.target.value);
 												setNote(e.target.value);
@@ -548,7 +623,6 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 										/>
 									)}
 								/>
-								{errors.note && <p className='text-rose-600 text-xs mt-1'>{errors.note.message}</p>}
 							</div>
 						</div>
 					</div>

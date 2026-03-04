@@ -482,9 +482,9 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 								</div>
 							)}
 							<div
-								className={`hidden md:flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-sm ${
+								className={`hidden md:flex items-center gap-2 bg-green-600 px-3 py-1.5 rounded-xl shadow-md ${
 									isSuperadmin && shouldShowExchangeRateDialog
-										? 'cursor-pointer hover:bg-white/30 transition-colors'
+										? 'cursor-pointer hover:bg-green-700 transition-colors'
 										: ''
 								}`}
 								onClick={
@@ -498,8 +498,8 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 										: undefined
 								}
 							>
-								<DollarSign className='w-4 h-4 text-white/90 shrink-0' />
-								<span className='text-xs font-semibold whitespace-nowrap'>
+								<DollarSign className='w-4 h-4 text-white shrink-0' />
+								<span className='text-xs font-semibold whitespace-nowrap text-white'>
 									1 USD = {displayRate} UZS
 								</span>
 							</div>

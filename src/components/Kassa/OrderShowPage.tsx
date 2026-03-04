@@ -329,10 +329,13 @@ export function OrderShowPage() {
 
 				{/* Print Preview Dialog for Hodim */}
 				<Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
-					<DialogContent className='max-w-5xl w-[95vw] sm:w-[90vw] lg:w-[80vw]'>
-						<div className='overflow-auto max-h-[70vh] my-2'>
+					<DialogContent className='w-[75vw] max-w-none'>
+						<div className='overflow-auto max-h-[75vh] my-2 w-full'>
 							{receiptHtmlPreview ? (
-								<div dangerouslySetInnerHTML={{ __html: receiptHtmlPreview }} />
+								<div
+									className='w-full min-w-0'
+									dangerouslySetInnerHTML={{ __html: receiptHtmlPreview }}
+								/>
 							) : (
 								<div className='p-4 text-sm text-muted-foreground'>Preview mavjud emas</div>
 							)}

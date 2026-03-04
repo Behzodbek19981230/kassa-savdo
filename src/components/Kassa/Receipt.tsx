@@ -102,7 +102,7 @@ export function renderReceiptHtml(props: ReceiptProps) {
 		})
 		.join('\n');
 
-	if (!props.hodimLayout) {
+	if (props.hodimLayout) {
 		const totalCount = items.reduce((s, it) => s + Number(it.quantity || 0), 0);
 		return `<!doctype html>
 	<html>
@@ -111,12 +111,12 @@ export function renderReceiptHtml(props: ReceiptProps) {
 		<title>Order ${orderNumber}</title>
 		<style>
 			/* Force color printing where supported */
-			* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+			* { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
 			@media print { * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 			@page { size: A4; margin: 15mm; }
-			body { font-family: "Times New Roman", serif; margin:0; padding:0; background:#fff }
-			.page { width:210mm; padding: 10mm; box-sizing: border-box }
-			table { width:100%; border-collapse:collapse; margin-top:20px; font-size:14px }
+			body { font-family: "Times New Roman", serif; margin:0; padding:0; background:#fff; width: 100%; }
+			.page { width: 100%; padding: 10mm; box-sizing: border-box; }
+			table { width: 100%; border-collapse:collapse; margin-top:20px; font-size:14px; box-sizing: border-box; }
 			th, td { border:1px solid #000; padding:8px; }
 			th { background:#2f8f6f; color:#fff; font-weight:bold }
 			tr { background: transparent }
@@ -124,6 +124,10 @@ export function renderReceiptHtml(props: ReceiptProps) {
 			.center { text-align:center }
 			.right { text-align:right }
 			.signature { margin-top:60px }
+			@media print {
+				body { width: 210mm; }
+				.page { width: 210mm !important; }
+			}
 		</style>
 	</head>
 	<body>
@@ -158,9 +162,8 @@ export function renderReceiptHtml(props: ReceiptProps) {
 		</div>
 	</body>
 	</html>`;
-	}
-
-	return `<!doctype html>
+	} else
+		return `<!doctype html>
   <html>
   <head>
     <meta charset="utf-8" />
@@ -173,10 +176,10 @@ export function renderReceiptHtml(props: ReceiptProps) {
 				color-adjust: exact !important;
 			}
 			@page { size: A4 portrait; margin: 10mm; }
-			body { font-family: "Times New Roman", serif; margin:0; padding:0; background:#fff; color:#000 }
-			.page { width: 190mm; padding: 0; margin: 0 auto; }
+			body { font-family: "Times New Roman", serif; margin:0; padding:0; background:#fff; color:#000; width: 100%; }
+			.page { width: 100%; padding: 0 8px; margin: 0; box-sizing: border-box; }
 			img.print-logo { display:block; width:90px; height:auto; margin-bottom:8px }
-			table { width:100%; border-collapse:collapse; margin-top:16px; font-size:10px; table-layout:fixed }
+			table { width:100%; border-collapse:collapse; margin-top:16px; font-size:10px; table-layout:fixed; box-sizing: border-box; }
 			th, td {
 				border:1px solid #000;
 				padding:3px 2px;
@@ -207,7 +210,7 @@ export function renderReceiptHtml(props: ReceiptProps) {
 			@media print {
 				html, body { width: 210mm; height: 297mm; }
 				body { background:#fff !important; }
-				.page { width: 190mm !important; }
+				.page { width: 190mm !important; max-width: 190mm !important; }
 				table { page-break-inside:auto; }
 				tr { page-break-inside:avoid; page-break-after:auto; }
 				thead { display:table-header-group; }

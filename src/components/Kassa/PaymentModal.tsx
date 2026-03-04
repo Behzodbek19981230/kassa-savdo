@@ -85,8 +85,11 @@ export function PaymentModal({
 	});
 
 	const formatUsdAmount = (val: number) => (Math.abs(Number(val)) < 0.005 ? '0' : val.toFixed(2));
-	const usdAmount = formatUsdAmount(totalAmount / usdRate);
-	const remaining = totalAmount - paidAmount;
+	const discountNum = parseFloat(discountAmount) || 0;
+	const amountToPay = totalAmount - discountNum; // To'lanishi kerak (chegirma hisobga)
+	const qaytimUzs = (parseFloat(zdachaDollar) || 0) * usdRate + (parseFloat(zdachaSom) || 0);
+	const remaining = amountToPay - paidAmount + qaytimUzs; // qaytim berilganda "qoldiq" oshadi
+	const usdAmount = formatUsdAmount(amountToPay / usdRate);
 
 	const paymentMethods = [
 		{
@@ -155,6 +158,12 @@ export function PaymentModal({
 	useEffect(() => {
 		setPaidAmount(getPaidAmountInUzs(selectedMethods));
 	}, [selectedMethods, usdRate]);
+
+	// Qaytim dollar kiritilganda qaytim so'm avtomatik to'ldiriladi
+	useEffect(() => {
+		const zdD = parseFloat(zdachaDollar) || 0;
+		setZdachaSom((zdD * usdRate).toFixed(0));
+	}, [zdachaDollar, usdRate]);
 
 	const handleComplete = async () => {
 		if (orderData) {
@@ -289,7 +298,7 @@ export function PaymentModal({
 									{usdAmount} <span className='text-sm font-normal text-indigo-400'>USD</span>
 								</p>
 								<p className='text-xl font-bold text-indigo-600 mt-1'>
-									{totalAmount.toLocaleString()}{' '}
+									{amountToPay.toLocaleString()}{' '}
 									<span className='text-sm font-normal text-indigo-500'>UZS</span>
 								</p>
 							</div>
@@ -417,7 +426,7 @@ export function PaymentModal({
 								</div>
 							</div>
 
-							{/* Qaytim so'mda */}
+							{/* Qaytim so'mda (avto to'ldiriladi, disabled) */}
 							<div className='bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200'>
 								<label className='block text-blue-600 text-sm font-semibold mb-2'>Qaytim so'mda</label>
 								<div className='relative'>
@@ -427,6 +436,7 @@ export function PaymentModal({
 										allowDecimal={true}
 										placeholder='0'
 										className='w-full border-2 border-blue-200 focus:border-2 focus:border-blue-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-blue-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+										disabled
 									/>
 									<span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
 										UZS

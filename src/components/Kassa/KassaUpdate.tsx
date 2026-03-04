@@ -7,12 +7,11 @@ import { PaymentModal } from './PaymentModal';
 import { OrderLayout } from './OrderLayout';
 import { Product, CartItem, Customer } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-import { orderService } from '../../services/orderService';
+import { orderService, vozvratOrderService } from '../../services/orderService';
 import { OrderResponse } from '../../types';
 import { productService, ProductResponse, ProductImage } from '../../services/productService';
 import { skladService, Sklad } from '../../services/skladService';
-import { showError, showSuccess } from '../../lib/toast';
-import { ROUTES } from '../../constants';
+import { showError } from '../../lib/toast';
 import { useExchangeRate } from '../../contexts/ExchangeRateContext';
 import type { ProductModalConfirmOptions } from './ProductModal';
 import { MainCartUpdate } from './MainCartUpdate';
@@ -21,8 +20,9 @@ interface KassaUpdateProps {
 	orderId?: number;
 	readOnly?: boolean;
 	updateMode?: boolean; // PaymentModal maydonlarini ko'rsatish uchun
+	isVozvratOrder?: boolean;
 }
-export function KassaUpdate({ orderId, readOnly = false, updateMode = false }: KassaUpdateProps) {
+export function KassaUpdate({ orderId, readOnly = false, updateMode = false, isVozvratOrder = false }: KassaUpdateProps) {
 	const { user } = useAuth();
 	const { displayRate } = useExchangeRate();
 	const [cart, setCart] = useState<CartItem[]>([]);
@@ -70,26 +70,53 @@ export function KassaUpdate({ orderId, readOnly = false, updateMode = false }: K
 		if (orderId) {
 			setIsSaleStarted(true);
 
-			orderService
-				.getOrder(orderId)
-				.then((order) => {
-					setOrderData(order);
-					// Mijoz ma'lumotlarini set qilish
-					if (order.client_detail) {
-						setSelectedClientId(order.client);
-						setSelectedCustomer({
-							id: order.client_detail.id.toString(),
-							name: order.client_detail.full_name,
-							phone: order.client_detail.phone_number,
-						});
-					}
-				})
-				.catch((error) => {
-					console.error('Failed to load order:', error);
-					showError("Order ma'lumotlarini yuklashda xatolik");
-				});
+			if (isVozvratOrder) {
+				vozvratOrderService
+					.getVozvratOrder(orderId)
+					.then((order) => {
+						const orderResponse: OrderResponse = {
+							...order,
+							order_filial: order.filial,
+							order_filial_detail: order.filial_detail,
+							created_time: order.date,
+							all_product_summa: String((order.summa_total_dollar || 0) * displayRate),
+							exchange_rate: String(order.exchange_rate),
+						};
+						setOrderData(orderResponse);
+						if (order.client_detail) {
+							setSelectedClientId(order.client);
+							setSelectedCustomer({
+								id: order.client_detail.id.toString(),
+								name: order.client_detail.full_name,
+								phone: order.client_detail.phone_number,
+							});
+						}
+					})
+					.catch((error) => {
+						console.error('Failed to load vozvrat order:', error);
+						showError("Tovar qaytarish ma'lumotlarini yuklashda xatolik");
+					});
+			} else {
+				orderService
+					.getOrder(orderId)
+					.then((order) => {
+						setOrderData(order);
+						if (order.client_detail) {
+							setSelectedClientId(order.client);
+							setSelectedCustomer({
+								id: order.client_detail.id.toString(),
+								name: order.client_detail.full_name,
+								phone: order.client_detail.phone_number,
+							});
+						}
+					})
+					.catch((error) => {
+						console.error('Failed to load order:', error);
+						showError("Order ma'lumotlarini yuklashda xatolik");
+					});
+			}
 		}
-	}, [orderId]);
+	}, [orderId, isVozvratOrder, displayRate]);
 
 	// API response dan Product ga transform qilish
 	const transformProduct = (productResponse: ProductResponse): Product => {
@@ -234,11 +261,14 @@ export function KassaUpdate({ orderId, readOnly = false, updateMode = false }: K
 			try {
 				const orderProductData: any = {
 					product: selectedProduct.id || 0,
-					order_history: currentOrderId,
 					count: quantity,
 					sklad: Number(_options.skladId),
 				};
-
+				if (isVozvratOrder) {
+					orderProductData.vozvrat_order = currentOrderId;
+				} else {
+					orderProductData.order_history = currentOrderId;
+				}
 				// price_dollar va price_sum ni qo'shish
 				if (_options.priceDollar != null) {
 					orderProductData.price_dollar = _options.priceDollar;
@@ -365,6 +395,7 @@ export function KassaUpdate({ orderId, readOnly = false, updateMode = false }: K
 				setTotalAmountFromCart(total);
 			}}
 			readOnly={readOnly}
+			isVozvratOrder={isVozvratOrder}
 		/>
 	);
 

@@ -5,7 +5,7 @@ import { showError, showSuccess } from '../../lib/toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useExchangeRate } from '../../contexts/ExchangeRateContext';
 import { ProductModal } from './ProductModal';
-import { orderService } from '../../services/orderService';
+import { orderService, vozvratOrderService } from '../../services/orderService';
 import { skladService } from '../../services/skladService';
 import { OrderPaymentFields } from './OrderPaymentFields';
 
@@ -23,6 +23,8 @@ interface MainCartUpdateProps {
 	onCartChange?: (items: CartItem[], totalAmount: number) => void;
 	/** Read-only mode - faqat ko'rish uchun */
 	readOnly?: boolean;
+	/** Tovar qaytarish orderi */
+	isVozvratOrder?: boolean;
 }
 export function MainCartUpdate({
 	items,
@@ -35,6 +37,7 @@ export function MainCartUpdate({
 	refreshCartTrigger = 0,
 	onCartChange,
 	readOnly = false,
+	isVozvratOrder = false,
 }: MainCartUpdateProps) {
 	const { user } = useAuth();
 	const { displayRate } = useExchangeRate();
@@ -101,24 +104,26 @@ export function MainCartUpdate({
 		};
 	}, []);
 
-	// /api/v1/order-history-product dan order-history bo'yicha mahsulotlarni yuklash
+	// /api/v1/order-history-product dan order-history yoki vozvrat_order bo'yicha mahsulotlarni yuklash
 	const loadOrderProducts = useCallback(async () => {
 		const orderHistoryId = orderId ?? orderData?.id;
 		if (!orderHistoryId) return;
 		setIsLoadingCart(true);
 		try {
-			const list = await orderService.getOrderProducts(orderHistoryId);
+			const list = isVozvratOrder
+				? await vozvratOrderService.getVozvratOrderProducts(orderHistoryId)
+				: await orderService.getOrderProducts(orderHistoryId);
 			const filtered = (list || []).filter((p: any) => !p.is_delete);
 			setOrderProductsRaw(filtered);
 			setCartItemsFromApi(filtered.map(transformOrderProductToCartItem));
 		} catch (error) {
 			console.error('Failed to load order products:', error);
-			showError('Savdo mahsulotlarini yuklashda xatolik');
+			showError(isVozvratOrder ? 'Qaytarish mahsulotlarini yuklashda xatolik' : 'Savdo mahsulotlarini yuklashda xatolik');
 			setCartItemsFromApi([]);
 		} finally {
 			setIsLoadingCart(false);
 		}
-	}, [orderId, orderData?.id, transformOrderProductToCartItem]);
+	}, [orderId, orderData?.id, isVozvratOrder, transformOrderProductToCartItem]);
 
 	useEffect(() => {
 		if (orderId ?? orderData?.id) {
@@ -390,7 +395,7 @@ export function MainCartUpdate({
 						</div>
 					))
 				)}
-				<OrderPaymentFields orderData={orderData ?? null} onOrderUpdate={() => {}} />
+				<OrderPaymentFields orderData={orderData ?? null} onOrderUpdate={() => {}} isVozvratOrder={isVozvratOrder} />
 			</div>
 		</div>
 	);

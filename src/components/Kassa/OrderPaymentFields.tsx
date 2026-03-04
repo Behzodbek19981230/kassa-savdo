@@ -38,13 +38,15 @@ export function OrderPaymentFields({
 
 	const usdRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : displayRate;
 
-	// Order-history-product larni yuklash (orderData o'zgarganda yoki refreshTrigger o'zgarganda)
+	// Order-history-product larni yuklash: vozvrat bo'lsa vozvrat_order bo'yicha, oddiy order bo'lsa order_history bo'yicha
 	useEffect(() => {
 		const loadOrderProducts = async () => {
 			if (!orderData?.id) return;
 			setIsLoadingProducts(true);
 			try {
-				const list = await orderService.getOrderProducts(orderData.id);
+				const list = isVozvratOrder
+					? await vozvratOrderService.getVozvratOrderProducts(orderData.id)
+					: await orderService.getOrderProducts(orderData.id);
 				const filtered = (list || []).filter((p: any) => !p.is_delete);
 				setOrderProducts(filtered);
 			} catch (error) {
@@ -55,7 +57,7 @@ export function OrderPaymentFields({
 			}
 		};
 		loadOrderProducts();
-	}, [orderData?.id, orderData?.all_product_summa, refreshTrigger]);
+	}, [orderData?.id, orderData?.all_product_summa, refreshTrigger, isVozvratOrder]);
 
 	// Jami summani hisoblash (order-history-product lardan)
 	const calculatedTotalAmount = orderProducts.reduce((sum, product) => {

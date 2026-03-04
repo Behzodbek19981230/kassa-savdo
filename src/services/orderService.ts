@@ -594,7 +594,7 @@ export const vozvratOrderService = {
 		return response.data;
 	},
 	returnVozvratOrder: async (id: number, data: Partial<VozvratOrderRequest>): Promise<any> => {
-		const response = await api.post(`/v1/vozvrat-order/${id}/return`);
+		const response = await api.put(`/v1/vozvrat-order/${id}/return`);
 		return response.data;
 	},
 

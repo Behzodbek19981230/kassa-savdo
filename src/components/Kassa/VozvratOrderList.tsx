@@ -1,6 +1,6 @@
 import { useState, Fragment, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Plus, Eye, Edit, Trash2, Search, RotateCcw } from 'lucide-react';
+import { Loader2, Plus, Eye, Edit, Trash2, Search, RotateCcw, ArrowRight } from 'lucide-react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { DateRangePicker } from '../ui/date-picker';
@@ -262,6 +262,7 @@ export function VozvratOrderList() {
 														</td>
 														<td className='p-2' />
 														<td className='p-2' />
+														<td className='p-2' />
 														<td className='p-2 text-left font-semibold text-blue-700'>
 															{sumTotal.toFixed(2)} $
 														</td>
@@ -320,13 +321,35 @@ export function VozvratOrderList() {
 																<td className='p-2'>
 																	<div className='flex items-center gap-1'>
 																		<button
-																			onClick={() => handleView(item.id)}
-																			className='p-1.5 rounded hover:bg-indigo-100 text-indigo-600 transition-colors'
-																			title="Ko'rish"
+																			onClick={() => {
+																				if (item.is_karzinka) {
+																					navigate(
+																						`/tovar-qaytarish/${item.id}`,
+																					);
+																				} else {
+																					navigate(
+																						`/tovar-qaytarish/show/${item.id}`,
+																					);
+																				}
+																			}}
+																			className={`inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 ${
+																				item.is_karzinka
+																					? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+																					: 'bg-green-500 hover:bg-green-600 text-white'
+																			}`}
+																			title={
+																				item.is_karzinka
+																					? 'Davom etish'
+																					: "Ko'rish"
+																			}
 																		>
-																			<Eye size={16} />
+																			{item.is_karzinka ? (
+																				<ArrowRight size={18} />
+																			) : (
+																				<Eye size={18} />
+																			)}
 																		</button>
-																		{item.is_karzinka && (
+																		{!item.is_karzinka && (
 																			<button
 																				onClick={() => handleEdit(item.id)}
 																				className='p-1.5 rounded hover:bg-blue-100 text-blue-600 transition-colors'
