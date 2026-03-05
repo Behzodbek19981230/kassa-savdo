@@ -130,7 +130,7 @@ export function Autocomplete({
                 <button
                     disabled={disabled}
                     className={cn(
-                        'flex h-8 w-full items-center justify-between rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs',
+                        'flex h-7 w-full items-center justify-between rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs',
                         'ring-offset-white',
                         'focus:outline-none focus:ring-0 focus:shadow-none',
                         'focus:border-indigo-300',
@@ -179,7 +179,7 @@ export function Autocomplete({
                                 placeholder='Qidirish...'
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className='pl-8 h-8 text-xs'
+                                className='pl-8 h-7 text-xs'
                                 autoFocus
                             />
                         </div>

@@ -106,8 +106,8 @@ export function CustomerModal({
             return PHONE_PREFIX + local;
         })();
 
-        const totalDebtValue = data.total_debt && data.total_debt.trim() !== '' 
-            ? parseFloat(data.total_debt) 
+        const totalDebtValue = data.total_debt && data.total_debt.trim() !== ''
+            ? parseFloat(data.total_debt)
             : undefined;
 
         onSave({
@@ -228,13 +228,13 @@ export function CustomerModal({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="h-8 px-3 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-50 font-semibold text-xs transition-all duration-200"
+                            className="h-7 px-3 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-50 font-semibold text-xs transition-all duration-200"
                         >
                             Bekor qilish
                         </button>
                         <button
                             type="submit"
-                            className="h-8 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-xs flex items-center shadow-md hover:shadow-lg transition-all duration-200"
+                            className="h-7 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-xs flex items-center shadow-md hover:shadow-lg transition-all duration-200"
                         >
                             <span className="mr-1.5">✓</span> Saqlash
                         </button>

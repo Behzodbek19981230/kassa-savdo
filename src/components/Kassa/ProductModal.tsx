@@ -384,13 +384,13 @@ export function ProductModal({
                                 resetForm();
                                 onClose();
                             }}
-                            className='h-8 px-3 rounded-lg border border-indigo-200 bg-white text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors'
+                            className='h-7 px-3 rounded-lg border border-indigo-200 bg-white text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors'
                         >
                             Yopish
                         </button>
                         <button
                             onClick={handleConfirm}
-                            className='h-8 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-xs flex items-center shadow-md hover:shadow-lg transition-all duration-200'
+                            className='h-7 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-xs flex items-center shadow-md hover:shadow-lg transition-all duration-200'
                         >
                             <span className='mr-1.5'>✓</span> SAQLASH
                         </button>

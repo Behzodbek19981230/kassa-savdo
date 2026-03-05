@@ -220,7 +220,7 @@ export function ExpensePage() {
                 <div className='flex-1 overflow-x-auto'>
                     {isLoading ? (
                         <div className='flex justify-center items-center h-64'>
-                            <Loader2 className='w-8 h-8 animate-spin text-blue-600' />
+                            <Loader2 className='w-8 h-7 animate-spin text-blue-600' />
                         </div>
                     ) : error ? (
                         <div className='flex justify-center items-center h-64'>
@@ -230,10 +230,11 @@ export function ExpensePage() {
                         <table className='w-full border-collapse text-xs'>
                             <thead>
                                 <tr className='border-b-2 border-blue-200 bg-blue-50/50'>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Sana</th>
                                     <th className='text-left p-1 font-semibold text-gray-700 whitespace-nowrap w-[60px] text-xs'>
                                         t/r
                                     </th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Sana</th>
+
                                     <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Kategoriya</th>
                                     <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Xodim</th>
                                     <th className='text-right p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>Jami ($)</th>
@@ -265,6 +266,9 @@ export function ExpensePage() {
                                                             className='border-b border-gray-100 group hover:bg-blue-50/30 transition-colors cursor-pointer even:bg-gray-100'
                                                             onClick={() => setViewItem(it)}
                                                         >
+                                                            <td className='p-1 text-gray-500 font-mono text-xs'>
+                                                                {group.items.length - idx}
+                                                            </td>
                                                             {isFirstInGroup ? (
                                                                 <td
                                                                     rowSpan={group.items.length}
@@ -273,9 +277,7 @@ export function ExpensePage() {
                                                                     {groupDate}
                                                                 </td>
                                                             ) : null}
-                                                            <td className='p-1 text-gray-500 font-mono text-xs'>
-                                                                {group.items.length - idx}
-                                                            </td>
+
                                                             <td className='p-1 text-xs'>{it.category_detail?.name || '-'}</td>
                                                             <td className='p-1 text-xs'>{it.employee_detail?.full_name || '-'}</td>
                                                             <td className='p-1 text-right font-semibold text-xs'>
@@ -452,7 +454,7 @@ export function ExpensePage() {
                             <div className='flex justify-end gap-2 pt-3 border-t border-gray-200'>
                                 <button
                                     onClick={() => setViewItem(null)}
-                                    className='h-8 px-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 text-xs transition-colors'
+                                    className='h-7 px-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 text-xs transition-colors'
                                 >
                                     Yopish
                                 </button>
@@ -461,7 +463,7 @@ export function ExpensePage() {
                                         openEdit(viewItem);
                                         setViewItem(null);
                                     }}
-                                    className='h-8 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-xs shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-1.5'
+                                    className='h-7 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-xs shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-1.5'
                                 >
                                     <Edit size={14} />
                                     Tahrirlash

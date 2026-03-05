@@ -282,7 +282,7 @@ export function ProductList({
             <div ref={scrollContainerRef} className='flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-1 min-h-0'>
                 {isLoadingGrouped && groupedProducts.length === 0 ? (
                     <div className='flex flex-col items-center justify-center py-12 text-gray-500'>
-                        <Loader2 className='w-8 h-8 animate-spin text-blue-600 mb-4' />
+                        <Loader2 className='w-8 h-7 animate-spin text-blue-600 mb-4' />
                         <p className='text-sm'>Mahsulotlar yuklanmoqda...</p>
                     </div>
                 ) : groupedProducts.length === 0 ? (
@@ -406,7 +406,7 @@ export function ProductList({
                         <div className='flex-1 flex items-center justify-center p-6 bg-gray-50 relative min-h-[400px]'>
                             {isLoadingImages ? (
                                 <div className='flex flex-col items-center gap-3'>
-                                    <Loader2 className='w-8 h-8 animate-spin text-blue-600' />
+                                    <Loader2 className='w-8 h-7 animate-spin text-blue-600' />
                                     <p className='text-sm text-gray-500'>Rasmlar yuklanmoqda...</p>
                                 </div>
                             ) : selectedProductImages.length > 0 ? (

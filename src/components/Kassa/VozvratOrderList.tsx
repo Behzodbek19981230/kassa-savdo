@@ -164,7 +164,7 @@ export function VozvratOrderList() {
                                     setAppliedClientId(selectedClientId);
                                     setAppliedEmployeeId(selectedEmployeeId);
                                 }}
-                                className='h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold flex items-center'
+                                className='h-7 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold flex items-center'
                             >
                                 <Search size={14} className='mr-2' />
                                 <span>Filter</span>
@@ -183,7 +183,7 @@ export function VozvratOrderList() {
                                     setAppliedClientId(null);
                                     setAppliedEmployeeId(null);
                                 }}
-                                className='h-8 px-4 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-200 flex items-center gap-2'
+                                className='h-7 px-4 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-200 flex items-center gap-2'
                             >
                                 <RotateCcw size={14} />
                                 <span>Tozalash</span>
@@ -192,7 +192,7 @@ export function VozvratOrderList() {
 
                         <button
                             onClick={handleNewReturn}
-                            className='h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 font-semibold text-xs'
+                            className='h-7 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 font-semibold text-xs'
                         >
                             <Plus size={14} className='mr-1.5' />
                             <span className='hidden sm:inline'>Qaytarish</span>
@@ -205,7 +205,7 @@ export function VozvratOrderList() {
                 <div className='flex-1 overflow-x-auto'>
                     {isLoading ? (
                         <div className='flex justify-center items-center h-64'>
-                            <Loader2 className='w-8 h-8 animate-spin text-blue-600' />
+                            <Loader2 className='w-8 h-7 animate-spin text-blue-600' />
                         </div>
                     ) : error ? (
                         <div className='flex justify-center items-center h-64'>
@@ -215,10 +215,11 @@ export function VozvratOrderList() {
                         <table className='w-full border-collapse text-xs'>
                             <thead>
                                 <tr className='border-b-2 border-blue-200 bg-blue-50/50'>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Sana</th>
                                     <th className='text-left p-1 font-semibold text-gray-700 whitespace-nowrap w-[60px] text-xs'>
                                         t/r
                                     </th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Sana</th>
+
                                     <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Mijoz</th>
                                     <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Xodim</th>
                                     <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Telefon</th>
@@ -252,6 +253,8 @@ export function VozvratOrderList() {
                                                                 key={item.id}
                                                                 className='border-b border-gray-100 group hover:bg-blue-50/30 transition-colors even:bg-gray-100'
                                                             >
+                                                                <td className='p-1 text-gray-500 font-mono text-xs'>{groups.length - itemIdx + 1}</td>
+
                                                                 {isFirstInGroup ? (
                                                                     <td
                                                                         rowSpan={items.length}
@@ -260,7 +263,6 @@ export function VozvratOrderList() {
                                                                         {groupDate}
                                                                     </td>
                                                                 ) : null}
-                                                                <td className='p-1 text-gray-500 font-mono text-xs'>{itemIdx + 1}</td>
                                                                 <td className='p-1 text-xs'>
                                                                     <span className='font-medium text-gray-800'>
                                                                         {item.client_detail?.full_name || '-'}

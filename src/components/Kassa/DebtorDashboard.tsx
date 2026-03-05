@@ -203,7 +203,7 @@ export function DebtorDashboard() {
                             onSearchChange={searchClients}
                             placeholder='Mijozni tanlang'
                             emptyMessage={isSearchingClients ? 'Qidirilmoqda...' : 'Mijoz topilmadi'}
-                            className='!h-8 !min-h-8'
+                            className='!h-7 !min-h-7'
                         />
                     </div>
 
@@ -214,7 +214,7 @@ export function DebtorDashboard() {
                             }
                             value={draft.employee ? String(draft.employee) : '0'}
                         >
-                            <SelectTrigger className='w-full h-8 text-sm'>
+                            <SelectTrigger className='w-full h-7 text-sm'>
                                 <SelectValue placeholder='Barcha xodimlar' />
                             </SelectTrigger>
                             <SelectContent>
@@ -240,7 +240,7 @@ export function DebtorDashboard() {
                     <div className='flex items-center gap-2'>
                         <button
                             onClick={handleApplyFilters}
-                            className='h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-1.5 text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200'
+                            className='h-7 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-1.5 text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200'
                         >
                             <Search size={14} />
                             <span>Filter</span>
@@ -248,7 +248,7 @@ export function DebtorDashboard() {
                         {isFiltered && (
                             <button
                                 onClick={handleClearFilters}
-                                className='h-8 px-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 flex items-center gap-1.5 text-sm font-medium border border-gray-200 transition-all duration-200'
+                                className='h-7 px-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 flex items-center gap-1.5 text-sm font-medium border border-gray-200 transition-all duration-200'
                                 title='Filterlarni tozalash'
                             >
                                 <FilterX size={14} />
@@ -260,7 +260,7 @@ export function DebtorDashboard() {
 
                 {isLoading ? (
                     <div className='flex justify-center items-center h-64'>
-                        <Loader2 className='w-8 h-8 animate-spin text-blue-600' />
+                        <Loader2 className='w-8 h-7 animate-spin text-blue-600' />
                     </div>
                 ) : error ? (
                     <div className='flex justify-center items-center h-64 text-red-500 text-lg'>Xatolik yuz berdi</div>
@@ -269,10 +269,11 @@ export function DebtorDashboard() {
                         <table className='w-full border-collapse text-xs'>
                             <thead>
                                 <tr className='border-b-2 border-blue-200 bg-blue-50/50'>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Sana</th>
                                     <th className='text-left p-1 font-semibold text-gray-700 whitespace-nowrap w-[60px] text-xs'>
                                         t/r
                                     </th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Sana</th>
+
                                     <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Mijoz</th>
                                     <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Kim buyurtma oldi</th>
                                     <th className='text-right p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
@@ -341,6 +342,9 @@ export function DebtorDashboard() {
                                                                     },
                                                                 )}
                                                             >
+                                                                <td className='text-left p-1 text-gray-500 font-mono text-xs'>
+                                                                    {order?.order || '-'}
+                                                                </td>
                                                                 {isFirstInGroup ? (
                                                                     <td
                                                                         rowSpan={items.length}
@@ -349,9 +353,7 @@ export function DebtorDashboard() {
                                                                         {groupDate}
                                                                     </td>
                                                                 ) : null}
-                                                                <td className='text-left p-1 text-gray-500 font-mono text-xs'>
-                                                                    {order?.order || '-'}
-                                                                </td>
+
                                                                 <td className='p-1 text-left text-gray-800 text-xs'>
                                                                     {order.client_detail?.full_name ||
                                                                         `ID: ${order.client}`}
@@ -372,13 +374,13 @@ export function DebtorDashboard() {
                                                                         ? `${changeDollar.toFixed(2)}$${changeSom > 0 ? ` / ${changeSom.toLocaleString()} so'm` : ''}`
                                                                         : '—'}
                                                                 </td>
-                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                <td className='p-1 text-right text-red-600 font-semibold text-xs'>
                                                                     {(todayDebt / exchangeRate).toFixed(2)}
                                                                 </td>
-                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                <td className='p-1 text-right text-red-600 font-semibold text-xs'>
                                                                     {(totalDebt / exchangeRate).toFixed(2)}
                                                                 </td>
-                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                <td className='p-1 text-right text-green-600 font-semibold text-xs'>
                                                                     {totalProfit.toFixed(2)}
                                                                 </td>
                                                                 <td className='p-1 text-right text-gray-600 whitespace-nowrap text-xs'>
@@ -451,13 +453,13 @@ export function DebtorDashboard() {
                                                 ? `${overallTotals.totalQaytimDollar.toFixed(2)}$${overallTotals.totalQaytimSom > 0 ? ` / ${overallTotals.totalQaytimSom.toLocaleString()} so'm` : ''}`
                                                 : '—'}
                                         </td>
-                                        <td className='p-1 text-right font-semibold text-xs'>
+                                        <td className='p-1 text-right font-semibold text-red-600 text-xs'>
                                             {(overallTotals.totalBugungiQarz / (groups[0]?.items?.[0]?.exchange_rate || 1)).toFixed(2)}
                                         </td>
-                                        <td className='p-1 text-right font-semibold text-xs'>
+                                        <td className='p-1 text-right font-semibold text-red-600 text-xs'>
                                             {(overallTotals.totalUmumiyQarz / (groups[0]?.items?.[0]?.exchange_rate || 1)).toFixed(2)}
                                         </td>
-                                        <td className='p-1 text-right font-semibold text-xs'>
+                                        <td className='p-1 text-right font-semibold text-green-600 text-xs'>
                                             {overallTotals.totalFoyda.toFixed(2)}
                                         </td>
                                         <td className='p-1 text-right font-semibold text-xs'></td>

@@ -253,7 +253,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                             onSearchChange={searchClients}
                             placeholder='Mijozni tanlang'
                             emptyMessage={isSearchingClients ? 'Qidirilmoqda...' : 'Mijoz topilmadi'}
-                            className='!h-8 !min-h-8'
+                            className='!h-7 !min-h-7'
                         />
                     </div>
 
@@ -264,7 +264,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                             }
                             value={draft.employee ? String(draft.employee) : '0'}
                         >
-                            <SelectTrigger className='w-full h-8 text-sm'>
+                            <SelectTrigger className='w-full h-7 text-sm'>
                                 <SelectValue placeholder='Barcha xodimlar' />
                             </SelectTrigger>
                             <SelectContent>
@@ -283,7 +283,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                             onValueChange={(v) => setDraft((p) => ({ ...p, status: v as DraftFilters['status'] }))}
                             value={draft.status}
                         >
-                            <SelectTrigger className='w-full h-8 text-sm'>
+                            <SelectTrigger className='w-full h-7 text-sm'>
                                 <SelectValue placeholder='Barcha holatlar' />
                             </SelectTrigger>
                             <SelectContent>
@@ -326,7 +326,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 
                 {isLoading ? (
                     <div className='flex justify-center items-center h-64'>
-                        <Loader2 className='w-8 h-8 animate-spin text-blue-600' />
+                        <Loader2 className='w-8 h-7 animate-spin text-blue-600' />
                     </div>
                 ) : error ? (
                     <div className='flex justify-center items-center h-64 text-red-500 text-lg'>Xatolik yuz berdi</div>
@@ -335,10 +335,11 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                         <table className='w-full border-collapse text-xs'>
                             <thead>
                                 <tr className='border-b-2 border-blue-200 bg-blue-50/50'>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Sana</th>
                                     <th className='text-left p-1 font-semibold text-gray-700 whitespace-nowrap w-[60px] text-xs'>
                                         t/r
                                     </th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Sana</th>
+
                                     <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Mijoz</th>
                                     <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Kim buyurtma oldi</th>
                                     <th className='text-right p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
@@ -406,21 +407,21 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                                                         'bg-red-50': !order.order_status,
                                                                     },
                                                                 )}
-                                                            >
+                                                            >  <td className='text-left p-1 text-gray-500 font-mono text-xs'>
+                                                                    {order?.order}
+                                                                </td>
                                                                 {isFirstInGroup ? (
                                                                     <td
                                                                         rowSpan={items.length}
                                                                         className='text-left p-1 font-semibold text-gray-700 text-xs align-top border-r border-gray-200'
                                                                     >
                                                                         {groupDate}
-                                                                </td>
+                                                                    </td>
                                                                 ) : null}
-                                                                <td className='text-left p-1 text-gray-500 font-mono text-xs'>
-                                                                    {order?.order}
-                                                                </td>
+
                                                                 <td className='p-1 text-left text-gray-800 text-xs'>
-                                                                        {order.client_detail?.full_name ||
-                                                                            `ID: ${order.client}`}
+                                                                    {order.client_detail?.full_name ||
+                                                                        `ID: ${order.client}`}
                                                                 </td>
                                                                 <td className='p-1 text-left text-gray-600 text-xs'>
                                                                     {order.created_by_detail?.full_name ??
@@ -438,13 +439,13 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                                                         ? `${changeDollar.toFixed(2)}$${changeSom > 0 ? ` / ${changeSom.toLocaleString()} so'm` : ''}`
                                                                         : '—'}
                                                                 </td>
-                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                <td className='p-1 text-right text-red-600 font-semibold text-xs'>
                                                                     {(todayDebt / exchangeRate).toFixed(2)}
                                                                 </td>
-                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                <td className='p-1 text-right text-red-600 font-semibold text-xs'>
                                                                     {(totalDebt / exchangeRate).toFixed(2)}
                                                                 </td>
-                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                <td className='p-1 text-right text-green-600 font-semibold text-xs'>
                                                                     {totalProfit.toFixed(2)}
                                                                 </td>
                                                                 <td className='p-1 text-right text-gray-600 whitespace-nowrap text-xs'>
@@ -523,7 +524,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                 )}
                                 {/* overall totals row */}
                                 {groups.length > 0 && groups[0]?.items?.[0] && (
-                                <tr className='bg-blue-50'>
+                                    <tr className='bg-blue-50'>
                                         <td className='p-1 text-left font-semibold text-xs'>Jami</td>
                                         <td colSpan={3} />
                                         <td className='p-1 text-right font-semibold text-blue-700 text-xs'>
@@ -537,22 +538,22 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                                 ? `${overallTotals.totalQaytimDollar.toFixed(2)}$${overallTotals.totalQaytimSom > 0 ? ` / ${overallTotals.totalQaytimSom.toLocaleString()} so'm` : ''}`
                                                 : '—'}
                                         </td>
-                                        <td className='p-1 text-right font-semibold text-xs'>
+                                        <td className='p-1 text-right font-semibold text-red-600 text-xs'>
                                             {(overallTotals.totalBugungiQarz / (groups[0]?.items?.[0]?.exchange_rate || 1)).toFixed(2)}
                                         </td>
-                                        <td className='p-1 text-right font-semibold text-xs'>
+                                        <td className='p-1 text-right font-semibold text-red-600 text-xs'>
                                             {(overallTotals.totalUmumiyQarz / (groups[0]?.items?.[0]?.exchange_rate || 1)).toFixed(2)}
                                         </td>
-                                        <td className='p-1 text-right font-semibold text-xs'>
+                                        <td className='p-1 text-right font-semibold text-green-600 text-xs'>
                                             {overallTotals.totalFoyda.toFixed(2)}
-                                    </td>
+                                        </td>
                                         <td className='p-1 text-right font-semibold text-xs'></td>
                                         <td className='p-1 text-right font-semibold text-xs'></td>
                                         <td className='p-1 text-right font-semibold text-xs'>
                                             {overallTotals.totalKeshbek.toFixed(2)}
-                                    </td>
+                                        </td>
                                         <td className='p-1 text-right font-semibold text-xs'></td>
-                                </tr>
+                                    </tr>
                                 )}
                             </tbody>
                         </table>

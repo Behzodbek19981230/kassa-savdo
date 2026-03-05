@@ -483,7 +483,7 @@ export function PaymentModal({
                     <div className='p-2 border-t bg-white flex justify-between items-center gap-2 shrink-0'>
                         <button
                             onClick={onClose}
-                            className='h-8 px-4 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors flex items-center gap-1.5'
+                            className='h-7 px-4 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors flex items-center gap-1.5'
                         >
                             <X size={14} />
                             <span className='text-xs'>Yopish</span>
@@ -491,7 +491,7 @@ export function PaymentModal({
                         <button
                             onClick={handleComplete}
                             disabled={isCompleting || !orderData}
-                            className='h-8 bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg font-semibold shadow hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
+                            className='h-7 bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg font-semibold shadow hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
                         >
                             {isCompleting ? (
                                 <>
