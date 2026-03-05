@@ -543,6 +543,9 @@ export function Cart({
             <div className='p-4 bg-blue-600 border-b border-blue-400 shadow-md'>
                 {/* Barcha elementlar bir qatorda */}
                 <div className='flex items-center gap-3 flex-wrap'>
+                    {isVozvratOrder && (
+                        <h2 className='text-white text-xl font-bold whitespace-pre-wrap'>Tovar qaytarish</h2>
+                    )}
 
 
                     {/* Mijoz tanlash va Savdoni boshlash - faqat readOnly emas bo'lsa ko'rsatish */}
@@ -778,15 +781,26 @@ export function Cart({
 
                             {/* Product Details */}
                             <div className='flex-1 px-1.5 min-w-0'>
-                                <div className='flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-gray-600'>
+                                <div className='flex flex-wrap gap-1'>
                                     {item.branchCategoryName && (
-                                        <span className='text-indigo-600 font-medium'>{item.branchCategoryName}</span>
+                                        <span className='text-[10px] text-orange-600 font-medium bg-orange-50 px-1.5 py-0.5 rounded'>
+                                            Kategoriya: {item.branchCategoryName}
+                                        </span>
                                     )}
                                     {item.modelName && (
-                                        <span className='text-gray-700'>{item.modelName}</span>
+                                        <span className='text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded'>
+                                            Modeli: {item.modelName}
+                                        </span>
                                     )}
                                     {item.typeName && (
-                                        <span className='text-gray-500'>{item.typeName}</span>
+                                        <span className='text-[10px] text-green-600 font-medium bg-green-50 px-1.5 py-0.5 rounded'>
+                                            Turi: {item.typeName}
+                                        </span>
+                                    )}
+                                    {item.size && (
+                                        <span className='text-[10px] text-purple-600 font-medium bg-purple-50 px-1.5 py-0.5 rounded'>
+                                            O'lchami: {item.size} {item.unitCode || ''}
+                                        </span>
                                     )}
                                 </div>
                             </div>
