@@ -346,7 +346,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 									/>
 								</div>
 								<div className='flex items-center gap-3'>
-									<span className='text-sm font-semibold text-gray-700'>Status:</span>
+									<span className='text-sm font-semibold text-gray-700'>Holati:</span>
 									<button
 										type='button'
 										onClick={() => setDebtStatus(!debtStatus)}

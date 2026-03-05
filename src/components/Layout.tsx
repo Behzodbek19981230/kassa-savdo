@@ -369,9 +369,9 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
     const handleBack = onBack || (() => navigate(ROUTES.HOME));
 
     return (
-        <div className='flex flex-col h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50  '>
+        <div className='flex flex-col h-screen bg-slate-50'>
             {/* Top Navigation Bar */}
-            <header className='bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white px-2 sm:px-3 py-2 shrink-0 shadow-lg'>
+            <header className='bg-blue-600 text-white px-2 sm:px-3 py-2 shrink-0 shadow-lg'>
                 <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2'>
                     {/* Chap tomonda: Primary navigation (converted from buttons to semantic nav menu) */}
                     <nav aria-label='Primary' className='w-full sm:w-auto'>
@@ -669,7 +669,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
                             </span>
                             <span>•</span>
                             <span>
-                                Status:{' '}
+                                Holati:{' '}
                                 {selectedNote?.status === 'done'
                                     ? 'Bajarilgan'
                                     : selectedNote?.status === 'expired'
@@ -747,7 +747,7 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
             {/* Active rate bo'lmaganda bloklovchi info modal */}
             <Dialog open={shouldBlockByMissingActiveRate} onOpenChange={() => { }}>
                 <DialogContent
-                    className='sm:max-w-[460px] [&>button]:hidden border-0 bg-gradient-to-br from-amber-50 via-white to-red-50 focus-visible:border-0 focus-visible:outline-none'
+                    className='sm:max-w-[460px] [&>button]:hidden border-0 bg-amber-50 focus-visible:border-0 focus-visible:outline-none'
                     aria-describedby='missing-active-rate-desc'
                 >
                     <DialogHeader className='space-y-4'>

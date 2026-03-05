@@ -339,7 +339,7 @@ export function NotesPanel({ embedded = false }: NotesPanelProps) {
 									)}
 									onClick={() => openView(note)}
 								>
-									{/* Status dot */}
+									{/* Holati nuqtasi */}
 									<span
 										className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-white ${
 											st === 'new' &&
@@ -383,7 +383,7 @@ export function NotesPanel({ embedded = false }: NotesPanelProps) {
 										</div>
 									</div>
 
-									{/* Actions — visible on hover */}
+									{/* Amallar — hover paytida ko'rinadi */}
 									<div
 										className='flex flex-shrink-0 items-center gap-0.5 transition-opacity opacity-100'
 										onClick={(e) => e.stopPropagation()}

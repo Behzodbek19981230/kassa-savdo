@@ -244,7 +244,7 @@ export function VozvratPaymentModal({
                                     id='confirm'
                                     checked={isConfirmed}
                                     onChange={(e) => setIsConfirmed(e.target.checked)}
-                                    className='w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500'
+                                    className='w-3.5 h-3.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500'
                                 />
                                 <Label htmlFor='confirm' className='text-sm font-semibold text-gray-700 cursor-pointer'>
                                     Tasdiqlash:

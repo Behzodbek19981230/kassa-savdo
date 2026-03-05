@@ -228,7 +228,7 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 			<Dialog.Portal>
 				<Dialog.Overlay className='fixed inset-0 bg-black/60 backdrop-blur-sm z-50' />
 				<Dialog.Content className='fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border-2 border-indigo-200 z-50 overflow-hidden'>
-					<div className='flex justify-between items-center p-4 sm:p-5 border-b-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50'>
+					<div className='flex justify-between items-center p-4 sm:p-5 border-b-2 border-indigo-100 bg-indigo-50'>
 						<h3 className='text-lg sm:text-xl font-bold text-gray-900'>
 							{initialData?.id ? 'Xarajatni tahrirlash' : 'Yangi xarajat'}
 						</h3>
@@ -257,9 +257,9 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 													type='radio'
 													checked={field.value === false}
 													onChange={() => field.onChange(false)}
-													className='w-4 h-4 text-indigo-600 focus:ring-indigo-500'
+													className='w-3.5 h-3.5 text-indigo-600 focus:ring-indigo-500'
 												/>
-												<span className='text-sm text-gray-700'>Oddiy xarajat</span>
+												<span className='text-xs text-gray-700'>Oddiy xarajat</span>
 											</label>
 										)}
 									/>
@@ -272,9 +272,9 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 													type='radio'
 													checked={field.value === true}
 													onChange={() => field.onChange(true)}
-													className='w-4 h-4 text-indigo-600 focus:ring-indigo-500'
+													className='w-3.5 h-3.5 text-indigo-600 focus:ring-indigo-500'
 												/>
-												<span className='text-sm text-gray-700'>Oylik</span>
+												<span className='text-xs text-gray-700'>Oylik</span>
 											</label>
 										)}
 									/>

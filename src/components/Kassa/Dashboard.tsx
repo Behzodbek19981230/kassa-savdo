@@ -14,7 +14,6 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Autocomplete, type AutocompleteOption } from '../ui/Autocomplete';
 import { showError, showSuccess } from '../../lib/toast';
 import clsx from 'clsx';
-import { Button } from '../ui/button';
 
 interface DashboardProps {
     onNewSale?: () => void;
@@ -162,15 +161,37 @@ export function Dashboard({ onNewSale }: DashboardProps) {
         let totalCount = 0;
         let totalZakaz = 0;
         let totalTolangan = 0;
+        let totalQaytimDollar = 0;
+        let totalQaytimSom = 0;
+        let totalBugungiQarz = 0;
+        let totalUmumiyQarz = 0;
+        let totalFoyda = 0;
+        let totalKeshbek = 0;
         for (const g of groups) {
             const items = (g.items || []).filter((o: any) => !o.is_delete);
             totalCount += items.length;
             for (const o of items) {
                 totalZakaz += parseFloat(o.all_product_summa || '0') || 0;
                 totalTolangan += tolovSummasi(o as OrderResponse);
+                totalQaytimDollar += parseFloat(o.zdacha_dollar || '0') || 0;
+                totalQaytimSom += parseFloat(o.zdacha_som || '0') || 0;
+                totalBugungiQarz += parseFloat(o.total_debt_today_client || '0') || 0;
+                totalUmumiyQarz += parseFloat(o.total_debt_client || '0') || 0;
+                totalFoyda += parseFloat(o.all_profit_dollar || '0') || 0;
+                totalKeshbek += parseFloat(o.client_detail?.keshbek || o.cashback_dollar || '0') || 0;
             }
         }
-        return { totalCount, totalZakaz, totalTolangan };
+        return {
+            totalCount,
+            totalZakaz,
+            totalTolangan,
+            totalQaytimDollar,
+            totalQaytimSom,
+            totalBugungiQarz,
+            totalUmumiyQarz,
+            totalFoyda,
+            totalKeshbek
+        };
     }, [groups]);
 
     // Order ni tahrirlash
@@ -211,10 +232,10 @@ export function Dashboard({ onNewSale }: DashboardProps) {
         <div className='p-2 sm:p-3 min-h-full'>
             <div className='bg-white rounded-xl shadow-xl p-2 sm:p-3 min-h-[400px] border border-gray-100 overflow-hidden'>
                 <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2'>
-                    <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>Savdo ro'yxati</h2>
+                    <h2 className='text-xl font-bold text-gray-800'>Savdo ro'yxati</h2>
                     <button
                         onClick={onNewSale}
-                        className='px-3 py-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 font-semibold text-xs'
+                        className='px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 font-semibold text-xs'
                     >
                         <Plus size={14} className='mr-1.5' />
                         <span className='hidden sm:inline'>Yangi savdo</span>
@@ -285,7 +306,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                     <div className='flex items-center gap-2'>
                         <button
                             onClick={handleApplyFilters}
-                            className='h-7 px-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-md hover:from-blue-700 hover:to-blue-600 flex items-center gap-1 text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200'
+                            className='h-7 px-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center gap-1 text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200'
                         >
                             <Search size={12} />
                             <span>Filter</span>
@@ -314,158 +335,145 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                         <table className='w-full border-collapse text-xs'>
                             <thead>
                                 <tr className='border-b-2 border-blue-200 bg-blue-50/50'>
-                                    <th className='text-left p-1 font-semibold text-gray-700 whitespace-nowrap w-10 text-xs'>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Sana</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 whitespace-nowrap w-[60px] text-xs'>
                                         t/r
                                     </th>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>Sanasi</th>
                                     <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Mijoz</th>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Xodim</th>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
-                                        Zakaz (summa)
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Kim buyurtma oldi</th>
+                                    <th className='text-right p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
+                                        To'lanadigan summa($)
                                     </th>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
-                                        To'langan
+                                    <th className='text-right p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
+                                        To'langan summa($)
                                     </th>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[80px] text-xs'>Qarz</th>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
-                                        Umumiy qarz
+                                    <th className='text-right p-1 font-semibold text-gray-700 min-w-[80px] text-xs'>Qaytim</th>
+                                    <th className='text-right p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
+                                        Bugungi qarz($)
                                     </th>
-                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Holati</th>
-                                    <th className='text-left p-1 font-semibold text-gray-700 w-24 text-xs'>Actions</th>
+                                    <th className='text-right p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
+                                        Umumiy qolgan qarz($)
+                                    </th>
+                                    <th className='text-right p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
+                                        Jami foyda($)
+                                    </th>
+                                    <th className='text-right p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Yaratilgan vaqt</th>
+                                    <th className='text-right p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Buyurtma holati</th>
+                                    <th className='text-right p-1 font-semibold text-gray-700 min-w-[80px] text-xs'>Keshbek($)</th>
+                                    <th className='text-right p-1 font-semibold text-gray-700 w-24 text-xs'>Amallar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {groups.length === 0 || groups.every((g) => (g.items?.length || 0) === 0) ? (
                                     <tr>
-                                        <td colSpan={10} className='text-center py-12 text-gray-400'>
+                                        <td colSpan={14} className='text-center py-12 text-gray-400'>
                                             Ma'lumotlar yo'q
                                         </td>
                                     </tr>
                                 ) : (
                                     (() => {
-                                        let rowIndex = 0;
                                         return groups.map((group, gIdx) => {
                                             const items = (group.items || []).filter((o: any) => !o.is_delete);
-                                            const sumZakaz = items.reduce(
-                                                (s: number, o: any) =>
-                                                    s + (parseFloat(o.all_product_summa || '0') || 0),
-                                                0,
-                                            );
-                                            const sumTolangan = items.reduce(
-                                                (s: number, o: any) => s + tolovSummasi(o as OrderResponse),
-                                                0,
-                                            );
                                             return (
                                                 <Fragment key={`group-${group.date ?? gIdx}`}>
-                                                    <tr className='bg-gray-100'>
-                                                        <td className='p-1'></td>
-                                                        <td className='px-1 py-0.5 font-semibold text-gray-700 text-xs'>
-                                                            {group.date
-                                                                ? format(new Date(group.date), 'yyyy-MM-dd')
-                                                                : 'Barcha sanalar'}
-                                                        </td>
-                                                        <td className='p-1' />
-                                                        <td className='p-1' />
-                                                        <td className='p-1 text-left font-semibold text-blue-700 text-xs'>
-                                                            {sumZakaz.toLocaleString()}
-                                                        </td>
-                                                        <td className='p-1 text-left font-semibold text-xs'>
-                                                            {sumTolangan.toLocaleString()}
-                                                        </td>
-                                                        <td className='p-1' />
-                                                        <td className='p-1' />
-                                                        <td className='p-1' />
-                                                        <td className='p-1' />
-                                                        <td className='p-1' />
-                                                    </tr>
-
-                                                    {items.map((order: any) => {
+                                                    {items.map((order: any, itemIdx: number) => {
                                                         const isKarzinka = order.is_karzinka;
                                                         const orderPath = isKarzinka
                                                             ? `/order/${order.id}`
                                                             : `/order/show/${order.id}`;
                                                         const tolangan = tolovSummasi(order as OrderResponse);
-                                                        const index = ++rowIndex;
+                                                        const isFirstInGroup = itemIdx === 0;
+                                                        const groupDate = group.date
+                                                            ? format(new Date(group.date), 'dd.MM.yyyy')
+                                                            : 'Barcha sanalar';
+
+                                                        const payable = parseFloat(order.all_product_summa || '0');
+                                                        const paid = tolangan;
+                                                        const exchangeRate = order.exchange_rate || 1;
+                                                        const changeDollar = parseFloat(order.zdacha_dollar || '0');
+                                                        const changeSom = parseFloat(order.zdacha_som || '0');
+                                                        const todayDebt = parseFloat(order.total_debt_today_client || '0');
+                                                        const totalDebt = parseFloat(order.total_debt_client || '0');
+                                                        const totalProfit = parseFloat(order.all_profit_dollar || '0');
+                                                        const cashback = parseFloat(order.client_detail?.keshbek || order.cashback_dollar || '0');
+
                                                         return (
                                                             <tr
                                                                 key={order.id}
                                                                 className={clsx(
-                                                                    'border-b border-gray-100 group hover:bg-blue-50/30 transition-colors',
+                                                                    'border-b border-gray-100 group hover:bg-blue-50/30 transition-colors even:bg-gray-100',
                                                                     {
-                                                                        'bg-red-300': !order.order_status,
+                                                                        'bg-red-50': !order.order_status,
                                                                     },
                                                                 )}
                                                             >
+                                                                {isFirstInGroup ? (
+                                                                    <td
+                                                                        rowSpan={items.length}
+                                                                        className='text-left p-1 font-semibold text-gray-700 text-xs align-top border-r border-gray-200'
+                                                                    >
+                                                                        {groupDate}
+                                                                    </td>
+                                                                ) : null}
                                                                 <td className='text-left p-1 text-gray-500 font-mono text-xs'>
-                                                                    {index}
-                                                                </td>
-                                                                <td className='text-left p-1 text-gray-600 whitespace-nowrap text-xs'>
-                                                                    {order.created_time
-                                                                        ? new Date(order.created_time).toLocaleString(
-                                                                            'uz-UZ',
-                                                                            {
-                                                                                day: '2-digit',
-                                                                                month: '2-digit',
-                                                                                year: 'numeric',
-                                                                                hour: '2-digit',
-                                                                                minute: '2-digit',
-                                                                            },
-                                                                        )
-                                                                        : order.date
-                                                                            ? new Date(order.date).toLocaleString(
-                                                                                'uz-UZ',
-                                                                                {
-                                                                                    day: '2-digit',
-                                                                                    month: '2-digit',
-                                                                                    year: 'numeric',
-                                                                                    hour: '2-digit',
-                                                                                    minute: '2-digit',
-                                                                                },
-                                                                            )
-                                                                            : '—'}
+                                                                    {order?.order}
                                                                 </td>
                                                                 <td className='p-1 text-left text-gray-800 text-xs'>
-                                                                    <span className='font-medium text-gray-800'>
-                                                                        {order.client_detail?.full_name ||
-                                                                            `ID: ${order.client}`}
-                                                                    </span>
+                                                                    {order.client_detail?.full_name ||
+                                                                        `ID: ${order.client}`}
                                                                 </td>
                                                                 <td className='p-1 text-left text-gray-600 text-xs'>
                                                                     {order.created_by_detail?.full_name ??
                                                                         order.employee ??
                                                                         '—'}
                                                                 </td>
-                                                                <td className='p-1 text-left font-medium text-blue-700 text-xs'>
-                                                                    {parseFloat(
-                                                                        order.all_product_summa || '0',
-                                                                    ).toLocaleString()}
+                                                                <td className='p-1 text-right font-medium text-blue-700 text-xs'>
+                                                                    {(payable / exchangeRate).toFixed(2)}
                                                                 </td>
-                                                                <td className='p-1 text-left text-gray-700 text-xs'>
-                                                                    {tolangan.toLocaleString()}
+                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                    {(paid / exchangeRate).toFixed(2)}
                                                                 </td>
-                                                                <td className='p-1 text-left text-gray-700 text-xs'>
-                                                                    {parseFloat(
-                                                                        order.total_debt_today_client || '0',
-                                                                    ).toLocaleString()}
+                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                    {changeDollar > 0 || changeSom > 0
+                                                                        ? `${changeDollar.toFixed(2)}$${changeSom > 0 ? ` / ${changeSom.toLocaleString()} so'm` : ''}`
+                                                                        : '—'}
                                                                 </td>
-                                                                <td className='p-1 text-left text-gray-700 text-xs'>
-                                                                    {parseFloat(
-                                                                        order.total_debt_client || '0',
-                                                                    ).toLocaleString()}
+                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                    {(todayDebt / exchangeRate).toFixed(2)}
                                                                 </td>
-                                                                <td className='text-left p-1 group-hover:bg-blue-50/30 transition-colors'>
+                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                    {(totalDebt / exchangeRate).toFixed(2)}
+                                                                </td>
+                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                    {totalProfit.toFixed(2)}
+                                                                </td>
+                                                                <td className='p-1 text-right text-gray-600 whitespace-nowrap text-xs'>
+                                                                    {order.created_time
+                                                                        ? format(new Date(order.created_time), ' HH:mm')
+                                                                        : order.date
+                                                                            ? format(new Date(order.date), ' HH:mm')
+                                                                            : '—'}
+                                                                </td>
+                                                                <td className='text-right p-1 group-hover:bg-blue-50/30 transition-colors'>
                                                                     {isKarzinka ? (
                                                                         <span className='px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-semibold rounded-full border border-yellow-300'>
                                                                             Korzinkada
                                                                         </span>
-                                                                    ) : (
+                                                                    ) : order.order_status ? (
                                                                         <span className='px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-semibold rounded-full border border-green-300 inline-flex items-center gap-0.5'>
                                                                             <CheckCircle2 size={10} />
                                                                             Yakunlangan
                                                                         </span>
+                                                                    ) : (
+                                                                        <span className='px-1.5 py-0.5 bg-red-100 text-red-800 text-[10px] font-semibold rounded-full border border-red-300'>
+                                                                            Yakunlanmagan
+                                                                        </span>
                                                                     )}
                                                                 </td>
-                                                                <td className='p-1 text-center group-hover:bg-blue-50/30 transition-colors'>
+                                                                <td className='p-1 text-right text-gray-700 text-xs'>
+                                                                    {cashback.toFixed(2)}
+                                                                </td>
+                                                                <td className='p-1 text-right group-hover:bg-blue-50/30 transition-colors'>
                                                                     <div className='flex items-center justify-center gap-0.5'>
                                                                         {/* Edit button */}
                                                                         {!isKarzinka && (
@@ -514,20 +522,38 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                     })()
                                 )}
                                 {/* overall totals row */}
-                                <tr className='bg-blue-50'>
-                                    <td className='p-1 text-left font-semibold text-xs'>Jami</td>
-                                    <td colSpan={2} />
-                                    <td />
-                                    <td className='p-1 text-left font-semibold text-blue-700 text-xs'>
-                                        {overallTotals.totalZakaz.toLocaleString()}
-                                    </td>
-                                    <td className='p-1 text-left font-semibold text-xs'>
-                                        {overallTotals.totalTolangan.toLocaleString()}
-                                    </td>
-                                    <td className='p-1 text-left font-semibold text-xs'></td>
-                                    <td className='p-1 text-left font-semibold text-xs'></td>
-                                    <td colSpan={3} />
-                                </tr>
+                                {groups.length > 0 && groups[0]?.items?.[0] && (
+                                    <tr className='bg-blue-50'>
+                                        <td className='p-1 text-left font-semibold text-xs'>Jami</td>
+                                        <td colSpan={3} />
+                                        <td className='p-1 text-right font-semibold text-blue-700 text-xs'>
+                                            {(overallTotals.totalZakaz / (groups[0]?.items?.[0]?.exchange_rate || 1)).toFixed(2)}
+                                        </td>
+                                        <td className='p-1 text-right font-semibold text-xs'>
+                                            {(overallTotals.totalTolangan / (groups[0]?.items?.[0]?.exchange_rate || 1)).toFixed(2)}
+                                        </td>
+                                        <td className='p-1 text-right font-semibold text-xs'>
+                                            {overallTotals.totalQaytimDollar > 0 || overallTotals.totalQaytimSom > 0
+                                                ? `${overallTotals.totalQaytimDollar.toFixed(2)}$${overallTotals.totalQaytimSom > 0 ? ` / ${overallTotals.totalQaytimSom.toLocaleString()} so'm` : ''}`
+                                                : '—'}
+                                        </td>
+                                        <td className='p-1 text-right font-semibold text-xs'>
+                                            {(overallTotals.totalBugungiQarz / (groups[0]?.items?.[0]?.exchange_rate || 1)).toFixed(2)}
+                                        </td>
+                                        <td className='p-1 text-right font-semibold text-xs'>
+                                            {(overallTotals.totalUmumiyQarz / (groups[0]?.items?.[0]?.exchange_rate || 1)).toFixed(2)}
+                                        </td>
+                                        <td className='p-1 text-right font-semibold text-xs'>
+                                            {overallTotals.totalFoyda.toFixed(2)}
+                                        </td>
+                                        <td className='p-1 text-right font-semibold text-xs'></td>
+                                        <td className='p-1 text-right font-semibold text-xs'></td>
+                                        <td className='p-1 text-right font-semibold text-xs'>
+                                            {overallTotals.totalKeshbek.toFixed(2)}
+                                        </td>
+                                        <td className='p-1 text-right font-semibold text-xs'></td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -538,7 +564,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
             {deleteModalOpen && (
                 <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
                     <div className='bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-red-200'>
-                        <div className='flex justify-between items-center p-5 border-b-2 border-red-100 bg-gradient-to-r from-red-50 to-pink-50'>
+                        <div className='flex justify-between items-center p-5 border-b-2 border-red-100 bg-red-50'>
                             <h3 className='text-xl font-bold text-gray-900'>Savdoni o'chirish</h3>
                             <button
                                 onClick={() => {
@@ -571,7 +597,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                 <button
                                     onClick={handleDelete}
                                     disabled={deletingOrderId !== null}
-                                    className='px-3 py-1.5 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-md transition-all duration-200 font-semibold text-xs shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
+                                    className='px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md transition-all duration-200 font-semibold text-xs shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
                                 >
                                     {deletingOrderId !== null ? (
                                         <>

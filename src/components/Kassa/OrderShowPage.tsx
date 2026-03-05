@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Fragment } from 'react';
 import { useParams } from 'react-router-dom';
 import { Loader2, Banknote, CreditCard, AlertTriangle, Pencil, ChevronLeft, Printer, User } from 'lucide-react';
 import { orderService } from '../../services/orderService';
@@ -356,7 +356,7 @@ export function OrderShowPage() {
 
                 <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-2'>
                     {/* Kassir */}
-                    <div className='bg-gradient-to-br from-green-50 to-emerald-50 p-1.5 rounded border border-green-200'>
+                    <div className='bg-green-50 p-1.5 rounded border border-green-200'>
                         <p className='text-[9px] font-semibold text-green-600 mb-0.5 uppercase tracking-wide'>Kassir</p>
                         <p className='font-bold text-gray-800 text-xs mb-0.5'>
                             {order_history.created_by_detail?.full_name || "Noma'lum"}
@@ -365,7 +365,7 @@ export function OrderShowPage() {
                     </div>
 
                     {/* Filial */}
-                    <div className='bg-gradient-to-br from-amber-50 to-orange-50 p-2 rounded border border-amber-200'>
+                    <div className='bg-amber-50 p-2 rounded border border-amber-200'>
                         <p className='text-[10px] font-semibold text-amber-600 mb-1 uppercase tracking-wide'>Filial</p>
                         <p className='font-bold text-gray-800 text-sm'>
                             {order_history.order_filial_detail?.name || "Noma'lum"}
@@ -373,7 +373,7 @@ export function OrderShowPage() {
                     </div>
 
                     {/* Valyuta kursi */}
-                    <div className='bg-gradient-to-br from-cyan-50 to-teal-50 p-2 rounded border border-cyan-200'>
+                    <div className='bg-cyan-50 p-2 rounded border border-cyan-200'>
                         <p className='text-[10px] font-semibold text-cyan-600 mb-1 uppercase tracking-wide'>
                             Valyuta kursi
                         </p>
@@ -382,9 +382,9 @@ export function OrderShowPage() {
                         </p>
                     </div>
 
-                    {/* Status */}
-                    <div className='bg-gradient-to-br from-gray-50 to-slate-50 p-2 rounded border border-gray-200'>
-                        <p className='text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wide'>Status</p>
+                    {/* Holati */}
+                    <div className='bg-gray-50 p-2 rounded border border-gray-200'>
+                        <p className='text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wide'>Holati</p>
                         <div className='space-y-0.5'>
                             <div className='flex items-center gap-1.5'>
                                 <span
@@ -408,7 +408,7 @@ export function OrderShowPage() {
                     </div>
 
                     {/* Jami summa */}
-                    <div className='bg-gradient-to-br from-indigo-50 to-blue-50 p-2 rounded border-2 border-indigo-300'>
+                    <div className='bg-indigo-50 p-2 rounded border-2 border-indigo-300'>
                         <p className='text-[10px] font-semibold text-indigo-600 mb-1 uppercase tracking-wide'>
                             Jami summa
                         </p>
@@ -421,7 +421,7 @@ export function OrderShowPage() {
                     </div>
 
                     {/* Chegirma */}
-                    <div className='bg-gradient-to-br from-rose-50 to-red-50 p-2 rounded border border-rose-200'>
+                    <div className='bg-rose-50 p-2 rounded border border-rose-200'>
                         <p className='text-[10px] font-semibold text-rose-600 mb-1 uppercase tracking-wide'>Chegirma</p>
                         <p className='font-bold text-rose-700 text-base'>
                             {Number(order_history.discount_amount || 0).toLocaleString()} UZS
@@ -442,7 +442,7 @@ export function OrderShowPage() {
                     {/* To'lanishi kerak va Jami to'landi yonma-yon */}
                     {(Number(order_history.all_product_summa || 0) - Number(order_history.discount_amount || 0) > 0 ||
                         totalPaidUZS > 0) && (
-                            <div className='bg-gradient-to-br from-emerald-50 to-green-50 p-2 rounded border-2 border-emerald-300'>
+                            <div className='bg-emerald-50 p-2 rounded border-2 border-emerald-300'>
                                 <p className='text-[10px] font-semibold text-emerald-600 mb-1 uppercase tracking-wide'>
                                     To'lanishi kerak
                                 </p>
@@ -465,7 +465,7 @@ export function OrderShowPage() {
                         )}
 
                     {/* Jami to'landi */}
-                    <div className='bg-gradient-to-br from-indigo-50 to-blue-50 p-2 rounded border-2 border-indigo-300'>
+                    <div className='bg-indigo-50 p-2 rounded border-2 border-indigo-300'>
                         <p className='text-[10px] font-semibold text-indigo-600 mb-1 uppercase tracking-wide'>
                             Jami to'landi
                         </p>
@@ -479,7 +479,7 @@ export function OrderShowPage() {
                         </div>
                     </div>
                     {/* Qarz ma'lumotlari */}
-                    <div className='bg-gradient-to-br from-red-50 to-pink-50 p-2 rounded border border-red-200'>
+                    <div className='bg-red-50 p-2 rounded border border-red-200'>
                         <p className='text-[10px] font-semibold text-red-600 mb-2 uppercase tracking-wide'>
                             Qarz ma'lumotlari
                         </p>
@@ -493,7 +493,7 @@ export function OrderShowPage() {
 
                     {/* Foyda */}
                     {Number(order_history.all_profit_dollar || 0) > 0 && (
-                        <div className='bg-gradient-to-br from-lime-50 to-green-50 p-2 rounded border border-lime-200'>
+                        <div className='bg-lime-50 p-2 rounded border border-lime-200'>
                             <p className='text-[10px] font-semibold text-lime-600 mb-1 uppercase tracking-wide'>
                                 Foyda
                             </p>
@@ -514,12 +514,12 @@ export function OrderShowPage() {
                         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2'>
                             {Number(order_history.summa_dollar || 0) > 0 && (
                                 <div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
-                                    <div className='bg-gradient-to-r from-green-700 to-emerald-800 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+                                    <div className='bg-green-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
                                         <div className='flex items-center space-x-1.5'>
                                             <div className='bg-green-100 p-1 rounded'>
                                                 <Banknote className='text-green-700 w-3 h-3' />
                                             </div>
-                                            <span className='font-medium text-[10px] sm:text-xs'>US dollar naqd</span>
+                                            <span className='font-medium text-[10px] sm:text-xs'>AQSH dollari naqd</span>
                                         </div>
                                     </div>
                                     <div className='p-1.5 sm:p-2 bg-white'>
@@ -537,7 +537,7 @@ export function OrderShowPage() {
                             )}
                             {Number(order_history.summa_naqt || 0) > 0 && (
                                 <div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
-                                    <div className='bg-gradient-to-r from-lime-500 to-green-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+                                    <div className='bg-green-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
                                         <div className='flex items-center space-x-1.5'>
                                             <div className='bg-lime-100 p-1 rounded'>
                                                 <Banknote className='text-lime-700 w-3 h-3' />
@@ -558,7 +558,7 @@ export function OrderShowPage() {
 
                             {Number(order_history.summa_transfer || 0) > 0 && (
                                 <div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
-                                    <div className='bg-gradient-to-r from-blue-400 to-cyan-500 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+                                    <div className='bg-blue-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
                                         <div className='flex items-center space-x-1.5'>
                                             <div className='bg-blue-100 p-1 rounded'>
                                                 <CreditCard className='text-blue-700 w-3 h-3' />
@@ -578,7 +578,7 @@ export function OrderShowPage() {
                             )}
                             {Number(order_history.summa_terminal || 0) > 0 && (
                                 <div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
-                                    <div className='bg-gradient-to-r from-blue-400 to-cyan-500 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+                                    <div className='bg-blue-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
                                         <div className='flex items-center space-x-1.5'>
                                             <div className='bg-blue-100 p-1 rounded'>
                                                 <CreditCard className='text-blue-700 w-3 h-3' />
@@ -601,7 +601,7 @@ export function OrderShowPage() {
 
                     {/* Qaytim */}
                     {(Number(order_history.zdacha_dollar || 0) > 0 || Number(order_history.zdacha_som || 0) > 0) && (
-                        <div className='bg-gradient-to-br from-yellow-50 to-amber-50 p-2 rounded border border-yellow-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+                        <div className='bg-yellow-50 p-2 rounded border border-yellow-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
                             <p className='text-[10px] font-semibold text-yellow-600 mb-2 uppercase tracking-wide'>
                                 Qaytim
                             </p>
@@ -628,7 +628,7 @@ export function OrderShowPage() {
 
                     {/* Izoh */}
                     {order_history.note && (
-                        <div className='bg-gradient-to-br from-slate-50 to-gray-50 p-2 rounded border border-slate-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+                        <div className='bg-slate-50 p-2 rounded border border-slate-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
                             <p className='text-[10px] font-semibold text-slate-600 mb-1 uppercase tracking-wide'>
                                 Izoh
                             </p>
@@ -638,7 +638,7 @@ export function OrderShowPage() {
 
                     {/* Yetkazib beruvchi */}
                     {order_history.driver_info && (
-                        <div className='bg-gradient-to-br from-teal-50 to-cyan-50 p-2 rounded border border-teal-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+                        <div className='bg-teal-50 p-2 rounded border border-teal-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
                             <p className='text-[10px] font-semibold text-teal-600 mb-1 uppercase tracking-wide'>
                                 Yetkazib beruvchi
                             </p>
@@ -654,14 +654,14 @@ export function OrderShowPage() {
                     <table className='w-full border-collapse text-xs'>
                         <thead>
                             <tr className='bg-gray-50 border-b border-gray-200'>
-                                <th className='px-2 py-1 text-left text-xs font-semibold text-gray-700 whitespace-nowrap'>
+                                <th className='px-2 py-1 text-left text-xs font-semibold text-gray-700 whitespace-nowrap min-w-[110px]'>
+                                    Model
+                                </th>
+                                <th className='px-2 py-1 text-left text-xs font-semibold text-gray-700 whitespace-nowrap w-[60px]'>
                                     #
                                 </th>
                                 <th className='px-2 py-1 text-left text-xs font-semibold text-gray-700 whitespace-nowrap'>
                                     Joyi
-                                </th>
-                                <th className='px-2 py-1 text-left text-xs font-semibold text-gray-700 whitespace-nowrap'>
-                                    Model
                                 </th>
                                 <th className='px-2 py-1 text-left text-xs font-semibold text-gray-700 whitespace-nowrap'>
                                     Nomi
@@ -692,56 +692,35 @@ export function OrderShowPage() {
                         <tbody>
                             {products.map((group) => {
                                 let productIndex = 0;
-                                const groupTotal = {
-                                    count: 0,
-                                    given_count: 0,
-                                    price_dollar: 0,
-                                    real_price: 0,
-                                    profit: 0,
-                                };
 
                                 return (
-                                    <>
-                                        {/* Model Header */}
-                                        <tr
-                                            key={`header-${group.model_id}`}
-                                            className='bg-blue-100 border-b border-blue-200'
-                                        >
-                                            <td
-                                                colSpan={11}
-                                                className='px-2 py-1 text-xs font-bold text-blue-800'
-                                            >
-                                                {group.model}
-                                            </td>
-                                        </tr>
-
-                                        {/* Products */}
-                                        {group.product.map((product) => {
+                                    <Fragment key={`group-${group.model_id}`}>
+                                        {group.product.map((product, productIdx) => {
                                             productIndex++;
                                             const realPrice = Number(product.real_price || 0);
                                             const priceDollar = Number(product.price_dollar || 0);
                                             const count = Number(product.count || 0);
                                             const profit = (priceDollar - realPrice) * count;
-
-                                            groupTotal.count += count;
-                                            groupTotal.given_count += Number(product.given_count || 0);
-                                            groupTotal.price_dollar += priceDollar * count;
-                                            groupTotal.real_price += realPrice * count;
-                                            groupTotal.profit += profit;
+                                            const isFirstInGroup = productIdx === 0;
 
                                             return (
                                                 <tr
                                                     key={product.id}
-                                                    className='border-b border-gray-100 hover:bg-gray-50 transition-colors'
+                                                    className='border-b border-gray-100 hover:bg-gray-50 transition-colors even:bg-gray-100'
                                                 >
+                                                    {isFirstInGroup ? (
+                                                        <td
+                                                            rowSpan={group.product.length}
+                                                            className='px-2 py-1 text-xs font-semibold text-gray-700 align-top border-r border-gray-200'
+                                                        >
+                                                            {group.model}
+                                                        </td>
+                                                    ) : null}
                                                     <td className='px-2 py-1 text-xs text-gray-600'>
                                                         {productIndex}
                                                     </td>
                                                     <td className='px-2 py-1 text-xs text-gray-800'>
                                                         {product.sklad_detail?.name || 'Ombor'}
-                                                    </td>
-                                                    <td className='px-2 py-1 text-xs text-gray-800'>
-                                                        {group.model}
                                                     </td>
                                                     <td className='px-2 py-1 text-xs text-gray-800'>
                                                         {product.branch_category_detail?.name ||
@@ -777,39 +756,16 @@ export function OrderShowPage() {
                                                 </tr>
                                             );
                                         })}
-
-                                        {/* Group Total */}
-                                        <tr className='bg-gray-100 border-b-2 border-gray-300'>
-                                            <td
-                                                colSpan={6}
-                                                className='px-2 py-1 text-xs font-semibold text-gray-700'
-                                            >
-                                                Jami:
-                                            </td>
-                                            <td className='px-2 py-1 text-xs font-semibold text-gray-700 text-right'>
-                                                {groupTotal.count}
-                                            </td>
-                                            <td className='px-2 py-1 text-xs font-semibold text-gray-700 text-right'>
-                                                {groupTotal.given_count}
-                                            </td>
-                                            <td className='px-2 py-1 text-xs font-semibold text-gray-700 text-right'>
-                                                {groupTotal.price_dollar.toFixed(2)}
-                                            </td>
-                                            <td className='px-2 py-1 text-xs font-semibold text-gray-700 text-right'>
-                                                {groupTotal.real_price.toFixed(2)}
-                                            </td>
-                                            <td className='px-2 py-1 text-xs font-bold text-green-600 text-right'>
-                                                {groupTotal.profit.toFixed(2)}
-                                            </td>
-                                        </tr>
-                                    </>
+                                    </Fragment>
                                 );
                             })}
 
                             {/* Grand Total */}
                             <tr className='bg-gray-300 border-t-2 border-gray-400'>
-                                <td colSpan={6} className='px-2 py-1 text-xs font-bold text-gray-800'>
+                                <td className='px-2 py-1 text-xs font-bold text-gray-800'>
                                     Jami:
+                                </td>
+                                <td colSpan={5} className='px-2 py-1 text-xs font-bold text-gray-800'>
                                 </td>
                                 <td className='px-2 py-1 text-xs font-bold text-gray-800 text-right'>
                                     {products.reduce(
