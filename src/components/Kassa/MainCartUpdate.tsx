@@ -168,7 +168,7 @@ export function MainCartUpdate({
         const orderHistoryId = orderId ?? orderData?.id;
         setIsDeletingItem(true);
         try {
-            if (orderHistoryId) {
+        if (orderHistoryId) {
                 await orderService.deleteOrderProduct(Number(itemToDelete));
                 await loadOrderProducts();
                 showSuccess('Mahsulot muvaffaqiyatli o\'chirildi');
@@ -177,9 +177,9 @@ export function MainCartUpdate({
             }
             setIsDeleteItemModalOpen(false);
             setItemToDelete(null);
-        } catch (error: any) {
-            const msg = error?.response?.data?.detail || error?.message || "O'chirishda xatolik";
-            showError(msg);
+            } catch (error: any) {
+                const msg = error?.response?.data?.detail || error?.message || "O'chirishda xatolik";
+                showError(msg);
         } finally {
             setIsDeletingItem(false);
         }
@@ -328,26 +328,26 @@ export function MainCartUpdate({
                         >
                             {/* Index */}
                             <div className='w-6 h-6 text-center font-bold text-blue-600 text-[10px] bg-blue-100 rounded flex items-center justify-center shrink-0'>
-                                {index + 1}
-                            </div>
+                                    {index + 1}
+                                </div>
 
-                            {/* Quantity Display */}
+                                {/* Quantity Display */}
                             <div className='text-center flex items-center justify-center border border-blue-200 rounded-md px-1.5 py-0.5 bg-blue-50 text-[10px] font-semibold text-blue-700 shrink-0 whitespace-nowrap'>
-                                {item.quantity} {item.unit || item.unitCode || 'dona'}
-                            </div>
+                                    {item.quantity} {item.unit || item.unitCode || 'dona'}
+                                </div>
 
-                            {/* Product Details */}
+                                {/* Product Details */}
                             <div className='flex-1 px-1.5 min-w-0'>
                                 <div className='flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-gray-600'>
-                                    {item.branchCategoryName && (
+                                        {item.branchCategoryName && (
                                         <span className='text-indigo-600 font-medium'>{item.branchCategoryName}</span>
-                                    )}
-                                    {item.modelName && (
+                                        )}
+                                        {item.modelName && (
                                         <span className='text-gray-700'>{item.modelName}</span>
-                                    )}
-                                    {item.typeName && (
+                                        )}
+                                        {item.typeName && (
                                         <span className='text-gray-500'>{item.typeName}</span>
-                                    )}
+                                        )}
                                 </div>
                             </div>
 

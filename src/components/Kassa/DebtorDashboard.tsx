@@ -343,7 +343,7 @@ export function DebtorDashboard() {
                                                                 )}
                                                             >
                                                                 <td className='text-left p-1 text-gray-500 font-mono text-xs'>
-                                                                    {order?.order || '-'}
+                                                                    {items?.length - itemIdx}
                                                                 </td>
                                                                 {isFirstInGroup ? (
                                                                     <td

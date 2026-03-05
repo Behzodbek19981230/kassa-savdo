@@ -604,7 +604,13 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
-                                                    markAllRead.mutate();
+                                                    markAllRead.mutate(undefined, {
+                                                        onSuccess: () => {
+                                                            // Dashboard va DebtorDashboard ma'lumotlarini yangilash
+                                                            queryClient.invalidateQueries({ queryKey: ['orders-my-self'] });
+                                                            queryClient.invalidateQueries({ queryKey: ['debtor-products'] });
+                                                        },
+                                                    });
                                                 }}
                                                 disabled={markAllRead.isPending}
                                             >
