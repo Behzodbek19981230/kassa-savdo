@@ -24,10 +24,10 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, size = 'middle', ...props }, ref) => {
 	const sizeClasses =
 		size === 'small'
-			? 'h-8 px-3 py-1.5 text-sm rounded-md'
+			? 'h-7 px-2 py-1 text-xs rounded-md'
 			: size === 'large'
-				? 'h-12 px-5 py-3 text-base rounded-2xl'
-				: 'h-10 px-4 py-2 text-sm rounded-xl';
+				? 'h-10 px-4 py-2 text-sm rounded-xl'
+				: 'h-8 px-3 py-1.5 text-xs rounded-lg';
 
 	return (
 		<input

@@ -566,18 +566,18 @@ export function Cart({
 						<button
 							onClick={onStartSaleClick}
 							disabled={isCreatingOrder}
-							className='flex items-center justify-center gap-2 bg-green-500/80 hover:bg-green-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
+							className='flex items-center justify-center gap-1.5 bg-green-500/80 hover:bg-green-500 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
 							title={isVozvratOrder ? 'Qaytarishni boshlash' : 'Savdoni boshlash'}
 						>
 							{isCreatingOrder ? (
 								<>
-									<Loader2 size={18} className='animate-spin' />
+									<Loader2 size={14} className='animate-spin' />
 									<span className='hidden sm:inline'>Yaratilmoqda...</span>
 									<span className='sm:hidden'>Yuklanmoqda...</span>
 								</>
 							) : (
 								<>
-									<Plus size={18} />
+									<Plus size={14} />
 									<span className='hidden sm:inline'>
 										{isVozvratOrder ? 'Qaytarishni boshlash' : 'Savdoni boshlash'}
 									</span>
@@ -625,17 +625,17 @@ export function Cart({
 								<button
 									onClick={() => setIsDeleteModalOpen(true)}
 									disabled={isDeleting}
-									className='flex items-center justify-center gap-2 bg-red-500/80 hover:bg-red-500 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
+									className='flex items-center justify-center gap-1.5 bg-red-500/80 hover:bg-red-500 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap'
 									title='Savdoni bekor qilish'
 								>
 									{isDeleting ? (
 										<>
-											<Loader2 className='w-4 h-4 animate-spin' />
+											<Loader2 className='w-3.5 h-3.5 animate-spin' />
 											<span className='hidden sm:inline'>Bekor qilinmoqda...</span>
 										</>
 									) : (
 										<>
-											<Trash2 size={16} />
+											<Trash2 size={14} />
 											<span className='hidden sm:inline'>Bekor qilish</span>
 										</>
 									)}
@@ -644,14 +644,14 @@ export function Cart({
 							<button
 								onClick={onPayment}
 								disabled={!isSaleStarted || totalAmount === 0}
-								className={`flex items-center justify-center gap-2 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap ${
+								className={`flex items-center justify-center gap-1.5 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap ${
 									isVozvratOrder
 										? 'bg-red-500/80 hover:bg-red-500'
 										: 'bg-green-500/80 hover:bg-green-500'
 								}`}
 								title={isVozvratOrder ? 'Qaytarish' : "To'lov"}
 							>
-								<DollarSign size={16} />
+								<DollarSign size={14} />
 								<span className='hidden sm:inline'>{isVozvratOrder ? 'Qaytarish' : "To'lov"}</span>
 							</button>
 						</>
@@ -710,14 +710,14 @@ export function Cart({
 								<button
 									onClick={() => setIsDeleteModalOpen(false)}
 									disabled={isDeleting}
-									className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed'
+									className='px-3 py-1.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed'
 								>
 									Bekor qilish
 								</button>
 								<button
 									onClick={handleDeleteOrder}
 									disabled={isDeleting}
-									className='px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+									className='px-3 py-1.5 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-md transition-all duration-200 font-semibold text-xs shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
 								>
 									{isDeleting ? (
 										<>

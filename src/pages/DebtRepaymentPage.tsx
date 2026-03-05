@@ -152,10 +152,10 @@ export function DebtRepaymentPage() {
 	};
 
 	return (
-		<div className='h-full flex flex-col p-4 sm:p-6'>
-			<div className='bg-white rounded-2xl shadow-xl p-4 sm:p-6 min-h-[400px] border border-gray-100 overflow-hidden flex-1 flex flex-col'>
-				<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
-					<h2 className='text-2xl sm:text-3xl font-bold text-gray-800'>To'langan qarzlar</h2>
+		<div className='h-full flex flex-col p-2 sm:p-3'>
+			<div className='bg-white rounded-xl shadow-xl p-2 sm:p-3 min-h-[400px] border border-gray-100 overflow-hidden flex-1 flex flex-col'>
+				<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2'>
+					<h2 className='text-xl sm:text-2xl font-bold text-gray-800'>To'langan qarzlar</h2>
 					<div className='flex items-center gap-3'>
 						<DateRangePicker
 							dateFrom={draftDateFrom}
@@ -194,7 +194,7 @@ export function DebtRepaymentPage() {
 							/>
 						</div>
 
-						<div className='flex items-center gap-2'>
+						<div className='flex items-center gap-1.5'>
 							<button
 								onClick={() => {
 									setAppliedDateFrom(draftDateFrom);
@@ -202,9 +202,9 @@ export function DebtRepaymentPage() {
 									setAppliedClientId(selectedClientId);
 									setAppliedEmployeeId(selectedEmployeeId);
 								}}
-								className='h-9 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-semibold flex items-center'
+								className='h-7 px-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-md text-xs font-semibold flex items-center'
 							>
-								<Search size={14} className='mr-2' />
+								<Search size={12} className='mr-1.5' />
 								<span>Filter</span>
 							</button>
 
@@ -221,18 +221,18 @@ export function DebtRepaymentPage() {
 									setAppliedClientId(null);
 									setAppliedEmployeeId(null);
 								}}
-								className='h-9 px-3 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-200 flex items-center gap-2'
+								className='h-7 px-2 bg-white text-gray-700 rounded-md text-xs font-medium border border-gray-200 flex items-center gap-1.5'
 							>
-								<RotateCcw size={14} />
+								<RotateCcw size={12} />
 								<span>Tozalash</span>
 							</button>
 						</div>
 
 						<button
 							onClick={() => setIsModalOpen(true)}
-							className='px-4 sm:px-5 py-2.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] font-semibold'
+							className='px-3 py-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 font-semibold text-xs'
 						>
-							<Plus size={18} className='mr-2' />
+							<Plus size={14} className='mr-1.5' />
 							<span className='hidden sm:inline'>Qarz to'lash</span>
 							<span className='sm:hidden'>Qarz to'lash</span>
 						</button>
@@ -250,26 +250,26 @@ export function DebtRepaymentPage() {
 							<p className='text-red-600'>Ma'lumotlarni yuklashda xatolik yuz berdi</p>
 						</div>
 					) : (
-						<table className='w-full border-collapse text-sm'>
+						<table className='w-full border-collapse text-xs'>
 							<thead>
 								<tr className='border-b-2 border-blue-200 bg-blue-50/50'>
-									<th className='text-left p-2 font-semibold text-gray-700 whitespace-nowrap w-12'>
+									<th className='text-left p-1 font-semibold text-gray-700 whitespace-nowrap w-10 text-xs'>
 										t/r
 									</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>Sanasi</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[120px]'>Mijoz</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[120px]'>Xodim</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
+									<th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>Sanasi</th>
+									<th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Mijoz</th>
+									<th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Xodim</th>
+									<th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
 										Eski qarz
 									</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
+									<th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
 										Yangi qarz
 									</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
+									<th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
 										To'landi
 									</th>
-									<th className='text-left p-2 font-semibold text-gray-700 min-w-[110px]'>Status</th>
-									<th className='text-left p-2 font-semibold text-gray-700 w-28'>Actions</th>
+									<th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Status</th>
+									<th className='text-left p-1 font-semibold text-gray-700 w-24 text-xs'>Actions</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -304,25 +304,25 @@ export function DebtRepaymentPage() {
 											return (
 												<Fragment key={`group-${group.date ?? gIdx}`}>
 													<tr className='bg-gray-100'>
-														<td className='p-2'></td>
-														<td className='px-2 py-1 font-semibold text-gray-700'>
+														<td className='p-1'></td>
+														<td className='px-1 py-0.5 font-semibold text-gray-700 text-xs'>
 															{group.date
 																? format(new Date(group.date), 'yyyy-MM-dd')
 																: 'Barcha sanalar'}
 														</td>
-														<td className='text-left p-2' />
-														<td className='p-2 text-left font-semibold text-blue-700'>
+														<td className='text-left p-1' />
+														<td className='p-1 text-left font-semibold text-blue-700 text-xs'>
 															{sumOldDebt.toLocaleString()} UZS
 														</td>
-														<td className='p-2 text-left font-semibold text-blue-700'>
+														<td className='p-1 text-left font-semibold text-blue-700 text-xs'>
 															{sumNewDebt.toLocaleString()} UZS
 														</td>
-														<td className='p-2 text-left font-semibold text-green-700'>
+														<td className='p-1 text-left font-semibold text-green-700 text-xs'>
 															{sumPaid.toLocaleString()} UZS
 														</td>
-														<td className='p-2' />
-														<td className='p-2' />
-														<td className='p-2' />
+														<td className='p-1' />
+														<td className='p-1' />
+														<td className='p-1' />
 													</tr>
 
 													{items.map((item: any) => {
@@ -338,19 +338,19 @@ export function DebtRepaymentPage() {
 																key={item.id}
 																className='border-b border-gray-100 group hover:bg-blue-50/30 transition-colors'
 															>
-																<td className='p-2 text-gray-500 font-mono'>{index}</td>
-																<td className='p-2 text-gray-600 whitespace-nowrap'>
+																<td className='p-1 text-gray-500 font-mono text-xs'>{index}</td>
+																<td className='p-1 text-gray-600 whitespace-nowrap text-xs'>
 																	{item.date
 																		? format(new Date(item.date), 'dd.MM.yyyy')
 																		: '-'}
 																</td>
-																<td className='p-2'>
+																<td className='p-1 text-xs'>
 																	<span className='font-medium text-gray-800'>
 																		{item.client_detail?.full_name ||
 																			`ID: ${item.client}`}
 																	</span>
 																</td>
-																<td className='p-2'>
+																<td className='p-1 text-xs'>
 																	<span className='font-medium text-gray-800'>
 																		{item.employee_detail?.full_name ||
 																			(item.employee
@@ -358,24 +358,24 @@ export function DebtRepaymentPage() {
 																				: '-')}
 																	</span>
 																</td>
-																<td className='p-2 text-gray-800 text-left'>
+																<td className='p-1 text-gray-800 text-left text-xs'>
 																	{Number(
 																		item.old_total_debt_client || 0,
 																	).toLocaleString()}{' '}
 																	UZS
 																</td>
-																<td className='p-2 text-gray-800 text-left'>
+																<td className='p-1 text-gray-800 text-left text-xs'>
 																	{Number(
 																		item.total_debt_client || 0,
 																	).toLocaleString()}{' '}
 																	UZS
 																</td>
-																<td className='p-2 font-semibold text-gray-900 text-left'>
+																<td className='p-1 font-semibold text-gray-900 text-left text-xs'>
 																	{paidAmount.toLocaleString()} UZS
 																</td>
-																<td className='p-2'>
+																<td className='p-1'>
 																	<span
-																		className={`px-2 py-1 rounded-full text-xs font-semibold ${
+																		className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
 																			item.debt_status
 																				? 'bg-green-100 text-green-700'
 																				: 'bg-yellow-100 text-yellow-700'
@@ -384,14 +384,14 @@ export function DebtRepaymentPage() {
 																		{item.debt_status ? "To'langan" : 'Kutilmoqda'}
 																	</span>
 																</td>
-																<td className='p-2'>
-																	<div className='flex items-center gap-1'>
+																<td className='p-1'>
+																	<div className='flex items-center gap-0.5'>
 																		<button
 																			onClick={() => handleDownload(item)}
-																			className='p-1.5 rounded hover:bg-blue-100 text-blue-600 transition-colors'
+																			className='p-1 rounded hover:bg-blue-100 text-blue-600 transition-colors'
 																			title='Yuklab olish'
 																		>
-																			<Download size={16} />
+																			<Download size={12} />
 																		</button>
 																		<button
 																			onClick={() => handleDelete(item.id)}
@@ -399,17 +399,17 @@ export function DebtRepaymentPage() {
 																				deleteMutation.isPending &&
 																				deleteMutation.variables === item.id
 																			}
-																			className='p-1.5 rounded hover:bg-red-100 text-red-600 transition-colors disabled:opacity-50'
+																			className='p-1 rounded hover:bg-red-100 text-red-600 transition-colors disabled:opacity-50'
 																			title="O'chirish"
 																		>
 																			{deleteMutation.isPending &&
 																			deleteMutation.variables === item.id ? (
 																				<Loader2
-																					size={16}
+																					size={12}
 																					className='animate-spin'
 																				/>
 																			) : (
-																				<Trash2 size={16} />
+																				<Trash2 size={12} />
 																			)}
 																		</button>
 																	</div>
@@ -425,17 +425,17 @@ export function DebtRepaymentPage() {
 								{/* Overall totals row */}
 								{groups.length > 0 && overallTotals.totalCount > 0 && (
 									<tr className='bg-blue-50'>
-										<td className='p-2 font-semibold'>Jami</td>
-										<td className='p-2' />
-										<td className='p-2' />
+										<td className='p-1 font-semibold text-xs'>Jami</td>
+										<td className='p-1' />
+										<td className='p-1' />
 
-										<td className='p-2 text-left font-semibold text-blue-700'>
+										<td className='p-1 text-left font-semibold text-blue-700 text-xs'>
 											{overallTotals.totalOldDebt.toLocaleString()} UZS
 										</td>
-										<td className='p-2 text-left font-semibold text-blue-700'>
+										<td className='p-1 text-left font-semibold text-blue-700 text-xs'>
 											{overallTotals.totalNewDebt.toLocaleString()} UZS
 										</td>
-										<td className='p-2 text-left font-semibold text-green-700'>
+										<td className='p-1 text-left font-semibold text-green-700 text-xs'>
 											{overallTotals.totalPaid.toLocaleString()} UZS
 										</td>
 										<td colSpan={3} />

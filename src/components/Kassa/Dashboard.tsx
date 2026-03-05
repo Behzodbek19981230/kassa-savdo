@@ -10,11 +10,11 @@ import { orderService } from '../../services/orderService';
 import { userService } from '../../services/userService';
 import { clientService } from '../../services/clientService';
 import type { Client } from '../../services/clientService';
-import { Input } from '../ui/Input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/Select';
 import { Autocomplete, type AutocompleteOption } from '../ui/Autocomplete';
 import { showError, showSuccess } from '../../lib/toast';
 import clsx from 'clsx';
+import { Button } from '../ui/button';
 
 interface DashboardProps {
     onNewSale?: () => void;
@@ -208,22 +208,22 @@ export function Dashboard({ onNewSale }: DashboardProps) {
     };
 
     return (
-        <div className='p-3 sm:p-6 min-h-full'>
-            <div className='bg-white rounded-2xl shadow-xl p-4 sm:p-6 min-h-[400px] border border-gray-100 overflow-hidden'>
-                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
-                    <h2 className='text-2xl sm:text-3xl font-bold text-gray-800'>Savdo ro'yxati</h2>
+        <div className='p-2 sm:p-3 min-h-full'>
+            <div className='bg-white rounded-xl shadow-xl p-2 sm:p-3 min-h-[400px] border border-gray-100 overflow-hidden'>
+                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2'>
+                    <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>Savdo ro'yxati</h2>
                     <button
                         onClick={onNewSale}
-                        className='px-4 sm:px-5 py-2.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] font-semibold'
+                        className='px-3 py-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 font-semibold text-xs'
                     >
-                        <Plus size={18} className='mr-2' />
+                        <Plus size={14} className='mr-1.5' />
                         <span className='hidden sm:inline'>Yangi savdo</span>
                         <span className='sm:hidden'>Yangi</span>
                     </button>
                 </div>
 
                 {/* Filters Bar */}
-                <div className='flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-2 mb-4'>
+                <div className='flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-1.5 mb-2'>
                     <div className='w-full sm:w-[240px]'>
                         <Autocomplete
                             options={clientOptions}
@@ -285,18 +285,18 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                     <div className='flex items-center gap-2'>
                         <button
                             onClick={handleApplyFilters}
-                            className='h-8 px-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 flex items-center gap-1.5 text-sm font-semibold shadow-md hover:shadow-lg transition-all duration-200'
+                            className='h-7 px-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-md hover:from-blue-700 hover:to-blue-600 flex items-center gap-1 text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200'
                         >
-                            <Search size={14} />
+                            <Search size={12} />
                             <span>Filter</span>
                         </button>
                         {isFiltered && (
                             <button
                                 onClick={handleClearFilters}
-                                className='h-8 px-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-50 hover:text-red-600 flex items-center gap-1.5 text-sm font-medium border border-gray-200 transition-all duration-200'
+                                className='h-7 px-2 bg-gray-100 text-gray-600 rounded-md hover:bg-red-50 hover:text-red-600 flex items-center gap-1 text-xs font-medium border border-gray-200 transition-all duration-200'
                                 title='Filterlarni tozalash'
                             >
-                                <FilterX size={14} />
+                                <FilterX size={12} />
                                 <span className='hidden sm:inline'>Tozalash</span>
                             </button>
                         )}
@@ -311,27 +311,27 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                     <div className='flex justify-center items-center h-64 text-red-500 text-lg'>Xatolik yuz berdi</div>
                 ) : (
                     <div className='overflow-x-auto'>
-                        <table className='w-full border-collapse text-sm'>
+                        <table className='w-full border-collapse text-xs'>
                             <thead>
                                 <tr className='border-b-2 border-blue-200 bg-blue-50/50'>
-                                    <th className='text-left p-2 font-semibold text-gray-700 whitespace-nowrap w-12'>
+                                    <th className='text-left p-1 font-semibold text-gray-700 whitespace-nowrap w-10 text-xs'>
                                         t/r
                                     </th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>Sanasi</th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[120px]'>Mijoz</th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[120px]'>Xodim</th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>Sanasi</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Mijoz</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Xodim</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
                                         Zakaz (summa)
                                     </th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
                                         To'langan
                                     </th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[80px]'>Qarz</th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[90px]'>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[80px] text-xs'>Qarz</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
                                         Umumiy qarz
                                     </th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[110px]'>Holati</th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 w-28'>Actions</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>Holati</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 w-24 text-xs'>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -358,25 +358,25 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                             return (
                                                 <Fragment key={`group-${group.date ?? gIdx}`}>
                                                     <tr className='bg-gray-100'>
-                                                        <td className='p-2'></td>
-                                                        <td className='px-2 py-1 font-semibold text-gray-700'>
+                                                        <td className='p-1'></td>
+                                                        <td className='px-1 py-0.5 font-semibold text-gray-700 text-xs'>
                                                             {group.date
                                                                 ? format(new Date(group.date), 'yyyy-MM-dd')
                                                                 : 'Barcha sanalar'}
                                                         </td>
-                                                        <td className='p-2' />
-                                                        <td className='p-2' />
-                                                        <td className='p-2 text-left font-semibold text-blue-700'>
+                                                        <td className='p-1' />
+                                                        <td className='p-1' />
+                                                        <td className='p-1 text-left font-semibold text-blue-700 text-xs'>
                                                             {sumZakaz.toLocaleString()}
                                                         </td>
-                                                        <td className='p-2 text-left font-semibold'>
+                                                        <td className='p-1 text-left font-semibold text-xs'>
                                                             {sumTolangan.toLocaleString()}
                                                         </td>
-                                                        <td className='p-2' />
-                                                        <td className='p-2' />
-                                                        <td className='p-2' />
-                                                        <td className='p-2' />
-                                                        <td className='p-2' />
+                                                        <td className='p-1' />
+                                                        <td className='p-1' />
+                                                        <td className='p-1' />
+                                                        <td className='p-1' />
+                                                        <td className='p-1' />
                                                     </tr>
 
                                                     {items.map((order: any) => {
@@ -396,10 +396,10 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                                                     },
                                                                 )}
                                                             >
-                                                                <td className='text-left p-2 text-gray-500 font-mono'>
+                                                                <td className='text-left p-1 text-gray-500 font-mono text-xs'>
                                                                     {index}
                                                                 </td>
-                                                                <td className='text-left p-2 text-gray-600 whitespace-nowrap'>
+                                                                <td className='text-left p-1 text-gray-600 whitespace-nowrap text-xs'>
                                                                     {order.created_time
                                                                         ? new Date(order.created_time).toLocaleString(
                                                                             'uz-UZ',
@@ -424,84 +424,84 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                                                             )
                                                                             : '—'}
                                                                 </td>
-                                                                <td className='p-2 text-left text-gray-800'>
+                                                                <td className='p-1 text-left text-gray-800 text-xs'>
                                                                     <span className='font-medium text-gray-800'>
                                                                         {order.client_detail?.full_name ||
                                                                             `ID: ${order.client}`}
                                                                     </span>
                                                                 </td>
-                                                                <td className='p-2 text-left text-gray-600'>
+                                                                <td className='p-1 text-left text-gray-600 text-xs'>
                                                                     {order.created_by_detail?.full_name ??
                                                                         order.employee ??
                                                                         '—'}
                                                                 </td>
-                                                                <td className='p-2 text-left font-medium text-blue-700'>
+                                                                <td className='p-1 text-left font-medium text-blue-700 text-xs'>
                                                                     {parseFloat(
                                                                         order.all_product_summa || '0',
                                                                     ).toLocaleString()}
                                                                 </td>
-                                                                <td className='p-2 text-left text-gray-700'>
+                                                                <td className='p-1 text-left text-gray-700 text-xs'>
                                                                     {tolangan.toLocaleString()}
                                                                 </td>
-                                                                <td className='p-2 text-left text-gray-700'>
+                                                                <td className='p-1 text-left text-gray-700 text-xs'>
                                                                     {parseFloat(
                                                                         order.total_debt_today_client || '0',
                                                                     ).toLocaleString()}
                                                                 </td>
-                                                                <td className='p-2 text-left text-gray-700'>
+                                                                <td className='p-1 text-left text-gray-700 text-xs'>
                                                                     {parseFloat(
                                                                         order.total_debt_client || '0',
                                                                     ).toLocaleString()}
                                                                 </td>
-                                                                <td className='text-left p-2 group-hover:bg-blue-50/30 transition-colors'>
+                                                                <td className='text-left p-1 group-hover:bg-blue-50/30 transition-colors'>
                                                                     {isKarzinka ? (
-                                                                        <span className='px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full border border-yellow-300'>
+                                                                        <span className='px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-semibold rounded-full border border-yellow-300'>
                                                                             Korzinkada
                                                                         </span>
                                                                     ) : (
-                                                                        <span className='px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full border border-green-300 inline-flex items-center gap-1'>
-                                                                            <CheckCircle2 size={12} />
+                                                                        <span className='px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-semibold rounded-full border border-green-300 inline-flex items-center gap-0.5'>
+                                                                            <CheckCircle2 size={10} />
                                                                             Yakunlangan
                                                                         </span>
                                                                     )}
                                                                 </td>
-                                                                <td className='text-left p-2 text-center group-hover:bg-blue-50/30 transition-colors'>
-                                                                    <div className='flex items-center justify-center gap-1'>
+                                                                <td className='p-1 text-center group-hover:bg-blue-50/30 transition-colors'>
+                                                                    <div className='flex items-center justify-center gap-0.5'>
                                                                         {/* Edit button */}
                                                                         {!isKarzinka && (
                                                                             <button
                                                                                 onClick={() => handleEdit(order)}
-                                                                                className='inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 bg-blue-500 hover:bg-blue-600 text-white'
+                                                                                className='p-1 rounded hover:bg-blue-100 text-blue-600 transition-colors disabled:opacity-50'
                                                                                 title='Tahrirlash'
                                                                             >
-                                                                                <Edit size={16} />
+                                                                                <Edit size={12} />
                                                                             </button>
                                                                         )}
                                                                         {/* View/Continue button */}
                                                                         <button
                                                                             onClick={() => navigate(orderPath)}
-                                                                            className={`inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 ${isKarzinka
-                                                                                    ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                                                                                    : 'bg-green-500 hover:bg-green-600 text-white'
+                                                                            className={`p-1 rounded transition-colors disabled:opacity-50 ${isKarzinka
+                                                                                ? 'hover:bg-yellow-100 text-yellow-600'
+                                                                                : 'hover:bg-green-100 text-green-600'
                                                                                 }`}
                                                                             title={
                                                                                 isKarzinka ? 'Davom etish' : "Ko'rish"
                                                                             }
                                                                         >
                                                                             {isKarzinka ? (
-                                                                                <ArrowRight size={18} />
+                                                                                <ArrowRight size={14} />
                                                                             ) : (
-                                                                                <Eye size={18} />
+                                                                                <Eye size={14} />
                                                                             )}
                                                                         </button>
                                                                         {/* Delete button */}
                                                                         <button
                                                                             onClick={() => handleDeleteClick(order)}
                                                                             disabled={deletingOrderId === order.id}
-                                                                            className='inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                                                                            className='p-1 rounded hover:bg-red-100 text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                                                                             title="O'chirish"
                                                                         >
-                                                                            <Trash2 size={16} />
+                                                                            <Trash2 size={12} />
                                                                         </button>
                                                                     </div>
                                                                 </td>
@@ -515,26 +515,17 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                 )}
                                 {/* overall totals row */}
                                 <tr className='bg-blue-50'>
-                                    <td className='p-2 text-left    font-semibold'>Jami</td>
+                                    <td className='p-1 text-left font-semibold text-xs'>Jami</td>
                                     <td colSpan={2} />
                                     <td />
-                                    <td className='p-2 text-left font-semibold text-blue-700'>
+                                    <td className='p-1 text-left font-semibold text-blue-700 text-xs'>
                                         {overallTotals.totalZakaz.toLocaleString()}
                                     </td>
-                                    <td
-                                        className='p-2 text-
-                                    text-left font-semibold'
-                                    >
+                                    <td className='p-1 text-left font-semibold text-xs'>
                                         {overallTotals.totalTolangan.toLocaleString()}
                                     </td>
-                                    <td
-                                        className='p-2 text-
-                                    text-left font-semibold'
-                                    ></td>
-                                    <td
-                                        className='p-2 text-
-                                    text-left font-semibold'
-                                    ></td>
+                                    <td className='p-1 text-left font-semibold text-xs'></td>
+                                    <td className='p-1 text-left font-semibold text-xs'></td>
                                     <td colSpan={3} />
                                 </tr>
                             </tbody>
@@ -573,14 +564,14 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                         setOrderToDelete(null);
                                     }}
                                     disabled={deletingOrderId !== null}
-                                    className='px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed'
+                                    className='px-3 py-1.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed'
                                 >
                                     Bekor qilish
                                 </button>
                                 <button
                                     onClick={handleDelete}
                                     disabled={deletingOrderId !== null}
-                                    className='px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+                                    className='px-3 py-1.5 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-md transition-all duration-200 font-semibold text-xs shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
                                 >
                                     {deletingOrderId !== null ? (
                                         <>

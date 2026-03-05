@@ -137,10 +137,10 @@ export function ExpensePage() {
 	};
 
 	return (
-		<div className='h-full flex flex-col p-4 sm:p-6'>
-			<div className='bg-white rounded-2xl shadow-xl p-4 sm:p-6 min-h-[400px] border border-gray-100 overflow-hidden flex-1 flex flex-col'>
-				<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
-					<h2 className='text-2xl sm:text-3xl font-bold text-gray-800'>Xarajatlar</h2>
+		<div className='h-full flex flex-col p-2 sm:p-3'>
+			<div className='bg-white rounded-xl shadow-xl p-2 sm:p-3 min-h-[400px] border border-gray-100 overflow-hidden flex-1 flex flex-col'>
+				<div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2'>
+					<h2 className='text-xl sm:text-2xl font-bold text-gray-800'>Xarajatlar</h2>
 					<div className='flex items-center gap-3'>
 						<DateRangePicker
 							dateFrom={draftDateFrom}
@@ -190,7 +190,7 @@ export function ExpensePage() {
 							</SelectContent>
 						</Select>
 
-						<div className='flex items-center gap-2'>
+						<div className='flex items-center gap-1.5'>
 							<button
 								onClick={() => {
 									setAppliedDateFrom(draftDateFrom);
@@ -198,9 +198,9 @@ export function ExpensePage() {
 									setAppliedCategory(draftCategory);
 									setAppliedEmployeeId(selectedEmployeeId);
 								}}
-								className='h-9 px-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg text-sm font-semibold flex items-center'
+								className='h-7 px-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-md text-xs font-semibold flex items-center'
 							>
-								<Search size={14} className='mr-2' />
+								<Search size={12} className='mr-1.5' />
 								<span>Filter</span>
 							</button>
 							<button
@@ -216,18 +216,18 @@ export function ExpensePage() {
 									setSelectedEmployeeId(null);
 									setAppliedEmployeeId(null);
 								}}
-								className='h-9 px-3 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-200 flex items-center gap-2'
+								className='h-7 px-2 bg-white text-gray-700 rounded-md text-xs font-medium border border-gray-200 flex items-center gap-1.5'
 							>
-								<RotateCcw size={14} />
+								<RotateCcw size={12} />
 								<span>Tozalash</span>
 							</button>
 						</div>
 
 						<button
 							onClick={openCreate}
-							className='px-4 sm:px-5 py-2.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] font-semibold'
+							className='px-3 py-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 font-semibold text-xs'
 						>
-							<Plus size={18} className='mr-2' />
+							<Plus size={14} className='mr-1.5' />
 							<span className='hidden sm:inline'>Qo'shish</span>
 							<span className='sm:hidden'>Qo'sh</span>
 						</button>

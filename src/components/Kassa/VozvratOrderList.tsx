@@ -196,9 +196,9 @@ export function VozvratOrderList() {
 
 						<button
 							onClick={handleNewReturn}
-							className='px-4 sm:px-5 py-2.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white rounded-xl hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] font-semibold'
+							className='px-3 py-1.5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 font-semibold text-xs'
 						>
-							<Plus size={18} className='mr-2' />
+							<Plus size={14} className='mr-1.5' />
 							<span className='hidden sm:inline'>Qaytarish</span>
 							<span className='sm:hidden'>Qaytarish</span>
 						</button>

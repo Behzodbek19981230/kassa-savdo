@@ -433,18 +433,18 @@ export function OrderPaymentFields({
 				</div>
 
 				{/* Footer with buttons (keeps inside the scrollable form) */}
-				<div className='p-3 sm:p-4 border-t bg-white flex justify-between items-center gap-3 shrink-0'>
+				<div className='p-2 border-t bg-white flex justify-between items-center gap-2 shrink-0'>
 					<button
 						onClick={() => navigate(-1)}
-						className='px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors flex items-center space-x-2'
+						className='px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 text-xs transition-colors flex items-center gap-1.5'
 					>
-						<ArrowLeft size={16} />
+						<ArrowLeft size={14} />
 						<span>Orqaga</span>
 					</button>
 					<button
 						onClick={handleSave}
 						disabled={isSaving || !orderData}
-						className='bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-xl hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2'
+						className='bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-1.5 rounded-lg hover:from-indigo-700 hover:to-purple-700 font-semibold text-xs shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
 					>
 						{isSaving ? (
 							<>

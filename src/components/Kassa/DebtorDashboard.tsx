@@ -12,6 +12,7 @@ import type { Client } from '../../services/clientService';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/Select';
 import { Autocomplete, type AutocompleteOption } from '../ui/Autocomplete';
 import clsx from 'clsx';
+import { Button } from '../ui/button';
 
 interface DraftFilters {
     search: string;
@@ -243,26 +244,26 @@ export function DebtorDashboard() {
                     <div className='flex justify-center items-center h-64 text-red-500 text-lg'>Xatolik yuz berdi</div>
                 ) : (
                     <div className='overflow-x-auto'>
-                        <table className='w-full border-collapse text-sm'>
+                        <table className='w-full border-collapse text-xs'>
                             <thead>
                                 <tr className='border-b-2 border-blue-200 bg-blue-50/50'>
-                                    <th className='text-left p-2 font-semibold text-gray-700 whitespace-nowrap w-12'>
+                                    <th className='text-left p-1 font-semibold text-gray-700 whitespace-nowrap w-10 text-xs'>
                                         t/r
                                     </th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>Sanasi</th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[120px]'>Mijoz</th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[120px]'>Xodim</th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>Sanasi</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Mijoz</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>Xodim</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
                                         Zakaz (summa)
                                     </th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[100px]'>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
                                         To'langan
                                     </th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[80px]'>Qarz</th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 min-w-[90px]'>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[80px] text-xs'>Qarz</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
                                         Umumiy qarz
                                     </th>
-                                    <th className='text-left p-2 font-semibold text-gray-700 w-28'>Actions</th>
+                                    <th className='text-left p-1 font-semibold text-gray-700 w-24 text-xs'>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -289,23 +290,23 @@ export function DebtorDashboard() {
                                             return (
                                                 <Fragment key={`group-${group.date ?? gIdx}`}>
                                                     <tr className='bg-gray-100'>
-                                                        <td className='p-2'></td>
-                                                        <td className='px-2 py-1 font-semibold text-gray-700'>
+                                                        <td className='p-1'></td>
+                                                        <td className='px-1 py-0.5 font-semibold text-gray-700 text-xs'>
                                                             {group.date
                                                                 ? format(new Date(group.date), 'yyyy-MM-dd')
                                                                 : 'Barcha sanalar'}
                                                         </td>
-                                                        <td className='p-2' />
-                                                        <td className='p-2' />
-                                                        <td className='p-2 text-left font-semibold text-blue-700'>
+                                                        <td className='p-1' />
+                                                        <td className='p-1' />
+                                                        <td className='p-1 text-left font-semibold text-blue-700 text-xs'>
                                                             {sumZakaz.toLocaleString()}
                                                         </td>
-                                                        <td className='p-2 text-left font-semibold'>
+                                                        <td className='p-1 text-left font-semibold text-xs'>
                                                             {sumTolangan.toLocaleString()}
                                                         </td>
-                                                        <td className='p-2' />
-                                                        <td className='p-2' />
-                                                        <td className='p-2' />
+                                                        <td className='p-1' />
+                                                        <td className='p-1' />
+                                                        <td className='p-1' />
                                                     </tr>
 
                                                     {items.map((order: any) => {
@@ -325,10 +326,10 @@ export function DebtorDashboard() {
                                                                     },
                                                                 )}
                                                             >
-                                                                <td className='text-left p-2 text-gray-500 font-mono'>
+                                                                <td className='text-left p-1 text-gray-500 font-mono text-xs'>
                                                                     {index}
                                                                 </td>
-                                                                <td className='text-left p-2 text-gray-600 whitespace-nowrap'>
+                                                                <td className='text-left p-1 text-gray-600 whitespace-nowrap text-xs'>
                                                                     {order.created_time
                                                                         ? new Date(order.created_time).toLocaleString(
                                                                             'uz-UZ',
@@ -353,40 +354,43 @@ export function DebtorDashboard() {
                                                                             )
                                                                             : '—'}
                                                                 </td>
-                                                                <td className='p-2 text-left text-gray-800'>
+                                                                <td className='p-1 text-left text-gray-800 text-xs'>
                                                                     <span className='font-medium text-gray-800'>
                                                                         {order.client_detail?.full_name ||
                                                                             `ID: ${order.client}`}
                                                                     </span>
                                                                 </td>
-                                                                <td className='p-2 text-left text-gray-600'>
+                                                                <td className='p-1 text-left text-gray-600 text-xs'>
                                                                     {order.created_by_detail?.full_name ??
                                                                         order.employee ??
                                                                         '—'}
                                                                 </td>
-                                                                <td className='p-2 text-left font-medium text-blue-700'>
+                                                                <td className='p-1 text-left font-medium text-blue-700 text-xs'>
                                                                     {parseFloat(
                                                                         order.all_product_summa || '0',
                                                                     ).toLocaleString()}
                                                                 </td>
-                                                                <td className='p-2 text-left text-gray-700'>
+                                                                <td className='p-1 text-left text-gray-700 text-xs'>
                                                                     {tolangan.toLocaleString()}
                                                                 </td>
-                                                                <td className='p-2 text-left text-gray-700'>
+                                                                <td className='p-1 text-left text-gray-700 text-xs'>
                                                                     {parseFloat(
                                                                         order.total_debt_today_client || '0',
                                                                     ).toLocaleString()}
                                                                 </td>
-                                                                <td className='p-2 text-left text-gray-700'>
+                                                                <td className='p-1 text-left text-gray-700 text-xs'>
                                                                     {parseFloat(
                                                                         order.total_debt_client || '0',
                                                                     ).toLocaleString()}
                                                                 </td>
-                                                                <td className='p-2 text-center group-hover:bg-blue-50/30 transition-colors'>
+                                                                <td className='p-1 text-center group-hover:bg-blue-50/30 transition-colors'>
                                                                     {/* View button only */}
-                                                                    <button
+
+                                                                    <Button
+                                                                        size='icon'
+                                                                        variant='ghost'
                                                                         onClick={() => navigate(orderPath)}
-                                                                        className={`inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors shrink-0 ${isKarzinka
+                                                                        className={`${isKarzinka
                                                                             ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
                                                                             : 'bg-green-500 hover:bg-green-600 text-white'
                                                                             }`}
@@ -395,11 +399,11 @@ export function DebtorDashboard() {
                                                                         }
                                                                     >
                                                                         {isKarzinka ? (
-                                                                            <ArrowRight size={18} />
+                                                                            <ArrowRight size={14} />
                                                                         ) : (
-                                                                            <Eye size={18} />
+                                                                            <Eye size={14} />
                                                                         )}
-                                                                    </button>
+                                                                    </Button>
                                                                 </td>
                                                             </tr>
                                                         );
@@ -411,13 +415,13 @@ export function DebtorDashboard() {
                                 )}
                                 {/* overall totals row */}
                                 <tr className='bg-blue-50'>
-                                    <td className='p-2 text-left font-semibold'>Jami</td>
+                                    <td className='p-1 text-left font-semibold text-xs'>Jami</td>
                                     <td colSpan={2} />
                                     <td />
-                                    <td className='p-2 text-left font-semibold text-blue-700'>
+                                    <td className='p-1 text-left font-semibold text-blue-700 text-xs'>
                                         {overallTotals.totalZakaz.toLocaleString()}
                                     </td>
-                                    <td className='p-2 text-left font-semibold'>
+                                    <td className='p-1 text-left font-semibold text-xs'>
                                         {overallTotals.totalTolangan.toLocaleString()}
                                     </td>
                                     <td colSpan={3} />

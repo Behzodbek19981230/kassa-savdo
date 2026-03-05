@@ -279,10 +279,10 @@ export function PaymentModal({
 							</label>
 							<button
 								onClick={handlePrint}
-								className='px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors flex items-center space-x-2'
+								className='px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 text-xs transition-colors flex items-center gap-1.5'
 								title='Chop etish (PDF)'
 							>
-								<Printer size={18} />
+								<Printer size={14} />
 								<span>Chop qilish</span>
 							</button>
 						</div>

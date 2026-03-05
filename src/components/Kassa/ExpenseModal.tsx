@@ -531,18 +531,18 @@ export function ExpenseModal({ isOpen, onClose, onSuccess, initialData = null }:
 							</div>
 						</div>
 
-						<div className='border-t border-gray-200 p-4 sm:p-5 flex justify-end gap-3'>
+						<div className='border-t border-gray-200 p-3 flex justify-end gap-2'>
 							<button
 								type='button'
 								onClick={onClose}
-								className='px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors'
+								className='px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 text-xs transition-colors'
 							>
 								Bekor qilish
 							</button>
 							<button
 								type='submit'
 								disabled={isSubmitting}
-								className='bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+								className='bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-700 font-semibold text-xs shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
 							>
 								{isSubmitting ? 'Saqlanmoqda...' : initialData?.id ? 'Saqlash' : "Qo'shish"}
 							</button>

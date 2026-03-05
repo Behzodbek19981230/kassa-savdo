@@ -254,11 +254,11 @@ export function VozvratPaymentModal({
                     </div>
 
                     {/* Footer */}
-                    <div className='border-t border-gray-200 p-4 sm:p-5 flex justify-end'>
+                    <div className='border-t border-gray-200 p-3 flex justify-end'>
                         <button
                             onClick={handleSubmit}
                             disabled={isSubmitting || !orderData}
-                            className='bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+                            className='bg-red-600 text-white px-4 py-1.5 rounded-md hover:bg-red-700 font-semibold text-xs shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
                         >
                             {isSubmitting ? (
                                 <>
