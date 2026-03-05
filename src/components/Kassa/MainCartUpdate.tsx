@@ -1,4 +1,4 @@
-import { Trash2, User, Loader2, Edit2 } from 'lucide-react';
+import { Trash2, User, Loader2, Edit2, X } from 'lucide-react';
 import { CartItem, Customer, OrderItem, OrderResponse } from '../../types';
 import { useState, useEffect, useCallback } from 'react';
 import { showError, showSuccess } from '../../lib/toast';
@@ -47,6 +47,9 @@ export function MainCartUpdate({
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [productForModal, setProductForModal] = useState<any | null>(null);
     const [isLoadingCart, setIsLoadingCart] = useState(false);
+    const [isDeleteItemModalOpen, setIsDeleteItemModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+    const [isDeletingItem, setIsDeletingItem] = useState(false);
 
     // Order-history-product dan CartItem ga transform (Yangi API: product_detail qo'shildi)
     const transformOrderProductToCartItem = useCallback((op: OrderItem): CartItem => {
@@ -153,20 +156,33 @@ export function MainCartUpdate({
         onCartChange?.(displayItems, totalAmount);
     }, [displayItems, totalAmount]);
 
+    // Mahsulotni o'chirish uchun tasdiqlash modalini ochish
+    const handleRemoveItem = (id: string) => {
+        setItemToDelete(id);
+        setIsDeleteItemModalOpen(true);
+    };
+
     // Mahsulotni o'chirish (API orqali)
-    const handleRemoveItem = async (id: string) => {
+    const confirmRemoveItem = async () => {
+        if (!itemToDelete) return;
         const orderHistoryId = orderId ?? orderData?.id;
-        if (orderHistoryId) {
-            try {
-                await orderService.deleteOrderProduct(Number(id));
+        setIsDeletingItem(true);
+        try {
+            if (orderHistoryId) {
+                await orderService.deleteOrderProduct(Number(itemToDelete));
                 await loadOrderProducts();
-            } catch (error: any) {
-                const msg = error?.response?.data?.detail || error?.message || "O'chirishda xatolik";
-                showError(msg);
+                showSuccess('Mahsulot muvaffaqiyatli o\'chirildi');
+            } else {
+                onRemoveItem(itemToDelete);
             }
-            return;
+            setIsDeleteItemModalOpen(false);
+            setItemToDelete(null);
+        } catch (error: any) {
+            const msg = error?.response?.data?.detail || error?.message || "O'chirishda xatolik";
+            showError(msg);
+        } finally {
+            setIsDeletingItem(false);
         }
-        onRemoveItem(id);
     };
 
     // Edit order-history-product - open modal with product info
@@ -246,9 +262,9 @@ export function MainCartUpdate({
     }, [orderData?.order_filial, user?.order_filial]);
 
     return (
-        <div className='flex flex-col h-full bg-gradient-to-b from-white to-blue-50/30 border-r border-blue-200/50'>
+        <div className='flex flex-col h-full bg-white border-r border-blue-200/50'>
             {/* Header */}
-            <div className='p-4 bg-gradient-to-r from-blue-500 via-blue-400 to-cyan-500 border-b border-blue-400 shadow-md'>
+            <div className='p-4 bg-blue-600 border-b border-blue-400 shadow-md'>
                 {/* Barcha elementlar bir qatorda */}
                 <div className='flex items-center gap-3 flex-wrap'>
 
@@ -298,84 +314,68 @@ export function MainCartUpdate({
             />
 
             {/* Cart Items — /api/v1/order-history-product dan order-history bo'yicha */}
-            <div className='flex-1 overflow-y-auto p-3 space-y-3'>
+            <div className='flex-1 overflow-y-auto p-2 space-y-2'>
                 {isLoadingCart ? (
-                    <div className='flex flex-col items-center justify-center py-12'>
-                        <Loader2 className='w-8 h-8 animate-spin text-blue-600 mb-3' />
-                        <p className='text-sm text-gray-500'>Savdo mahsulotlari yuklanmoqda...</p>
+                    <div className='flex flex-col items-center justify-center py-8'>
+                        <Loader2 className='w-6 h-6 animate-spin text-blue-600 mb-2' />
+                        <p className='text-xs text-gray-500'>Savdo mahsulotlari yuklanmoqda...</p>
                     </div>
                 ) : (
                     displayItems.map((item, index) => (
                         <div
                             key={item.id}
-                            className='bg-white p-3 sm:p-4 rounded-xl shadow-lg hover:shadow-xl border-2 border-blue-100 flex flex-col sm:flex-row sm:items-center gap-3 transition-all duration-200'
+                            className='bg-white p-2 rounded-lg shadow-sm hover:shadow-md border border-blue-100 flex items-center gap-2 transition-all duration-200'
                         >
-                            {/* Top row for mobile, inline for desktop */}
-                            <div className='flex items-center gap-2 sm:gap-3 flex-1 min-w-0'>
-                                <div className='w-8 h-8 sm:w-10 sm:h-10 text-center font-bold text-blue-600 text-xs sm:text-sm bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg flex items-center justify-center shrink-0'>
-                                    {index + 1}
-                                </div>
+                            {/* Index */}
+                            <div className='w-6 h-6 text-center font-bold text-blue-600 text-[10px] bg-blue-100 rounded flex items-center justify-center shrink-0'>
+                                {index + 1}
+                            </div>
 
-                                {/* Quantity Display */}
-                                <div className='text-center flex items-center justify-center border-2 border-blue-200 rounded-xl px-2 py-1.5 sm:py-2.5 bg-gradient-to-br from-blue-50 to-cyan-50 text-xs sm:text-sm font-semibold text-blue-700 shrink-0 whitespace-nowrap'>
-                                    {item.quantity} {item.unit || item.unitCode || 'dona'}
-                                </div>
+                            {/* Quantity Display */}
+                            <div className='text-center flex items-center justify-center border border-blue-200 rounded-md px-1.5 py-0.5 bg-blue-50 text-[10px] font-semibold text-blue-700 shrink-0 whitespace-nowrap'>
+                                {item.quantity} {item.unit || item.unitCode || 'dona'}
+                            </div>
 
-                                {/* Product Details */}
-                                <div className='flex-1 px-2 sm:px-3 min-w-0'>
-                                    <div className='flex flex-wrap gap-3 text-sm text-gray-600'>
-                                        {item.branchCategoryName && (
-                                            <div className='flex items-center gap-1'>
-                                                <span className='font-semibold text-indigo-600'>Kategoriya:</span>
-                                                <span>{item.branchCategoryName}</span>
-                                            </div>
-                                        )}
-                                        {item.modelName && (
-                                            <div className='flex items-center gap-1'>
-                                                <span className='font-semibold text-indigo-600'>Modeli:</span>
-                                                <span>{item.modelName}</span>
-                                            </div>
-                                        )}
-                                        {item.typeName && (
-                                            <div className='flex items-center gap-1'>
-                                                <span className='font-semibold text-indigo-600'>Model turi:</span>
-                                                <span>{item.typeName}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {/* <div className='text-xs text-blue-600 font-medium mt-1'>
-										{item.priceSum} UZS
-										<span className='ml-2 text-xs text-gray-500'>
-											/ {(item.priceDollar ?? item.price / exchangeRate).toFixed(2)} USD
-										</span>
-									</div> */}
+                            {/* Product Details */}
+                            <div className='flex-1 px-1.5 min-w-0'>
+                                <div className='flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-gray-600'>
+                                    {item.branchCategoryName && (
+                                        <span className='text-indigo-600 font-medium'>{item.branchCategoryName}</span>
+                                    )}
+                                    {item.modelName && (
+                                        <span className='text-gray-700'>{item.modelName}</span>
+                                    )}
+                                    {item.typeName && (
+                                        <span className='text-gray-500'>{item.typeName}</span>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Total & Delete */}
-                            <div className='flex items-center justify-between sm:justify-end gap-2 sm:space-x-3 shrink-0'>
+                            {/* Total & Actions */}
+                            <div className='flex items-center gap-1.5 shrink-0'>
                                 <div className='text-right'>
-                                    <div className='font-bold text-blue-700 text-base sm:text-lg whitespace-nowrap'>
-                                        {(item.totalPriceDollar ?? (item.priceSum || 0) / exchangeRate).toFixed(2)} USD
+                                    <div className='font-bold text-blue-700 text-xs whitespace-nowrap'>
+                                        {(item.totalPriceDollar ?? (item.priceSum || 0) / exchangeRate).toFixed(2)} $
                                     </div>
-                                    <div className='text-xs text-gray-500'>{item.priceSum?.toLocaleString()} UZS</div>
+                                    <div className='text-[10px] text-gray-500'>{item.priceSum?.toLocaleString()} UZS</div>
                                 </div>
                                 {!readOnly && (
                                     <>
                                         {(orderId ?? orderData?.id) && (
                                             <button
                                                 onClick={() => handleEditOrderProduct(item.id)}
-                                                className='text-white bg-gradient-to-br from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 p-1.5 sm:p-2 rounded-xl hover:shadow-lg transition-all duration-200 transform hover:scale-105 shrink-0 mr-1'
+                                                className='text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded transition-colors shrink-0'
                                                 title='Tahrirlash'
                                             >
-                                                <Edit2 size={16} className='sm:w-4 sm:h-4' />
+                                                <Edit2 size={14} />
                                             </button>
                                         )}
                                         <button
                                             onClick={() => handleRemoveItem(item.id)}
-                                            className='text-white bg-gradient-to-br from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 p-1.5 sm:p-2 rounded-xl hover:shadow-lg transition-all duration-200 transform hover:scale-105 shrink-0'
+                                            className='text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-colors shrink-0'
+                                            title="O'chirish"
                                         >
-                                            <Trash2 size={16} className='sm:w-4 sm:h-4' />
+                                            <Trash2 size={14} />
                                         </button>
                                     </>
                                 )}
@@ -385,6 +385,63 @@ export function MainCartUpdate({
                 )}
                 <OrderPaymentFields orderData={orderData ?? null} onOrderUpdate={() => { }} isVozvratOrder={isVozvratOrder} />
             </div>
+
+            {/* Delete Item Confirmation Modal */}
+            {isDeleteItemModalOpen && (
+                <div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+                    <div className='bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-red-200'>
+                        <div className='flex justify-between items-center p-4 border-b-2 border-red-100 bg-red-50'>
+                            <h3 className='text-lg font-bold text-gray-900'>Mahsulotni o'chirish</h3>
+                            <button
+                                onClick={() => {
+                                    setIsDeleteItemModalOpen(false);
+                                    setItemToDelete(null);
+                                }}
+                                disabled={isDeletingItem}
+                                className='text-gray-500 hover:text-red-600 hover:bg-white p-1.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className='p-5 bg-white'>
+                            <p className='text-gray-700 mb-5'>
+                                Bu mahsulotni savdodan o'chirmoqchimisiz? Bu amalni qaytarib bo'lmaydi.
+                            </p>
+
+                            <div className='flex gap-2 justify-end'>
+                                <button
+                                    onClick={() => {
+                                        setIsDeleteItemModalOpen(false);
+                                        setItemToDelete(null);
+                                    }}
+                                    disabled={isDeletingItem}
+                                    className='px-3 py-1.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed'
+                                >
+                                    Bekor qilish
+                                </button>
+                                <button
+                                    onClick={confirmRemoveItem}
+                                    disabled={isDeletingItem}
+                                    className='px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 font-semibold text-xs shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
+                                >
+                                    {isDeletingItem ? (
+                                        <>
+                                            <Loader2 className='w-4 h-4 animate-spin' />
+                                            <span>O'chirilmoqda...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trash2 className='w-4 h-4' />
+                                            <span>Ha, o'chirish</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

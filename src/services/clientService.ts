@@ -62,9 +62,6 @@ export const clientService = {
             filial: data.filial || 0,
             total_debt: data.total_debt || 0,
             keshbek: data.keshbek || 0,
-            is_profit_loss: data.is_profit_loss ?? true,
-            type: data.type || 0,
-            is_delete: data.is_delete ?? false,
         });
         return response.data;
     },

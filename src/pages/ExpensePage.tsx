@@ -351,42 +351,42 @@ export function ExpensePage() {
                     onClick={() => setViewItem(null)}
                 >
                     <div
-                        className='bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 border-2 border-indigo-200 overflow-hidden'
+                        className='bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 border border-indigo-200 overflow-hidden'
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className='flex justify-between items-center p-4 sm:p-5 border-b-2 border-indigo-100 bg-indigo-50'>
-                            <h3 className='text-lg sm:text-xl font-bold text-gray-900'>Xarajat tafsilotlari</h3>
+                        <div className='flex justify-between items-center p-2 sm:p-3 border-b border-indigo-100 bg-indigo-50'>
+                            <h3 className='text-base sm:text-lg font-bold text-gray-900'>Xarajat tafsilotlari</h3>
                             <button
                                 onClick={() => setViewItem(null)}
-                                className='text-gray-500 hover:text-indigo-600 hover:bg-white p-2 rounded-xl transition-all duration-200'
+                                className='text-gray-500 hover:text-indigo-600 hover:bg-white p-1.5 rounded-lg transition-all duration-200'
                             >
-                                <X size={24} />
+                                <X size={18} />
                             </button>
                         </div>
-                        <div className='p-4 sm:p-6 space-y-4'>
-                            <div className='grid grid-cols-2 gap-4'>
+                        <div className='p-3 space-y-3'>
+                            <div className='grid grid-cols-2 gap-3'>
                                 <div>
                                     <span className='text-xs text-indigo-600 font-semibold'>Sana</span>
-                                    <p className='text-gray-800 font-medium'>
+                                    <p className='text-gray-800 font-medium text-xs'>
                                         {viewItem.date ? format(new Date(viewItem.date), 'dd.MM.yyyy') : '-'}
                                     </p>
                                 </div>
                                 <div>
                                     <span className='text-xs text-indigo-600 font-semibold'>Kategoriya</span>
-                                    <p className='text-gray-800 font-medium'>{viewItem.category_detail?.name || '-'}</p>
+                                    <p className='text-gray-800 font-medium text-xs'>{viewItem.category_detail?.name || '-'}</p>
                                 </div>
                             </div>
 
-                            <div className='grid grid-cols-2 gap-4'>
+                            <div className='grid grid-cols-2 gap-3'>
                                 <div>
                                     <span className='text-xs text-indigo-600 font-semibold'>Oylik</span>
                                     <p className='text-gray-800 font-medium'>
                                         {viewItem.is_salary ? (
-                                            <span className='px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold'>
+                                            <span className='px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs font-semibold'>
                                                 Ha
                                             </span>
                                         ) : (
-                                            <span className='px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold'>
+                                            <span className='px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-semibold'>
                                                 Yo'q
                                             </span>
                                         )}
@@ -394,48 +394,48 @@ export function ExpensePage() {
                                 </div>
                                 <div>
                                     <span className='text-xs text-indigo-600 font-semibold'>Hodim</span>
-                                    <p className='text-gray-800 font-medium'>
+                                    <p className='text-gray-800 font-medium text-xs'>
                                         {viewItem.employee_detail?.full_name || '-'}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className='border-t border-gray-200 pt-4'>
+                            <div className='border-t border-gray-200 pt-3'>
                                 <span className='text-xs text-indigo-600 font-semibold block mb-2'>Summalar</span>
-                                <div className='grid grid-cols-2 gap-3'>
-                                    <div className='bg-blue-50 rounded-lg p-3'>
+                                <div className='grid grid-cols-2 gap-2'>
+                                    <div className='bg-blue-50 rounded-lg p-2'>
                                         <span className='text-xs text-gray-500'>Jami ($)</span>
-                                        <p className='text-lg font-bold text-blue-700'>
+                                        <p className='text-sm font-bold text-blue-700'>
                                             {Number(viewItem.summa_total_dollar || 0).toLocaleString()} $
                                         </p>
                                     </div>
-                                    <div className='bg-green-50 rounded-lg p-3'>
+                                    <div className='bg-green-50 rounded-lg p-2'>
                                         <span className='text-xs text-gray-500'>Dollar ($)</span>
-                                        <p className='text-lg font-bold text-green-700'>
+                                        <p className='text-sm font-bold text-green-700'>
                                             {Number(viewItem.summa_dollar || 0).toLocaleString()} $
                                         </p>
                                     </div>
-                                    <div className='bg-purple-50 rounded-lg p-3'>
+                                    <div className='bg-purple-50 rounded-lg p-2'>
                                         <span className='text-xs text-gray-500'>Naqd (UZS)</span>
-                                        <p className='text-lg font-bold text-purple-700'>
+                                        <p className='text-sm font-bold text-purple-700'>
                                             {Number(viewItem.summa_naqt || 0).toLocaleString()}
                                         </p>
                                     </div>
-                                    <div className='bg-orange-50 rounded-lg p-3'>
+                                    <div className='bg-orange-50 rounded-lg p-2'>
                                         <span className='text-xs text-gray-500'>Kilik (UZS)</span>
-                                        <p className='text-lg font-bold text-orange-700'>
+                                        <p className='text-sm font-bold text-orange-700'>
                                             {Number(viewItem.summa_kilik || 0).toLocaleString()}
                                         </p>
                                     </div>
-                                    <div className='bg-cyan-50 rounded-lg p-3'>
+                                    <div className='bg-cyan-50 rounded-lg p-2'>
                                         <span className='text-xs text-gray-500'>Terminal (UZS)</span>
-                                        <p className='text-lg font-bold text-cyan-700'>
+                                        <p className='text-sm font-bold text-cyan-700'>
                                             {Number(viewItem.summa_terminal || 0).toLocaleString()}
                                         </p>
                                     </div>
-                                    <div className='bg-pink-50 rounded-lg p-3'>
+                                    <div className='bg-pink-50 rounded-lg p-2'>
                                         <span className='text-xs text-gray-500'>Transfer (UZS)</span>
-                                        <p className='text-lg font-bold text-pink-700'>
+                                        <p className='text-sm font-bold text-pink-700'>
                                             {Number(viewItem.summa_transfer || 0).toLocaleString()}
                                         </p>
                                     </div>
@@ -443,16 +443,16 @@ export function ExpensePage() {
                             </div>
 
                             {viewItem.note && (
-                                <div className='border-t border-gray-200 pt-4'>
-                                    <span className='text-xs text-indigo-600 font-semibold block mb-2'>Izoh</span>
-                                    <p className='text-gray-700 bg-gray-50 rounded-lg p-3'>{viewItem.note}</p>
+                                <div className='border-t border-gray-200 pt-3'>
+                                    <span className='text-xs text-indigo-600 font-semibold block mb-1.5'>Izoh</span>
+                                    <p className='text-xs text-gray-700 bg-gray-50 rounded-lg p-2'>{viewItem.note}</p>
                                 </div>
                             )}
 
-                            <div className='flex justify-end gap-3 pt-4 border-t border-gray-200'>
+                            <div className='flex justify-end gap-2 pt-3 border-t border-gray-200'>
                                 <button
                                     onClick={() => setViewItem(null)}
-                                    className='px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors'
+                                    className='h-8 px-3 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 text-xs transition-colors'
                                 >
                                     Yopish
                                 </button>
@@ -461,9 +461,9 @@ export function ExpensePage() {
                                         openEdit(viewItem);
                                         setViewItem(null);
                                     }}
-                                    className='bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2'
+                                    className='h-8 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-xs shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-1.5'
                                 >
-                                    <Edit size={16} />
+                                    <Edit size={14} />
                                     Tahrirlash
                                 </button>
                             </div>

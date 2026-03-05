@@ -46,7 +46,7 @@ export function PaymentModal({
     const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
     const [note, setNote] = useState('');
     const [driverInfo, setDriverInfo] = useState('');
-    const [isVozvrat, setIsVozvrat] = useState(false);
+    const [_isVozvrat, setIsVozvrat] = useState(false);
     const [orderStatusChecked, setOrderStatusChecked] = useState(true);
     const [isCompleting, setIsCompleting] = useState(false);
     const [discountAmount, setDiscountAmount] = useState<string>('');
@@ -180,7 +180,7 @@ export function PaymentModal({
                 const summa_total_dollar = totalAmount;
 
                 // Agar order_status belgilanmasa, barcha summa maydonlarini 0 jo'natamiz
-                const zeroSums = !orderStatusChecked;
+                // const zeroSums = !orderStatusChecked; // Keyinchalik ishlatilishi mumkin
 
                 // Order-history ga PATCH qilish
                 const updateData = {
@@ -248,21 +248,21 @@ export function PaymentModal({
         >
             <Dialog.Portal>
                 <Dialog.Overlay className='fixed inset-0 bg-black/60 backdrop-blur-sm z-50' />
-                <Dialog.Content className='fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border-2 border-indigo-200 z-50 overflow-hidden p-0'>
+                <Dialog.Content className='fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-indigo-200 z-50 overflow-hidden p-2'>
                     {/* Header */}
-                    <div className='flex justify-between items-center p-5 border-b-2 border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50 shrink-0'>
-                        <div className='flex items-center gap-3'>
-                            <div className='flex items-center gap-2 bg-white/80 border-2 border-indigo-200 rounded-xl px-4 py-2.5 shadow-sm'>
-                                <span className='text-sm font-medium text-gray-600'>Kurs:</span>
-                                <span className='text-lg font-bold text-indigo-700'>
+                    <div className='flex justify-between items-center p-2 border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50 shrink-0'>
+                        <div className='flex items-center gap-2'>
+                            <div className='flex items-center gap-1.5 bg-white/80 border border-indigo-200 rounded-lg px-2 py-1 shadow-sm'>
+                                <span className='text-[10px] font-medium text-gray-600'>Kurs:</span>
+                                <span className='text-xs font-bold text-indigo-700'>
                                     1 USD = {Number(usdRate).toLocaleString('uz-UZ')} UZS
                                 </span>
                             </div>
                         </div>
-                        <div className='flex items-center gap-2'>
+                        <div className='flex items-center gap-1.5'>
                             <label
                                 htmlFor='orderStatus'
-                                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 shadow-md border-2 cursor-pointer transition-all ${orderStatusChecked
+                                className={`flex items-center gap-1.5 rounded-lg px-2 py-1 shadow-sm border cursor-pointer transition-all ${orderStatusChecked
                                     ? 'bg-green-600 border-green-400'
                                     : 'bg-red-600 border-red-400 animate-pulse'
                                     }`}
@@ -272,64 +272,63 @@ export function PaymentModal({
                                     id='orderStatus'
                                     checked={orderStatusChecked}
                                     onChange={(e) => setOrderStatusChecked(e.target.checked)}
-                                    className='w-3.5 h-3.5 text-white border-2 border-white rounded focus:ring-0 cursor-pointer accent-white'
+                                    className='w-3 h-3 text-white border border-white rounded focus:ring-0 cursor-pointer accent-white'
                                 />
-                                <span className='text-base font-bold text-white select-none'>Tasdiqlandimi?</span>
+                                <span className='text-[11px] font-bold text-white select-none'>Tasdiqlandimi?</span>
                             </label>
                             <button
                                 onClick={handlePrint}
-                                className='px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 text-xs transition-colors flex items-center gap-1.5'
+                                className='p-1.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors'
                                 title='Chop etish (PDF)'
                             >
                                 <Printer size={14} />
-                                <span>Chop qilish</span>
                             </button>
                         </div>
                     </div>
 
                     {/* Content - scroll */}
-                    <div className='p-6 bg-white overflow-y-auto flex-1 min-h-0'>
+                    <div className='p-3 bg-white overflow-y-auto flex-1 min-h-0'>
                         {/* Totals */}
-                        <div className='grid grid-cols-3 gap-6 mb-8'>
-                            <div className='bg-indigo-50 p-5 rounded-2xl border-2 border-indigo-200'>
-                                <p className='text-gray-600 mb-2 font-medium'>To'lanishi kerak:</p>
-                                <p className='text-3xl font-bold text-indigo-700'>
-                                    {usdAmount} <span className='text-sm font-normal text-indigo-400'>USD</span>
+                        <div className='grid grid-cols-3 gap-2 mb-3'>
+                            <div className='bg-indigo-50 p-2 rounded-lg border border-indigo-200'>
+                                <p className='text-gray-600 mb-1 text-[10px] font-medium'>To'lanishi kerak:</p>
+                                <p className='text-lg font-bold text-indigo-700'>
+                                    {usdAmount} <span className='text-[10px] font-normal text-indigo-400'>USD</span>
                                 </p>
-                                <p className='text-xl font-bold text-indigo-600 mt-1'>
+                                <p className='text-sm font-bold text-indigo-600 mt-0.5'>
                                     {amountToPay.toLocaleString()}{' '}
-                                    <span className='text-sm font-normal text-indigo-500'>UZS</span>
+                                    <span className='text-[10px] font-normal text-indigo-500'>UZS</span>
                                 </p>
                             </div>
-                            <div className='bg-emerald-50 p-5 rounded-2xl border-2 border-emerald-200'>
-                                <p className='text-gray-600 mb-2 font-medium'>To'landi:</p>
-                                <p className='text-3xl font-bold text-emerald-600'>
+                            <div className='bg-emerald-50 p-2 rounded-lg border border-emerald-200'>
+                                <p className='text-gray-600 mb-1 text-[10px] font-medium'>To'landi:</p>
+                                <p className='text-lg font-bold text-emerald-600'>
                                     {formatUsdAmount(paidAmount / usdRate)}{' '}
-                                    <span className='text-sm font-normal text-emerald-400'>USD</span>
+                                    <span className='text-[10px] font-normal text-emerald-400'>USD</span>
                                 </p>
-                                <p className='text-xl font-bold text-emerald-500 mt-1'>
+                                <p className='text-sm font-bold text-emerald-500 mt-0.5'>
                                     {paidAmount.toLocaleString()}{' '}
-                                    <span className='text-sm font-normal text-emerald-500'>UZS</span>
+                                    <span className='text-[10px] font-normal text-emerald-500'>UZS</span>
                                 </p>
                             </div>
                             <div
-                                className={`p-5 rounded-2xl border-2 ${remaining > 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}
+                                className={`p-2 rounded-lg border ${remaining > 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}
                             >
-                                <p className='text-gray-600 mb-2 font-medium'>Qoldi:</p>
+                                <p className='text-gray-600 mb-1 text-[10px] font-medium'>Qoldi:</p>
                                 <p
-                                    className={`text-3xl font-bold ${remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+                                    className={`text-lg font-bold ${remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
                                 >
                                     {formatUsdAmount(Math.max(0, remaining) / usdRate)}{' '}
                                     <span
-                                        className={`text-sm font-normal ${remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
+                                        className={`text-[10px] font-normal ${remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
                                     >
                                         USD
                                     </span>
                                 </p>
-                                <p className='text-xl font-bold mt-1'>
+                                <p className={`text-sm font-bold mt-0.5 ${remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                                     {Math.max(0, remaining).toLocaleString()}{' '}
                                     <span
-                                        className={`text-sm font-normal ${remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
+                                        className={`text-[10px] font-normal ${remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
                                     >
                                         UZS
                                     </span>
@@ -338,45 +337,46 @@ export function PaymentModal({
                         </div>
 
                         {/* Payment Methods Grid */}
-                        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6'>
+                        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3'>
                             {paymentMethods.map((method) => {
                                 const isSelected = (parseFloat(selectedMethods[method.id] || '') || 0) > 0;
                                 return (
                                     <div
                                         key={method.id}
-                                        className={`border-2 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-200 ${isSelected
+                                        className={`border rounded-lg overflow-hidden shadow-sm hover:shadow transition-all duration-200 ${isSelected
                                             ? 'border-indigo-400 ring-1 ring-indigo-200'
                                             : 'border-indigo-200'
                                             }`}
                                     >
                                         <div
-                                            className={`${method.gradient} text-white p-2.5 flex justify-between items-center`}
+                                            className={`${method.gradient} text-white p-1.5 flex justify-between items-center`}
                                         >
-                                            <div className='flex items-center space-x-2'>
-                                                <div className={`${method.iconBg} p-1.5 rounded-md`}>
-                                                    <method.icon className={`${method.iconColor} w-4 h-4`} />
+                                            <div className='flex items-center space-x-1.5'>
+                                                <div className={`${method.iconBg} p-1 rounded`}>
+                                                    <method.icon className={`${method.iconColor} w-3 h-3`} />
                                                 </div>
-                                                <span className='font-medium text-xs'>{method.name}</span>
+                                                <span className='font-medium text-[10px]'>{method.name}</span>
                                             </div>
                                             {isSelected && (
                                                 <button
                                                     onClick={() => handleRemoveMethod(method.id)}
                                                     className='text-white/80 hover:text-white transition-colors bg-white/20 p-0.5 rounded'
+                                                    title="O'chirish"
                                                 >
-                                                    <X size={14} />
+                                                    <X size={12} />
                                                 </button>
                                             )}
                                         </div>
-                                        <div className='p-2.5 bg-white'>
+                                        <div className='p-1.5 bg-white'>
                                             <div className='relative'>
                                                 <NumberInput
                                                     value={String(selectedMethods[method.id] ?? '0')}
                                                     onChange={(val) => handleMethodAmountChange(method.id, val)}
                                                     allowDecimal={method.unit === 'USD'}
                                                     placeholder={method.unit === 'USD' ? '0' : '0'}
-                                                    className='w-full border-2 border-indigo-200 focus:border-2 focus:border-indigo-500 py-1.5 pr-10 text-right font-semibold text-base rounded-lg focus:bg-indigo-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                                    className='w-full border border-indigo-200 focus:border focus:border-indigo-500 py-1 pr-8 text-right font-semibold text-xs rounded focus:bg-indigo-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
                                                 />
-                                                <span className='absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
+                                                <span className='absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500 pointer-events-none'>
                                                     {method.unit}
                                                 </span>
                                             </div>
@@ -387,27 +387,27 @@ export function PaymentModal({
                         </div>
 
                         {/* Chegirma va Qaytim maydonlari */}
-                        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6'>
+                        <div className='grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3'>
                             {/* Chegirma */}
-                            <div className='bg-amber-50 p-4 rounded-xl border-2 border-amber-200'>
-                                <label className='block text-amber-600 text-sm font-semibold mb-2'>Chegirma</label>
+                            <div className='bg-amber-50 p-2 rounded-lg border border-amber-200'>
+                                <label className='block text-amber-600 text-[10px] font-semibold mb-1'>Chegirma</label>
                                 <div className='relative'>
                                     <NumberInput
                                         value={discountAmount}
                                         onChange={(val) => setDiscountAmount(val)}
                                         allowDecimal={true}
                                         placeholder='0'
-                                        className='w-full border-2 border-amber-200 focus:border-2 focus:border-amber-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-amber-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                        className='w-full border border-amber-200 focus:border focus:border-amber-500 py-1 pr-10 text-right font-semibold text-xs rounded focus:bg-amber-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
                                     />
-                                    <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
+                                    <span className='absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500 pointer-events-none'>
                                         UZS
                                     </span>
                                 </div>
                             </div>
 
                             {/* Qaytim dollarda */}
-                            <div className='bg-green-50 p-4 rounded-xl border-2 border-green-200'>
-                                <label className='block text-green-600 text-sm font-semibold mb-2'>
+                            <div className='bg-green-50 p-2 rounded-lg border border-green-200'>
+                                <label className='block text-green-600 text-[10px] font-semibold mb-1'>
                                     Qaytim dollarda
                                 </label>
                                 <div className='relative'>
@@ -416,27 +416,27 @@ export function PaymentModal({
                                         onChange={(val) => setZdachaDollar(val)}
                                         allowDecimal={true}
                                         placeholder='0'
-                                        className='w-full border-2 border-green-200 focus:border-2 focus:border-green-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-green-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                        className='w-full border border-green-200 focus:border focus:border-green-500 py-1 pr-10 text-right font-semibold text-xs rounded focus:bg-green-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
                                     />
-                                    <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
+                                    <span className='absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500 pointer-events-none'>
                                         USD
                                     </span>
                                 </div>
                             </div>
 
                             {/* Qaytim so'mda (avto to'ldiriladi, disabled) */}
-                            <div className='bg-blue-50 p-4 rounded-xl border-2 border-blue-200'>
-                                <label className='block text-blue-600 text-sm font-semibold mb-2'>Qaytim so'mda</label>
+                            <div className='bg-blue-50 p-2 rounded-lg border border-blue-200'>
+                                <label className='block text-blue-600 text-[10px] font-semibold mb-1'>Qaytim so'mda</label>
                                 <div className='relative'>
                                     <NumberInput
                                         value={zdachaSom}
                                         onChange={(val) => setZdachaSom(val)}
                                         allowDecimal={true}
                                         placeholder='0'
-                                        className='w-full border-2 border-blue-200 focus:border-2 focus:border-blue-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-blue-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                        className='w-full border border-blue-200 focus:border focus:border-blue-500 py-1 pr-10 text-right font-semibold text-xs rounded focus:bg-blue-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
                                         disabled
                                     />
-                                    <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
+                                    <span className='absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500 pointer-events-none'>
                                         UZS
                                     </span>
                                 </div>
@@ -445,34 +445,34 @@ export function PaymentModal({
 
                         {/* Izoh va Yetkazib beruvchi maydonlari */}
                         {orderData && (
-                            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                            <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
                                 {/* Izoh maydoni */}
-                                <div className='bg-blue-50 p-4 rounded-xl border-2 border-blue-200'>
-                                    <div className='flex items-center mb-3'>
-                                        <FileText size={18} className='mr-2 text-blue-600' />
-                                        <span className='text-blue-600 text-sm font-semibold'>Izoh</span>
+                                <div className='bg-blue-50 p-2 rounded-lg border border-blue-200'>
+                                    <div className='flex items-center mb-1.5'>
+                                        <FileText size={14} className='mr-1.5 text-blue-600' />
+                                        <span className='text-blue-600 text-[10px] font-semibold'>Izoh</span>
                                     </div>
                                     <textarea
                                         value={note}
                                         onChange={(e) => setNote(e.target.value)}
                                         placeholder='Izoh kiriting...'
-                                        className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none'
-                                        rows={3}
+                                        className='w-full px-2 py-1 text-[11px] border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent resize-none'
+                                        rows={2}
                                     />
                                 </div>
 
                                 {/* Yetkazib beruvchi maydoni */}
-                                <div className='bg-purple-50 p-4 rounded-xl border-2 border-purple-200'>
-                                    <div className='flex items-center mb-3'>
-                                        <Truck size={18} className='mr-2 text-purple-600' />
-                                        <span className='text-purple-600 text-sm font-semibold'>Yetkazib beruvchi</span>
+                                <div className='bg-purple-50 p-2 rounded-lg border border-purple-200'>
+                                    <div className='flex items-center mb-1.5'>
+                                        <Truck size={14} className='mr-1.5 text-purple-600' />
+                                        <span className='text-purple-600 text-[10px] font-semibold'>Yetkazib beruvchi</span>
                                     </div>
                                     <textarea
                                         value={driverInfo}
                                         onChange={(e) => setDriverInfo(e.target.value)}
                                         placeholder="Yetkazib beruvchi ma'lumotlari..."
-                                        className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none'
-                                        rows={3}
+                                        className='w-full px-2 py-1 text-[11px] border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-transparent resize-none'
+                                        rows={2}
                                     />
                                 </div>
                             </div>
@@ -480,28 +480,28 @@ export function PaymentModal({
                     </div>
 
                     {/* Footer with Close and Complete buttons (below content) */}
-                    <div className='p-4 border-t bg-white flex justify-between items-center gap-3 shrink-0'>
+                    <div className='p-2 border-t bg-white flex justify-between items-center gap-2 shrink-0'>
                         <button
                             onClick={onClose}
-                            className='px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors flex items-center space-x-2'
+                            className='h-8 px-4 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 text-gray-700 transition-colors flex items-center gap-1.5'
                         >
-                            <X size={16} />
-                            <span>Yopish</span>
+                            <X size={14} />
+                            <span className='text-xs'>Yopish</span>
                         </button>
                         <button
                             onClick={handleComplete}
                             disabled={isCompleting || !orderData}
-                            className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2'
+                            className='h-8 bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-lg font-semibold shadow hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
                         >
                             {isCompleting ? (
                                 <>
-                                    <Loader2 className='w-4 h-4 animate-spin' />
-                                    <span>Saqlanmoqda...</span>
+                                    <Loader2 className='w-3.5 h-3.5 animate-spin' />
+                                    <span className='text-xs'>Saqlanmoqda...</span>
                                 </>
                             ) : (
                                 <>
-                                    <CheckCircle2 size={18} />
-                                    <span>Tugallash</span>
+                                    <CheckCircle2 size={14} />
+                                    <span className='text-xs'>Tugallash</span>
                                 </>
                             )}
                         </button>

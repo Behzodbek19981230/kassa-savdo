@@ -41,7 +41,7 @@ const SelectContent = React.forwardRef<
 	<SelectPrimitive.Portal>
 		<SelectPrimitive.Content
 			ref={ref}
-		className={cn(
+			className={cn(
 			'relative z-50 min-w-[8rem] overflow-hidden rounded-lg border border-indigo-200 bg-white text-gray-900 shadow-lg',
 				'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
 				position === 'popper' &&

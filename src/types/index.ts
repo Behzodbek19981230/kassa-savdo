@@ -391,6 +391,7 @@ export interface Customer {
 	name: string;
 	phone?: string;
 	email?: string;
+	total_debt?: number;
 }
 
 // Sale Types

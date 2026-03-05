@@ -413,14 +413,14 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                                                         className='text-left p-1 font-semibold text-gray-700 text-xs align-top border-r border-gray-200'
                                                                     >
                                                                         {groupDate}
-                                                                    </td>
+                                                                </td>
                                                                 ) : null}
                                                                 <td className='text-left p-1 text-gray-500 font-mono text-xs'>
                                                                     {order?.order}
                                                                 </td>
                                                                 <td className='p-1 text-left text-gray-800 text-xs'>
-                                                                    {order.client_detail?.full_name ||
-                                                                        `ID: ${order.client}`}
+                                                                        {order.client_detail?.full_name ||
+                                                                            `ID: ${order.client}`}
                                                                 </td>
                                                                 <td className='p-1 text-left text-gray-600 text-xs'>
                                                                     {order.created_by_detail?.full_name ??
@@ -523,7 +523,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                 )}
                                 {/* overall totals row */}
                                 {groups.length > 0 && groups[0]?.items?.[0] && (
-                                    <tr className='bg-blue-50'>
+                                <tr className='bg-blue-50'>
                                         <td className='p-1 text-left font-semibold text-xs'>Jami</td>
                                         <td colSpan={3} />
                                         <td className='p-1 text-right font-semibold text-blue-700 text-xs'>
@@ -545,14 +545,14 @@ export function Dashboard({ onNewSale }: DashboardProps) {
                                         </td>
                                         <td className='p-1 text-right font-semibold text-xs'>
                                             {overallTotals.totalFoyda.toFixed(2)}
-                                        </td>
+                                    </td>
                                         <td className='p-1 text-right font-semibold text-xs'></td>
                                         <td className='p-1 text-right font-semibold text-xs'></td>
                                         <td className='p-1 text-right font-semibold text-xs'>
                                             {overallTotals.totalKeshbek.toFixed(2)}
-                                        </td>
+                                    </td>
                                         <td className='p-1 text-right font-semibold text-xs'></td>
-                                    </tr>
+                                </tr>
                                 )}
                             </tbody>
                         </table>
