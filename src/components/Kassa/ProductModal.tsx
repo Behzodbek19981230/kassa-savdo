@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
-import { Product, OrderResponse } from '../../types';
+import { OrderResponse, ProductItem } from '../../types';
 import { Input, Label } from '../ui/Input';
 import NumberInput from '../ui/NumberInput';
 import { Autocomplete } from '../ui/Autocomplete';
@@ -18,7 +18,7 @@ export interface ProductModalConfirmOptions {
 interface ProductModalProps {
     isOpen: boolean;
     onClose: () => void;
-    product: Product | null;
+    product: ProductItem | null;
     exchangeRate: number;
     skladlar: { id: number; name: string }[];
     orderData?: OrderResponse | null;
@@ -99,7 +99,7 @@ export function ProductModal({
                     console.error('Failed to load order product:', error);
                     // Xatolik bo'lsa ham default qiymatlarni o'rnatish
                     if (product) {
-                        const defaultPrice = product.unitPrice ?? product.price ?? 0;
+                        const defaultPrice = product.unit_price ?? 0;
                         setPrice(String(defaultPrice));
                         setQuantity('1');
                     }
@@ -110,8 +110,8 @@ export function ProductModal({
             setSkladStockCount(null);
             setErrors({}); // Errorlarni tozalash
             // Default price ni o'rnatish
-            if (product.unitPrice || product.price) {
-                const defaultPrice = product.unitPrice ?? product.price ?? 0;
+            if (product.unit_price) {
+                const defaultPrice = product.unit_price ?? 0;
                 setPrice(String(defaultPrice));
             } else {
                 setPrice('0');
@@ -125,11 +125,10 @@ export function ProductModal({
             setSkladStockCount(null);
             return;
         }
-        const productId = product.productId ?? Number(product.id);
-        if (!productId) return;
+        if (!product.id) return;
         setIsLoadingStock(true);
         productService
-            .getProductStock({ product: productId, sklad: selectedSkladId })
+            .getProductStock({ product: product.id, sklad: selectedSkladId })
             .then((res) => setSkladStockCount(res.count ?? 0))
             .catch(() => setSkladStockCount(null))
             .finally(() => setIsLoadingStock(false));
@@ -222,22 +221,22 @@ export function ProductModal({
                     <div className='flex-1'>
                         {/* Mahsulot ma'lumotlari */}
                         <div className='flex flex-wrap gap-2 text-xs text-gray-600'>
-                            {product.branchCategoryName && (
+                            {product.branch_category_detail?.name && (
                                 <div className='flex items-center gap-1'>
                                     <span className='font-semibold text-indigo-600'>Kategoriya:</span>
-                                    <span>{product.branchCategoryName}</span>
+                                    <span>{product.branch_category_detail?.name}</span>
                                 </div>
                             )}
-                            {product.modelName && (
+                            {product.model_detail?.name && (
                                 <div className='flex items-center gap-1'>
                                     <span className='font-semibold text-indigo-600'>Modeli:</span>
-                                    <span>{product.modelName}</span>
+                                    <span>{product.model_detail?.name}</span>
                                 </div>
                             )}
-                            {product.typeName && (
+                            {product.type_detail?.name && (
                                 <div className='flex items-center gap-1'>
                                     <span className='font-semibold text-indigo-600'>Model turi:</span>
-                                    <span>{product.typeName}</span>
+                                    <span>{product.type_detail?.name}</span>
                                 </div>
                             )}
                         </div>
@@ -326,7 +325,7 @@ export function ProductModal({
                                     autoFocus
                                 />
                                 <div className='flex justify-between text-xs text-gray-600 bg-indigo-50/50 px-2 py-1.5 min-w-[3rem] items-center'>
-                                    {product?.unitCode ?? 'dona'}
+                                    {product?.size_detail?.unit_code ?? 'dona'}
                                 </div>
                             </div>
                             {errors.quantity && (

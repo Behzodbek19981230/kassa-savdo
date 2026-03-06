@@ -13,10 +13,10 @@ interface OrderLayoutProps {
  */
 export function OrderLayout({ leftSidebar, mainContent, readOnly = false, updateMode = false }: OrderLayoutProps) {
     return (
-        <div className='flex-1 flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 min-h-0 h-full'>
+        <div className='flex-1 flex flex-col sm:flex-row   min-h-0 h-full'>
             {/* Left: Product List - only show if not readOnly and not updateMode */}
             {!readOnly && !updateMode && leftSidebar && (
-                <div className='w-full sm:w-4/5 sm:min-w-[240px] md:w-2/5 md:min-w-[280px] md:max-w-[450px] lg:w-3/5 lg:min-w-[320px] lg:max-w-xl sm:border-r border-blue-200/50 bg-white sm:bg-transparent flex flex-col min-h-0 overflow-hidden'>
+                <div className='w-full sm:w-1/4 sm:min-w-[200px] sm:max-w-[300px] md:w-2/5 md:min-w-[320px] md:max-w-[380px] lg:w-2/4 lg:min-w-[340px] lg:max-w-[420px] sm:border-r border-blue-200/50 bg-white sm:bg-transparent flex flex-col min-h-0 overflow-hidden'>
                     {leftSidebar}
                 </div>
             )}

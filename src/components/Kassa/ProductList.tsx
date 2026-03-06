@@ -1,23 +1,23 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useCallback } from 'react';
 import { Search, RotateCcw, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { Product } from '../../types';
+import { ProductItem, ProductGroup } from '../../types';
 import { Input } from '../ui/Input';
 import { productService, Branch, ProductImage } from '../../services/productService';
 import { Autocomplete } from '../ui/Autocomplete';
 
 interface ProductListProps {
-    products: Product[];
+    products: ProductItem[];
     appliedSearch?: string;
     onSearchSubmit?: (value: string) => void;
-    onProductClick: (product: Product) => void;
+    onProductClick: (product: ProductItem) => void;
     selectedBranch?: number | null;
     selectedModel?: number | null;
     selectedType?: number | null;
     onBranchChange?: (branchId: number | null) => void;
     onModelChange?: (modelId: number | null) => void;
     onTypeChange?: (typeId: number | null) => void;
-    onScrollToBottom?: () => void;
+    scrollToBottom?: () => void;
     hasMore?: boolean;
     isLoadingMore?: boolean;
 }
@@ -36,9 +36,7 @@ export function ProductList({
     onBranchChange,
     onModelChange,
     onTypeChange,
-    onScrollToBottom,
-    hasMore = false,
-    isLoadingMore = false,
+    scrollToBottom,
 }: ProductListProps) {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [isLoadingBranches, setIsLoadingBranches] = useState(false);
@@ -48,7 +46,7 @@ export function ProductList({
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isLoadingImages, setIsLoadingImages] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [groupedProducts, setGroupedProducts] = useState<any[]>([]);
+    const [groupedProducts, setGroupedProducts] = useState<ProductGroup[]>([]);
     const [isLoadingGrouped, setIsLoadingGrouped] = useState(false);
     const [page, setPage] = useState(1);
     const [limit] = useState(30); // You can adjust limit as needed
@@ -116,44 +114,44 @@ export function ProductList({
     const uniqueModels = useMemo(() => {
         const seen = new Set<number>();
         return products
-            .filter((p) => p.modelId != null && p.modelName)
+            .filter((p) => p.model_detail != null && p.model_detail.name)
             .filter((p) => {
-                if (seen.has(p.modelId!)) return false;
-                seen.add(p.modelId!);
+                if (seen.has(p.model_detail!.id)) return false;
+                seen.add(p.model_detail!.id);
                 return true;
             })
-            .map((p) => ({ id: p.modelId!, name: p.modelName! }));
+            .map((p) => ({ id: p.model_detail!.id, name: p.model_detail!.name! }));
     }, [products]);
 
     const uniqueTypes = useMemo(() => {
         const seen = new Set<number>();
         return products
-            .filter((p) => p.typeId != null && p.typeName)
+            .filter((p) => p.type_detail != null && p.type_detail.name)
             .filter((p) => {
-                if (seen.has(p.typeId!)) return false;
-                seen.add(p.typeId!);
+                if (seen.has(p.type_detail!.id)) return false;
+                seen.add(p.type_detail!.id);
                 return true;
             })
-            .map((p) => ({ id: p.typeId!, name: p.typeName! }));
+            .map((p) => ({ id: p.type_detail!.id, name: p.type_detail!.name! }));
     }, [products]);
 
     const branchOptions = useMemo(
         () => [
-            { id: 'all', label: 'Barcha kategoriyalar', value: 'all' },
+            { id: 'all', label: 'Barchasi', value: 'all' },
             ...branches.map((b) => ({ id: String(b.id), label: b.name, value: String(b.id) })),
         ],
         [branches],
     );
     const modelOptions = useMemo(
         () => [
-            { id: 'all', label: 'Barcha modellar', value: 'all' },
+            { id: 'all', label: 'Barchasi', value: 'all' },
             ...uniqueModels.map((m) => ({ id: String(m.id), label: m.name, value: String(m.id) })),
         ],
         [uniqueModels],
     );
     const typeOptions = useMemo(
         () => [
-            { id: 'all', label: 'Barcha turlar', value: 'all' },
+            { id: 'all', label: 'Barchasi', value: 'all' },
             ...uniqueTypes.map((t) => ({ id: String(t.id), label: t.name, value: String(t.id) })),
         ],
         [uniqueTypes],
@@ -172,7 +170,7 @@ export function ProductList({
     };
 
     // Image click handler
-    const handleImageClick = async (product: Product) => {
+    const handleImageClick = async (product: ProductItem) => {
         console.log(product.id);
 
         if (!product.id) return;
@@ -204,6 +202,7 @@ export function ProductList({
             const clientHeight = container.clientHeight;
             if (scrollHeight - scrollTop <= clientHeight + threshold && !isLoadingGrouped && hasMoreGroups) {
                 setPage((prev) => prev + 1);
+                scrollToBottom?.();
             }
         };
 

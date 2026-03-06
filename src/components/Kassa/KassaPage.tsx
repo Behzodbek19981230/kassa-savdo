@@ -8,11 +8,11 @@ import { PaymentModal } from './PaymentModal';
 import { VozvratPaymentModal } from './VozvratPaymentModal';
 import { OrderLayout } from './OrderLayout';
 import { OrderPaymentFields } from './OrderPaymentFields';
-import { Product, CartItem, Customer } from '../../types';
+import { ProductItem, CartItem, Customer } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService, vozvratOrderService } from '../../services/orderService';
 import { OrderResponse } from '../../types';
-import { productService, ProductResponse, ProductImage } from '../../services/productService';
+import { productService } from '../../services/productService';
 import { skladService, Sklad } from '../../services/skladService';
 import { clientService } from '../../services/clientService';
 import { showError, showSuccess } from '../../lib/toast';
@@ -31,13 +31,13 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
     const { user } = useAuth();
     const { displayRate } = useExchangeRate();
     const [cart, setCart] = useState<CartItem[]>([]);
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isSaleStarted, setIsSaleStarted] = useState(false);
     const [orderData, setOrderData] = useState<OrderResponse | null>(null);
-    const [products, setProducts] = useState<Product[]>([]);
+    const [products, setProducts] = useState<ProductItem[]>([]);
     const [isLoadingProducts, setIsLoadingProducts] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -130,51 +130,6 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
         }
     }, [orderId, isVozvratOrder]);
 
-    // API response dan Product ga transform qilish
-    const transformProduct = (productResponse: ProductResponse): Product => {
-        const productName = [
-            productResponse.branch_detail?.name,
-            productResponse.model_detail?.name,
-            productResponse.type_detail?.name,
-            productResponse.size_detail?.size,
-        ]
-            .filter(Boolean)
-            .join(' ');
-
-        // Images ni qayta ishlash - object yoki array bo'lishi mumkin
-        let imageUrl: string | undefined;
-        if (productResponse.images) {
-            if (Array.isArray(productResponse.images)) {
-                imageUrl = productResponse.images[0]?.file;
-            } else if (typeof productResponse.images === 'object' && 'file' in productResponse.images) {
-                imageUrl = (productResponse.images as ProductImage).file;
-            }
-        }
-
-        return {
-            id: productResponse.id.toString(),
-            productId: productResponse.id,
-            name: productName || `Mahsulot #${productResponse.id}`,
-            price: parseFloat(productResponse.real_price || productResponse.unit_price || '0'),
-            stock: productResponse.count,
-            unit: productResponse.size_detail?.unit_code || 'dona',
-            image: imageUrl,
-            branchName: productResponse.branch_detail?.name,
-            modelName: productResponse.model_detail?.name,
-            typeName: productResponse.type_detail?.name,
-            branchCategoryName: productResponse.branch_category_detail?.name,
-            size: productResponse.size_detail?.size,
-            unitCode: productResponse.size_detail?.unit_code,
-            branchId: productResponse.branch,
-            modelId: productResponse.model,
-            typeId: productResponse.type,
-            sizeId: productResponse.size,
-            unitPrice: parseFloat(productResponse.unit_price || '0'),
-            wholesalePrice: parseFloat(productResponse.wholesale_price || '0'),
-            isFavorite: false,
-        };
-    };
-
     // Mahsulotlarni /api/v1/product dan yuklash (har doim)
     const loadProducts = useCallback(
         async (
@@ -204,12 +159,12 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
                     limit: 50, // Limit 50 ga o'zgartirildi
                 });
 
-                const transformedProducts = response.results.filter((p) => !p.is_delete).map(transformProduct);
+                const filteredProducts = response.results.filter((p) => !p.is_delete);
 
                 if (append) {
-                    setProducts((prev) => [...prev, ...transformedProducts]);
+                    setProducts((prev) => [...prev, ...filteredProducts]);
                 } else {
-                    setProducts(transformedProducts);
+                    setProducts(filteredProducts);
                 }
 
                 // Pagination ma'lumotlarini yangilash
@@ -254,9 +209,9 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
     const handleModelChange = (modelId: number | null) => setSelectedModel(modelId);
     const handleTypeChange = (typeId: number | null) => setSelectedType(typeId);
 
-    const handleProductClick = (product: any) => {
+    const handleProductClick = (product: ProductItem) => {
         if (!isSaleStarted) return;
-        setSelectedProduct(transformProduct(product));
+        setSelectedProduct(product);
     };
 
     const handleStartSale = (newOrderId: number) => {
@@ -352,10 +307,10 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
             return;
         }
 
-        if (selectedProduct.branchId && selectedProduct.modelId && selectedProduct.typeId && selectedProduct.sizeId) {
+        if (selectedProduct.branch && selectedProduct.model && selectedProduct.type && selectedProduct.size) {
             try {
                 const orderProductData: any = {
-                    product: selectedProduct.productId || 0,
+                    product: selectedProduct.id || 0,
                     count: quantity,
                     sklad: Number(_options.skladId),
                 };
@@ -388,10 +343,10 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
             setRefreshCartTrigger((t) => t + 1);
         } else {
             setCart((prev) => {
-                const existing = prev.find((item) => item.id === selectedProduct.id);
+                const existing = prev.find((item) => item.id === String(selectedProduct.id));
                 if (existing) {
                     return prev.map((item) =>
-                        item.id === selectedProduct.id
+                        item.id === String(selectedProduct.id)
                             ? {
                                 ...item,
                                 quantity: item.quantity + quantity,
@@ -404,6 +359,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
                     ...prev,
                     {
                         ...selectedProduct,
+                        id: String(selectedProduct.id),
                         quantity,
                         totalPrice: quantity * priceInSum,
                     },
@@ -421,7 +377,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
                     return {
                         ...item,
                         quantity: newQty,
-                        totalPrice: newQty * item.price,
+                        totalPrice: newQty * (item.priceSum || parseFloat(item.real_price || '0')),
                     };
                 }
                 return item;
@@ -476,7 +432,7 @@ export function KassaPage({ orderId, readOnly = false, updateMode = false, isVoz
                     onBranchChange={handleBranchChange}
                     onModelChange={handleModelChange}
                     onTypeChange={handleTypeChange}
-                    onScrollToBottom={loadMoreProducts}
+                    scrollToBottom={loadMoreProducts}
                     hasMore={hasMore}
                     isLoadingMore={isLoadingMore}
                 />
