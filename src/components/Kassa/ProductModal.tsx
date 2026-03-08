@@ -6,6 +6,7 @@ import NumberInput from '../ui/NumberInput';
 import { Autocomplete } from '../ui/Autocomplete';
 import { productService } from '../../services/productService';
 import { orderService } from '../../services/orderService';
+import { formatMoney } from '../../lib/utils';
 
 export interface ProductModalConfirmOptions {
 	skladId: number;
@@ -372,7 +373,7 @@ export function ProductModal({
 						<div className='flex justify-between items-center'>
 							<span className='text-xs font-medium text-emerald-700'>Jami:</span>
 							<span className='text-base font-bold text-emerald-900'>
-								{total.toLocaleString()} {currencyCode}
+								{formatMoney(total)} {currencyCode}
 							</span>
 						</div>
 					</div>

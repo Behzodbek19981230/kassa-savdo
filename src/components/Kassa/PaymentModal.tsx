@@ -9,6 +9,7 @@ import { useSales } from '../../contexts/SalesContext';
 import { orderService } from '../../services/orderService';
 import { showSuccess, showError } from '../../lib/toast';
 import { useNavigate } from 'react-router-dom';
+import { formatMoney } from '../../lib/utils';
 
 interface PaymentModalProps {
 	isOpen: boolean;
@@ -84,7 +85,7 @@ export function PaymentModal({
         `,
 	});
 
-	const formatUsdAmount = (val: number) => (Math.abs(Number(val)) < 0.005 ? '0' : val.toFixed(2));
+	const formatUsdAmount = (val: number) => formatMoney(Math.abs(Number(val)) < 0.005 ? 0 : val);
 	const discountNum = parseFloat(discountAmount) || 0;
 	const amountToPay = totalAmount - discountNum * usdRate; // To'lanishi kerak (chegirma dollar hisobga)
 	const zdachaUzs = (parseFloat(zdachaDollar) || 0) * usdRate;
@@ -255,7 +256,7 @@ export function PaymentModal({
 							<div className='flex items-center gap-1.5 bg-white/80 border border-indigo-200 rounded-lg px-2 py-1 shadow-sm'>
 								<span className='text-[10px] font-medium text-gray-600'>Kurs:</span>
 								<span className='text-xs font-bold text-indigo-700'>
-									1 USD = {Number(usdRate).toLocaleString('uz-UZ')} UZS
+									1 USD = {formatMoney(usdRate)} UZS
 								</span>
 							</div>
 						</div>
@@ -297,7 +298,7 @@ export function PaymentModal({
 									{usdAmount} <span className='text-[10px] font-normal text-indigo-400'>USD</span>
 								</p>
 								<p className='text-sm font-bold text-indigo-600 mt-0.5'>
-									{amountToPay.toLocaleString()}{' '}
+									{formatMoney(amountToPay)}{' '}
 									<span className='text-[10px] font-normal text-indigo-500'>UZS</span>
 								</p>
 							</div>
@@ -308,7 +309,7 @@ export function PaymentModal({
 									<span className='text-[10px] font-normal text-emerald-400'>USD</span>
 								</p>
 								<p className='text-sm font-bold text-emerald-500 mt-0.5'>
-									{paidAmount.toLocaleString()}{' '}
+									{formatMoney(paidAmount)}{' '}
 									<span className='text-[10px] font-normal text-emerald-500'>UZS</span>
 								</p>
 							</div>
@@ -331,7 +332,7 @@ export function PaymentModal({
 								<p
 									className={`text-sm font-bold mt-0.5 ${remaining < 0 ? 'text-orange-600' : remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
 								>
-									{Math.abs(remaining).toLocaleString()}{' '}
+									{formatMoney(Math.abs(remaining))}{' '}
 									<span
 										className={`text-[10px] font-normal ${remaining < 0 ? 'text-orange-500' : remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
 									>

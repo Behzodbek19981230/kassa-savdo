@@ -8,6 +8,7 @@ import { ProductModal } from './ProductModal';
 import { orderService, vozvratOrderService } from '../../services/orderService';
 import { skladService } from '../../services/skladService';
 import { OrderPaymentFields } from './OrderPaymentFields';
+import { formatMoney } from '../../lib/utils';
 
 interface MainCartUpdateProps {
 	items: CartItem[];
@@ -282,7 +283,7 @@ export function MainCartUpdate({
 					{orderData && (
 						<div className='ml-3 text-xs text-white/90 shrink-0'>
 							<div className='font-semibold text-[12px]'>Qarzdorlik</div>
-							<div className='text-sm'>{clientDebtNumber.toLocaleString()} UZS</div>
+							<div className='text-sm'>{formatMoney(clientDebtNumber)} UZS</div>
 						</div>
 					)}
 
@@ -290,7 +291,7 @@ export function MainCartUpdate({
 					<div className='text-right shrink-0 ml-auto'>
 						<div className='text-xs text-white/80 mb-1'>Jami</div>
 						<div className='text-sm  sm:text-sm font-bold text-yellow-200 whitespace-nowrap'>
-							{totalAmountDollar.toFixed(0)} USD ({totalAmount.toLocaleString()} UZS)
+							{formatMoney(totalAmountDollar)} USD ({formatMoney(totalAmount)} UZS)
 						</div>
 					</div>
 				</div>
@@ -351,9 +352,7 @@ export function MainCartUpdate({
 									<div className='font-bold text-blue-700 text-xs whitespace-nowrap'>
 										{item.totalPriceDollar} $
 									</div>
-									<div className='text-[10px] text-gray-500'>
-										{item.priceSum?.toLocaleString()} UZS
-									</div>
+									<div className='text-[10px] text-gray-500'>{formatMoney(item.priceSum)} UZS</div>
 								</div>
 								{!readOnly && (
 									<>

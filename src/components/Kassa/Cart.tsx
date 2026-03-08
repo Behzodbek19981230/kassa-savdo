@@ -11,6 +11,7 @@ import { orderService, vozvratOrderService } from '../../services/orderService';
 import { skladService } from '../../services/skladService';
 import { useNavigate } from 'react-router-dom';
 import { useExchangeRate } from '../../contexts/ExchangeRateContext';
+import { formatMoney } from '../../lib/utils';
 
 interface CartProps {
 	items: CartItem[];
@@ -580,7 +581,7 @@ export function Cart({
 					{orderData && (
 						<div className='ml-3 text-xs text-white/90 shrink-0'>
 							<div className='font-semibold text-[12px]'>Qarzdorlik</div>
-							<div className='text-sm'>{clientDebtNumber.toLocaleString()} UZS</div>
+							<div className='text-sm'>{formatMoney(clientDebtNumber)} UZS</div>
 						</div>
 					)}
 
@@ -588,7 +589,7 @@ export function Cart({
 					<div className='text-right shrink-0 ml-auto'>
 						<div className='text-xs text-white/80 mb-1'>Jami</div>
 						<div className='text-sm  sm:text-sm font-bold text-yellow-200 whitespace-nowrap'>
-							{totalAmountDollar} USD ({totalAmount.toLocaleString()} UZS)
+							{formatMoney(totalAmountDollar)} USD ({formatMoney(totalAmount)} UZS)
 						</div>
 					</div>
 
@@ -766,9 +767,7 @@ export function Cart({
 									<div className='font-bold text-blue-700 text-xs whitespace-nowrap'>
 										{item.price_dollar} $
 									</div>
-									<div className='text-[10px] text-gray-500'>
-										{item.price_sum?.toLocaleString()} UZS
-									</div>
+									<div className='text-[10px] text-gray-500'>{formatMoney(item.price_sum)} UZS</div>
 								</div>
 								{!readOnly && (
 									<>

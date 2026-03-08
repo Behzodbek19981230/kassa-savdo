@@ -1,5 +1,6 @@
 import { CartItem, Customer } from '../../types';
 import { API_BASE_URL } from '../../constants';
+import { formatMoney } from '../../lib/utils';
 
 interface ReceiptProps {
 	items: CartItem[];
@@ -240,7 +241,7 @@ export function renderReceiptHtml(props: ReceiptProps) {
         </div>
         <div style="width:48%">
 					<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold">${escapeHtml(filialName)}</span><span></span></div>
-					<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold;color:green">Dollar kursi:</span><span style="text-align:right;color:green;font-weight:bold">${Number(usdRate).toLocaleString()} so'm</span></div>
+					<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold;color:green">Dollar kursi:</span><span style="text-align:right;color:green;font-weight:bold">${formatMoney(Number(usdRate))} so'm</span></div>
 					${filialAddress ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold">Manzil:</span><span style="text-align:right">${escapeHtml(filialAddress)}</span></div>` : ''}
 					${filialPhone ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:bold">Telefon:</span><span style="text-align:right">${escapeHtml(filialPhone)}</span></div>` : ''}
         </div>
@@ -480,7 +481,7 @@ export function Receipt({
 								className='value green'
 								style={{ textAlign: 'right', color: 'green', fontWeight: 'bold' }}
 							>
-								{usdRate.toLocaleString()} so'm
+								{formatMoney(usdRate)} so'm
 							</span>
 						</div>
 

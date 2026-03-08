@@ -6,6 +6,7 @@ import { orderService, vozvratOrderService } from '../../services/orderService';
 import { showError, showSuccess } from '../../lib/toast';
 import { useExchangeRate } from '../../contexts/ExchangeRateContext';
 import { useNavigate } from 'react-router-dom';
+import { formatMoney } from '../../lib/utils';
 
 interface OrderPaymentFieldsProps {
 	orderData: OrderResponse | null;
@@ -66,7 +67,7 @@ export function OrderPaymentFields({
 	}, 0);
 
 	// Format USD amount
-	const formatUsdAmount = (val: number) => (Math.abs(Number(val)) < 0.005 ? '0' : val.toFixed(2));
+	const formatUsdAmount = (val: number) => formatMoney(Math.abs(Number(val)) < 0.005 ? 0 : val);
 
 	// To'lanishi kerak summa (jami - chegirma)
 	const discountNum = parseFloat(discountAmount) || 0;
@@ -253,7 +254,7 @@ export function OrderPaymentFields({
 									{usdAmount} <span className='text-[10px] font-normal text-indigo-400'>USD</span>
 								</p>
 								<p className='text-sm font-bold text-indigo-600 mt-0.5'>
-									{amountToPay.toLocaleString()}{' '}
+									{formatMoney(amountToPay)}{' '}
 									<span className='text-[10px] font-normal text-indigo-500'>UZS</span>
 								</p>
 							</>
@@ -266,7 +267,7 @@ export function OrderPaymentFields({
 							<span className='text-[10px] font-normal text-emerald-400'>USD</span>
 						</p>
 						<p className='text-sm font-bold text-emerald-500 mt-0.5'>
-							{paidAmount.toLocaleString()}{' '}
+							{formatMoney(paidAmount)}{' '}
 							<span className='text-[10px] font-normal text-emerald-500'>UZS</span>
 						</p>
 					</div>
@@ -289,7 +290,7 @@ export function OrderPaymentFields({
 						<p
 							className={`text-sm font-bold mt-0.5 ${remaining < 0 ? 'text-orange-600' : remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
 						>
-							{Math.abs(remaining).toLocaleString()}{' '}
+							{formatMoney(Math.abs(remaining))}{' '}
 							<span
 								className={`text-[10px] font-normal ${remaining < 0 ? 'text-orange-500' : remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
 							>
