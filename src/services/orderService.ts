@@ -285,6 +285,12 @@ export const orderService = {
 		});
 		return response.data;
 	},
+	patchOrderStatus: async (id: number, orderStatus: boolean): Promise<OrderResponse> => {
+		const response = await api.patch<OrderResponse>(`/v1/order-history/${id}`, {
+			order_status: orderStatus,
+		});
+		return response.data;
+	},
 
 	// Mijozdan qarzdorlik (debtor-product) ro'yxatini olish
 	getDebtorProducts: async (params?: {

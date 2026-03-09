@@ -11,16 +11,19 @@ import { expenseService } from '../services/expenseService';
 import { showError, showSuccess } from '../lib/toast';
 import { formatMoney } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { useRole } from '../hooks/useRole';
 import ExpenseModal from '../components/Kassa/ExpenseModal';
 import { ExpenseGroup } from '@/types';
 
 export function ExpensePage() {
 	const { user } = useAuth();
+	const roles = useRole();
 	const queryClient = useQueryClient();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editItem, setEditItem] = useState<any | null>(null);
 	const [viewItem, setViewItem] = useState<any | null>(null);
 	const today = new Date();
+	const todayStr = format(today, 'yyyy-MM-dd');
 	const oneMonthAgo = new Date(today);
 	oneMonthAgo.setMonth(today.getMonth() - 1);
 	const [draftDateFrom, setDraftDateFrom] = useState<Date | undefined>(oneMonthAgo);

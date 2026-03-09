@@ -11,15 +11,18 @@ import { debtRepaymentService } from '../services/orderService';
 import { showError, showSuccess } from '../lib/toast';
 import { formatMoney } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { useRole } from '../hooks/useRole';
 import { DebtRepaymentModal } from '../components/Kassa/DebtRepaymentModal';
 import { DebtRepaymentReceipt } from '../components/Kassa/DebtRepaymentReceipt';
 
 export function DebtRepaymentPage() {
 	const { user } = useAuth();
+	const roles = useRole();
 	const queryClient = useQueryClient();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [selectedItem, setSelectedItem] = useState<any | null>(null);
 	const today = new Date();
+	const todayStr = format(today, 'yyyy-MM-dd');
 	const oneMonthAgo = new Date(today);
 	oneMonthAgo.setMonth(today.getMonth() - 1);
 

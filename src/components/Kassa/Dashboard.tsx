@@ -10,6 +10,9 @@ import {
 	Search,
 	FilterX,
 	AlertTriangle,
+	CheckSquare2,
+	CardSimIcon,
+	ShoppingCart,
 } from 'lucide-react';
 import { useState, useMemo, useCallback, Fragment } from 'react';
 import { DateRangePicker } from '../ui/date-picker';
@@ -28,6 +31,7 @@ import { showError, showSuccess } from '../../lib/toast';
 import clsx from 'clsx';
 import { formatMoney } from '../../lib/utils';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
+import { useRole } from '@/hooks/useRole';
 
 interface DashboardProps {
 	onNewSale?: () => void;
@@ -70,6 +74,8 @@ function tolovSummasi(order: OrderResponse): number {
 export function Dashboard({ onNewSale }: DashboardProps) {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const roles = useRole();
+	const today = format(new Date(), 'yyyy-MM-dd');
 
 	// Draft filters (user edits these, not applied until "Filter" button click)
 	const [draft, setDraft] = useState<DraftFilters>({ ...defaultDraft });
@@ -82,6 +88,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 
 	// update_status tasdiqlash modal
 	const [confirmUpdateModalOpen, setConfirmUpdateModalOpen] = useState(false);
+	const [endedOrderModalOpen, setEndedOrderModalOpen] = useState(false);
 	const [orderToConfirm, setOrderToConfirm] = useState<any | null>(null);
 	const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
 
@@ -113,7 +120,6 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 
 	// Apply filters → build API params from "applied" state
 	const orderParams = useMemo(() => {
-		const today = format(new Date(), 'yyyy-MM-dd');
 		const df = applied.dateFrom ? format(applied.dateFrom, 'yyyy-MM-dd') : today;
 		const dt = applied.dateTo ? format(applied.dateTo, 'yyyy-MM-dd') : today;
 		return {
@@ -221,6 +227,10 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 		setOrderToConfirm(order);
 		setConfirmUpdateModalOpen(true);
 	};
+	const handleEndedOrder = (order: any) => {
+		setOrderToConfirm(order);
+		setEndedOrderModalOpen(true);
+	};
 
 	const handleApproveUpdate = async () => {
 		if (!orderToConfirm) return;
@@ -234,6 +244,23 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 			setOrderToConfirm(null);
 		} catch (error: any) {
 			const errorMessage = error?.response?.data?.detail || error?.message || 'Tasdiqlashda xatolik yuz berdi';
+			showError(errorMessage);
+		} finally {
+			setConfirmingOrderId(null);
+		}
+	};
+	const handleEndedOrderApprove = async () => {
+		if (!orderToConfirm) return;
+		setConfirmingOrderId(orderToConfirm.id);
+		try {
+			await orderService.patchOrderStatus(orderToConfirm.id, true);
+			showSuccess('Buyurtma muvaffaqiyatli yakunlandi');
+			queryClient.invalidateQueries({ queryKey: ['orders-my-self'] });
+			await refetch();
+			setEndedOrderModalOpen(false);
+			setOrderToConfirm(null);
+		} catch (error: any) {
+			const errorMessage = error?.response?.data?.detail || error?.message || 'Yakunlashda xatolik yuz berdi';
 			showError(errorMessage);
 		} finally {
 			setConfirmingOrderId(null);
@@ -371,16 +398,16 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 							onClick={handleApplyFilters}
 							className='h-7 px-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center gap-1 text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200'
 						>
-							<Search size={12} />
+							<Search size={15} />
 							<span>Filter</span>
 						</button>
 						{isFiltered && (
 							<button
 								onClick={handleClearFilters}
-								className='h-7 px-2 bg-gray-100 text-gray-600 rounded-md hover:bg-red-50 hover:text-red-600 flex items-center gap-1 text-xs font-medium border border-gray-200 transition-all duration-200'
+								className='h-7 px-2 bg-gray-100 text-gray-600 rounded-md hover:bg-red-100 hover:text-red-600 flex items-center gap-1 text-xs font-medium border border-gray-200 transition-all duration-200'
 								title='Filterlarni tozalash'
 							>
-								<FilterX size={12} />
+								<FilterX size={15} />
 								<span className='hidden sm:inline'>Tozalash</span>
 							</button>
 						)}
@@ -491,8 +518,14 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																className='border-b border-gray-100 group transition-colors even:bg-gray-100'
 															>
 																{/* t/r - rang yo'q */}
-																<td className='text-left p-1 text-gray-500 font-mono text-xs'>
+																<td className='text-left p-1 text-gray-500 font-mono text-xs flex items-center gap-1'>
 																	{items?.length - itemIdx}
+																	{isKarzinka && (
+																		<ShoppingCart
+																			size={15}
+																			className=' text-red-500'
+																		/>
+																	)}
 																</td>
 																{/* Sana - rang yo'q */}
 																{isFirstInGroup ? (
@@ -510,7 +543,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
@@ -521,7 +554,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																			<Tooltip>
 																				<TooltipTrigger asChild>
 																					<span className='inline-flex items-center text-orange-500 '>
-																						<AlertTriangle size={25} />
+																						<AlertTriangle size={20} />
 																					</span>
 																				</TooltipTrigger>
 																				<TooltipContent className='!bg-orange-100 !text-orange-800 !border-orange-300'>
@@ -537,7 +570,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
@@ -551,7 +584,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
@@ -563,7 +596,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
@@ -575,7 +608,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
@@ -587,7 +620,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
@@ -599,7 +632,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
@@ -611,7 +644,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
@@ -623,7 +656,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
@@ -639,32 +672,17 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
-																>
-																	{isKarzinka ? (
-																		<span className='px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-semibold rounded-full border border-yellow-300'>
-																			Korzinkada
-																		</span>
-																	) : order.order_status ? (
-																		<span className='px-1.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-semibold rounded-full border border-green-300 inline-flex items-center gap-0.5'>
-																			<CheckCircle2 size={10} />
-																			Yakunlangan
-																		</span>
-																	) : (
-																		<span className='px-1.5 py-0.5 bg-red-100 text-red-800 text-[10px] font-semibold rounded-full border border-red-300'>
-																			Yakunlanmagan
-																		</span>
-																	)}
-																</td>
+																></td>
 																<td
 																	className={clsx(
 																		'p-1 text-right text-gray-700 text-xs',
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
@@ -676,35 +694,63 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		order.update_status === 1
 																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
 																			: !order.order_status
-																				? 'bg-red-50'
+																				? 'bg-red-100'
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
 																	<div className='flex items-center justify-center gap-0.5'>
+																		{order.order_status === false &&
+																			(roles.isAdmin || roles.isSuperAdmin) && (
+																				<button
+																					onClick={() =>
+																						handleEndedOrder(order)
+																					}
+																					disabled={
+																						confirmingOrderId === order.id
+																					}
+																					className='p-1 rounded hover:bg-red-200 text-red-700 transition-colors disabled:opacity-50'
+																					title='Tasdiqlash'
+																				>
+																					<CheckSquare2 size={15} />
+																				</button>
+																			)}
 																		{/* Confirm update_status button */}
-																		{order.update_status === 1 && (
-																			<button
-																				onClick={() =>
-																					handleConfirmUpdate(order)
-																				}
-																				disabled={
-																					confirmingOrderId === order.id
-																				}
-																				className='p-1 rounded hover:bg-yellow-200 text-yellow-700 transition-colors disabled:opacity-50'
-																				title='Tasdiqlash'
-																			>
-																				<CheckCircle2 size={12} />
-																			</button>
-																		)}
+																		{order.update_status === 1 &&
+																			(roles.isAdmin || roles.isSuperAdmin) && (
+																				<button
+																					onClick={() =>
+																						handleConfirmUpdate(order)
+																					}
+																					disabled={
+																						confirmingOrderId === order.id
+																					}
+																					className='p-1 rounded hover:bg-yellow-200 text-yellow-700 transition-colors disabled:opacity-50'
+																					title='Tasdiqlash'
+																				>
+																					<CheckCircle2 size={15} />
+																				</button>
+																			)}
 																		{/* Edit button */}
-																		{!isKarzinka && (
+																		{!isKarzinka &&
+																		format(order.created_time, 'yyyy-MM-dd') ==
+																			today ? (
 																			<button
 																				onClick={() => handleEdit(order)}
 																				className='p-1 rounded hover:bg-blue-100 text-blue-600 transition-colors disabled:opacity-50'
 																				title='Tahrirlash'
 																			>
-																				<Edit size={12} />
+																				<Edit size={15} />
 																			</button>
+																		) : (
+																			(roles.isAdmin || roles.isSuperAdmin) && (
+																				<button
+																					onClick={() => handleEdit(order)}
+																					className='p-1 rounded hover:bg-blue-100 text-blue-600 transition-colors disabled:opacity-50'
+																					title='Tahrirlash'
+																				>
+																					<Edit size={15} />
+																				</button>
+																			)
 																		)}
 																		{/* View/Continue button */}
 																		<button
@@ -725,14 +771,32 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																			)}
 																		</button>
 																		{/* Delete button */}
-																		<button
-																			onClick={() => handleDeleteClick(order)}
-																			disabled={deletingOrderId === order.id}
-																			className='p-1 rounded hover:bg-red-100 text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-																			title="O'chirish"
-																		>
-																			<Trash2 size={12} />
-																		</button>
+																		{format(order.created_time, 'yyyy-MM-dd') ==
+																		today ? (
+																			<button
+																				onClick={() => handleDeleteClick(order)}
+																				disabled={deletingOrderId === order.id}
+																				className='p-1 rounded hover:bg-red-100 text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+																				title="O'chirish"
+																			>
+																				<Trash2 size={15} />
+																			</button>
+																		) : (
+																			(roles.isAdmin || roles.isSuperAdmin) && (
+																				<button
+																					onClick={() =>
+																						handleDeleteClick(order)
+																					}
+																					disabled={
+																						deletingOrderId === order.id
+																					}
+																					className='p-1 rounded hover:bg-red-100 text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+																					title="O'chirish"
+																				>
+																					<Trash2 size={15} />
+																				</button>
+																			)
+																		)}
 																	</div>
 																</td>
 															</tr>
@@ -798,7 +862,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 				<div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
 					<div className='bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-yellow-200'>
 						<div className='flex justify-between items-center p-5 border-b-2 border-yellow-100 bg-yellow-50'>
-							<h3 className='text-xl font-bold text-gray-900'>Buyurtmani tasdiqlash</h3>
+							<h3 className='text-xl font-bold text-gray-900'>O'zgarishni tasdiqlash</h3>
 							<button
 								onClick={() => {
 									setConfirmUpdateModalOpen(false);
@@ -812,8 +876,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 						</div>
 						<div className='p-6 bg-white'>
 							<p className='text-gray-700 mb-4'>
-								Buyurtma #{orderToConfirm?.id} ni tasdiqlaysizmi? Tasdiqlangandan so'ng o'zgarish qabul
-								qilinadi.
+								Buyurtma #{orderToConfirm?.id}dagi o'zgarishni tasdiqlaysizmi?
 							</p>
 							{orderToConfirm?.note && (
 								<div className='mb-5 rounded-lg border border-yellow-200 bg-yellow-50 p-3'>
@@ -854,12 +917,69 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 					</div>
 				</div>
 			)}
+			{endedOrderModalOpen && (
+				<div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+					<div className='bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-red-200'>
+						<div className='flex justify-between items-center p-5 border-b-2 border-red-100 bg-red-50'>
+							<h3 className='text-xl font-bold text-gray-900'>Buyurtmani tasdiqlash</h3>
+							<button
+								onClick={() => {
+									setEndedOrderModalOpen(false);
+									setOrderToConfirm(null);
+								}}
+								disabled={confirmingOrderId !== null}
+								className='text-gray-500 hover:text-red-600 hover:bg-white p-2 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+							>
+								<X size={24} />
+							</button>
+						</div>
+						<div className='p-6 bg-white'>
+							<p className='text-gray-700 mb-4'>Buyurtma #{orderToConfirm?.id} ni tasdiqlaysizmi?</p>
+							{orderToConfirm?.note && (
+								<div className='mb-5 rounded-lg border border-red-200 bg-red-50 p-3'>
+									<p className='text-[11px] font-semibold text-red-700 mb-1'>Izoh:</p>
+									<p className='text-sm text-gray-700 whitespace-pre-wrap'>{orderToConfirm.note}</p>
+								</div>
+							)}
+							<div className='flex gap-3 justify-end'>
+								<button
+									onClick={() => {
+										setEndedOrderModalOpen(false);
+										setOrderToConfirm(null);
+									}}
+									disabled={confirmingOrderId !== null}
+									className='px-3 py-1.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed'
+								>
+									Bekor qilish
+								</button>
+								<button
+									onClick={handleEndedOrderApprove}
+									disabled={confirmingOrderId !== null}
+									className='px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md transition-all duration-200 font-semibold text-xs shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
+								>
+									{confirmingOrderId !== null ? (
+										<>
+											<Loader2 className='w-4 h-4 animate-spin' />
+											<span>Tasdiqlanmoqda...</span>
+										</>
+									) : (
+										<>
+											<CheckCircle2 className='w-4 h-4' />
+											<span>Ha, tasdiqlash</span>
+										</>
+									)}
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 
 			{/* Delete Confirmation Modal */}
 			{deleteModalOpen && (
 				<div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
 					<div className='bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-red-200'>
-						<div className='flex justify-between items-center p-5 border-b-2 border-red-100 bg-red-50'>
+						<div className='flex justify-between items-center p-5 border-b-2 border-red-100 bg-red-100'>
 							<h3 className='text-xl font-bold text-gray-900'>Savdoni o'chirish</h3>
 							<button
 								onClick={() => {
