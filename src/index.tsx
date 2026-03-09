@@ -6,6 +6,7 @@ import { App } from './App';
 import { AuthProvider } from './contexts/AuthContext';
 import { ExchangeRateProvider } from './contexts/ExchangeRateContext';
 import { SalesProvider } from './contexts/SalesContext';
+import { TooltipProvider } from './components/ui/tooltip';
 
 // React Query client yaratish
 const queryClient = new QueryClient({
@@ -23,7 +24,9 @@ render(
 		<AuthProvider>
 			<ExchangeRateProvider>
 				<SalesProvider>
-					<App />
+					<TooltipProvider>
+						<App />
+					</TooltipProvider>
 				</SalesProvider>
 			</ExchangeRateProvider>
 		</AuthProvider>

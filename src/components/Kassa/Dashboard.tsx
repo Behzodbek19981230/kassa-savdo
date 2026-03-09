@@ -1,4 +1,16 @@
-import { Plus, Eye, Loader2, ArrowRight, CheckCircle2, Edit, Trash2, X, Search, FilterX } from 'lucide-react';
+import {
+	Plus,
+	Eye,
+	Loader2,
+	ArrowRight,
+	CheckCircle2,
+	Edit,
+	Trash2,
+	X,
+	Search,
+	FilterX,
+	AlertTriangle,
+} from 'lucide-react';
 import { useState, useMemo, useCallback, Fragment } from 'react';
 import { DateRangePicker } from '../ui/date-picker';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -15,6 +27,7 @@ import { Autocomplete, type AutocompleteOption } from '../ui/Autocomplete';
 import { showError, showSuccess } from '../../lib/toast';
 import clsx from 'clsx';
 import { formatMoney } from '../../lib/utils';
+import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 
 interface DashboardProps {
 	onNewSale?: () => void;
@@ -25,6 +38,7 @@ interface DraftFilters {
 	clientId: number | null;
 	employee: number | null;
 	status: 'all' | 'completed' | 'pending';
+	priceDifference: 'all' | 'diff';
 	dateFrom: Date | undefined;
 	dateTo: Date | undefined;
 }
@@ -34,6 +48,7 @@ const defaultDraft: DraftFilters = {
 	clientId: null,
 	employee: null,
 	status: 'all',
+	priceDifference: 'all',
 	// Default: one month ago to today
 	dateFrom: (() => {
 		const d = new Date();
@@ -64,6 +79,11 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 	const [deletingOrderId, setDeletingOrderId] = useState<number | null>(null);
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 	const [orderToDelete, setOrderToDelete] = useState<any | null>(null);
+
+	// update_status tasdiqlash modal
+	const [confirmUpdateModalOpen, setConfirmUpdateModalOpen] = useState(false);
+	const [orderToConfirm, setOrderToConfirm] = useState<any | null>(null);
+	const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
 
 	// Client search for Autocomplete
 	const [clients, setClients] = useState<Client[]>([]);
@@ -140,6 +160,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 		draft.clientId !== null ||
 		draft.employee !== null ||
 		draft.status !== 'all' ||
+		draft.priceDifference !== 'all' ||
 		!datesEqual(draft.dateFrom, defaultDraft.dateFrom) ||
 		!datesEqual(draft.dateTo, defaultDraft.dateTo);
 
@@ -194,6 +215,30 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 			totalKeshbek,
 		};
 	}, [groups]);
+
+	// update_status tasdiqlash
+	const handleConfirmUpdate = (order: any) => {
+		setOrderToConfirm(order);
+		setConfirmUpdateModalOpen(true);
+	};
+
+	const handleApproveUpdate = async () => {
+		if (!orderToConfirm) return;
+		setConfirmingOrderId(orderToConfirm.id);
+		try {
+			await orderService.patchOrderUpdateStatus(orderToConfirm.id, 0);
+			showSuccess('Buyurtma muvaffaqiyatli tasdiqlandi');
+			queryClient.invalidateQueries({ queryKey: ['orders-my-self'] });
+			await refetch();
+			setConfirmUpdateModalOpen(false);
+			setOrderToConfirm(null);
+		} catch (error: any) {
+			const errorMessage = error?.response?.data?.detail || error?.message || 'Tasdiqlashda xatolik yuz berdi';
+			showError(errorMessage);
+		} finally {
+			setConfirmingOrderId(null);
+		}
+	};
 
 	// Order ni tahrirlash
 	const handleEdit = (order: any) => {
@@ -295,6 +340,23 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 						</Select>
 					</div>
 
+					<div className='w-full sm:w-auto sm:min-w-[170px]'>
+						<Select
+							onValueChange={(v) =>
+								setDraft((p) => ({ ...p, priceDifference: v as DraftFilters['priceDifference'] }))
+							}
+							value={draft.priceDifference}
+						>
+							<SelectTrigger className='w-full h-7 text-sm'>
+								<SelectValue placeholder='Narx tafovuti' />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value='all'>Barchasi</SelectItem>
+								<SelectItem value='diff'>Tafovutli mahsulotlar</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+
 					<div className='w-full sm:w-auto'>
 						<DateRangePicker
 							dateFrom={draft.dateFrom}
@@ -389,7 +451,11 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 								) : (
 									(() => {
 										return groups.map((group, gIdx) => {
-											const items = (group.items || []).filter((o: any) => !o.is_delete);
+											const rawItems = (group.items || []).filter((o: any) => !o.is_delete);
+											const items =
+												applied.priceDifference === 'diff'
+													? rawItems.filter((o: any) => o.price_difference)
+													: rawItems;
 											return (
 												<Fragment key={`group-${group.date ?? gIdx}`}>
 													{items.map((order: any, itemIdx: number) => {
@@ -422,62 +488,161 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 														return (
 															<tr
 																key={order.id}
-																className={clsx(
-																	'border-b border-gray-100 group hover:bg-blue-50/30 transition-colors even:bg-gray-100',
-																	{
-																		'bg-red-50': !order.order_status,
-																	},
-																)}
+																className='border-b border-gray-100 group transition-colors even:bg-gray-100'
 															>
-																{' '}
+																{/* t/r - rang yo'q */}
 																<td className='text-left p-1 text-gray-500 font-mono text-xs'>
 																	{items?.length - itemIdx}
 																</td>
+																{/* Sana - rang yo'q */}
 																{isFirstInGroup ? (
 																	<td
 																		rowSpan={items.length}
-																		className='text-left p-1 font-semibold text-gray-700 text-xs align-top border-r border-gray-200'
+																		className='date-col text-left p-1 font-semibold text-gray-700 text-xs align-top border-r border-gray-200'
 																	>
 																		{groupDate}
 																	</td>
 																) : null}
-																<td className='p-1 text-left text-gray-800 text-xs'>
-																	{order.client_detail?.full_name ||
-																		`ID: ${order.client}`}
+																{/* Qolgan barcha td lar - rang shu yerda */}
+																<td
+																	className={clsx(
+																		'p-1 text-left text-gray-800 text-xs',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
+																	<span className='inline-flex items-center gap-1'>
+																		{order.client_detail?.full_name ||
+																			`ID: ${order.client}`}
+																		{order.price_difference && (
+																			<Tooltip>
+																				<TooltipTrigger asChild>
+																					<span className='inline-flex items-center text-orange-500 '>
+																						<AlertTriangle size={25} />
+																					</span>
+																				</TooltipTrigger>
+																				<TooltipContent className='!bg-orange-100 !text-orange-800 !border-orange-300'>
+																					Mahsulot narxida tafovut aniqlandi
+																				</TooltipContent>
+																			</Tooltip>
+																		)}
+																	</span>
 																</td>
-																<td className='p-1 text-left text-gray-600 text-xs'>
+																<td
+																	className={clsx(
+																		'p-1 text-left text-gray-600 text-xs',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
 																	{order.created_by_detail?.full_name ??
 																		order.employee ??
 																		'—'}
 																</td>
-																<td className='p-1 text-right font-medium text-blue-700 text-xs'>
+																<td
+																	className={clsx(
+																		'p-1 text-right font-medium text-blue-700 text-xs',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
 																	{formatMoney(payable)}
 																</td>
-																<td className='p-1 text-right text-gray-700 text-xs'>
+																<td
+																	className={clsx(
+																		'p-1 text-right text-gray-700 text-xs',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
 																	{formatMoney(paid)}
 																</td>
-																<td className='p-1 text-right text-gray-700 text-xs'>
-																	{changeDollar > 0 || changeSom > 0
-																		? `${formatMoney(changeDollar)}$${changeSom > 0 ? ` / ${formatMoney(changeSom)} so'm` : ''}`
-																		: '—'}
+																<td
+																	className={clsx(
+																		'p-1 text-right text-gray-700 text-xs',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
+																	{changeDollar && `${formatMoney(changeDollar)}$`}
 																</td>
-																<td className='p-1 text-right text-red-600 font-semibold text-xs'>
+																<td
+																	className={clsx(
+																		'p-1 text-right text-red-600 font-semibold text-xs',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
 																	{formatMoney(todayDebt / exchangeRate)}
 																</td>
-																<td className='p-1 text-right text-red-600 font-semibold text-xs'>
+																<td
+																	className={clsx(
+																		'p-1 text-right text-red-600 font-semibold text-xs',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
 																	{formatMoney(totalDebt / exchangeRate)}
 																</td>
-																<td className='p-1 text-right text-green-600 font-semibold text-xs'>
+																<td
+																	className={clsx(
+																		'p-1 text-right text-green-600 font-semibold text-xs',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
 																	{formatMoney(totalProfit)}
 																</td>
-																<td className='p-1 text-right text-gray-600 whitespace-nowrap text-xs'>
+																<td
+																	className={clsx(
+																		'p-1 text-right text-gray-600 whitespace-nowrap text-xs',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
 																	{order.created_time
 																		? format(new Date(order.created_time), ' HH:mm')
 																		: order.date
 																			? format(new Date(order.date), ' HH:mm')
 																			: '—'}
 																</td>
-																<td className='text-right p-1 group-hover:bg-blue-50/30 transition-colors'>
+																<td
+																	className={clsx(
+																		'text-right p-1',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
 																	{isKarzinka ? (
 																		<span className='px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] font-semibold rounded-full border border-yellow-300'>
 																			Korzinkada
@@ -493,11 +658,44 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																		</span>
 																	)}
 																</td>
-																<td className='p-1 text-right text-gray-700 text-xs'>
+																<td
+																	className={clsx(
+																		'p-1 text-right text-gray-700 text-xs',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
 																	{cashback.toFixed(2)}
 																</td>
-																<td className='p-1 text-right group-hover:bg-blue-50/30 transition-colors'>
+																<td
+																	className={clsx(
+																		'p-1 text-right',
+																		order.update_status === 1
+																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																			: !order.order_status
+																				? 'bg-red-50'
+																				: 'group-hover:bg-blue-50/30',
+																	)}
+																>
 																	<div className='flex items-center justify-center gap-0.5'>
+																		{/* Confirm update_status button */}
+																		{order.update_status === 1 && (
+																			<button
+																				onClick={() =>
+																					handleConfirmUpdate(order)
+																				}
+																				disabled={
+																					confirmingOrderId === order.id
+																				}
+																				className='p-1 rounded hover:bg-yellow-200 text-yellow-700 transition-colors disabled:opacity-50'
+																				title='Tasdiqlash'
+																			>
+																				<CheckCircle2 size={12} />
+																			</button>
+																		)}
 																		{/* Edit button */}
 																		{!isKarzinka && (
 																			<button
@@ -562,9 +760,9 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 											).toFixed(2)}
 										</td>
 										<td className='p-1 text-right font-semibold text-xs'>
-											{overallTotals.totalQaytimDollar > 0 || overallTotals.totalQaytimSom > 0
-												? `${formatMoney(overallTotals.totalQaytimDollar)}$${overallTotals.totalQaytimSom > 0 ? ` / ${formatMoney(overallTotals.totalQaytimSom)} so'm` : ''}`
-												: '—'}
+											{overallTotals.totalQaytimDollar > 0 ||
+												(overallTotals.totalQaytimSom > 0 &&
+													formatMoney(overallTotals.totalQaytimDollar))}
 										</td>
 										<td className='p-1 text-right font-semibold text-red-600 text-xs'>
 											{(
@@ -594,6 +792,68 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 					</div>
 				)}
 			</div>
+
+			{/* Confirm update_status Modal */}
+			{confirmUpdateModalOpen && (
+				<div className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+					<div className='bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-2 border-yellow-200'>
+						<div className='flex justify-between items-center p-5 border-b-2 border-yellow-100 bg-yellow-50'>
+							<h3 className='text-xl font-bold text-gray-900'>Buyurtmani tasdiqlash</h3>
+							<button
+								onClick={() => {
+									setConfirmUpdateModalOpen(false);
+									setOrderToConfirm(null);
+								}}
+								disabled={confirmingOrderId !== null}
+								className='text-gray-500 hover:text-yellow-600 hover:bg-white p-2 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+							>
+								<X size={24} />
+							</button>
+						</div>
+						<div className='p-6 bg-white'>
+							<p className='text-gray-700 mb-4'>
+								Buyurtma #{orderToConfirm?.id} ni tasdiqlaysizmi? Tasdiqlangandan so'ng o'zgarish qabul
+								qilinadi.
+							</p>
+							{orderToConfirm?.note && (
+								<div className='mb-5 rounded-lg border border-yellow-200 bg-yellow-50 p-3'>
+									<p className='text-[11px] font-semibold text-yellow-700 mb-1'>Izoh:</p>
+									<p className='text-sm text-gray-700 whitespace-pre-wrap'>{orderToConfirm.note}</p>
+								</div>
+							)}
+							<div className='flex gap-3 justify-end'>
+								<button
+									onClick={() => {
+										setConfirmUpdateModalOpen(false);
+										setOrderToConfirm(null);
+									}}
+									disabled={confirmingOrderId !== null}
+									className='px-3 py-1.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed'
+								>
+									Bekor qilish
+								</button>
+								<button
+									onClick={handleApproveUpdate}
+									disabled={confirmingOrderId !== null}
+									className='px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-all duration-200 font-semibold text-xs shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
+								>
+									{confirmingOrderId !== null ? (
+										<>
+											<Loader2 className='w-4 h-4 animate-spin' />
+											<span>Tasdiqlanmoqda...</span>
+										</>
+									) : (
+										<>
+											<CheckCircle2 className='w-4 h-4' />
+											<span>Ha, tasdiqlash</span>
+										</>
+									)}
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 
 			{/* Delete Confirmation Modal */}
 			{deleteModalOpen && (

@@ -121,6 +121,7 @@ export interface OrderResponse {
 	discount_amount: string;
 	zdacha_dollar: string;
 	zdacha_som: string;
+	price_difference: boolean;
 	is_delete: boolean;
 	order_status: boolean;
 	update_status: number;
@@ -275,6 +276,14 @@ export const orderService = {
 	// Order o'chirish
 	deleteOrder: async (id: number): Promise<void> => {
 		await api.delete(`/v1/order-history/${id}`);
+	},
+
+	// update_status ni yangilash (patch)
+	patchOrderUpdateStatus: async (id: number, updateStatus: number): Promise<OrderResponse> => {
+		const response = await api.patch<OrderResponse>(`/v1/order-history/${id}`, {
+			update_status: updateStatus,
+		});
+		return response.data;
 	},
 
 	// Mijozdan qarzdorlik (debtor-product) ro'yxatini olish
