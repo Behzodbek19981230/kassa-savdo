@@ -1,6 +1,5 @@
-import { useState, useRef, Fragment, useMemo } from 'react';
-import { Loader2, Plus, Trash2, Download, Search, RotateCcw } from 'lucide-react';
-import { useReactToPrint } from 'react-to-print';
+import { useState, Fragment, useMemo } from 'react';
+import { Loader2, Plus, Trash2, Search, RotateCcw, Printer } from 'lucide-react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { DateRangePicker } from '../components/ui/date-picker';
@@ -8,23 +7,21 @@ import { Autocomplete } from '../components/ui/Autocomplete';
 import { clientService } from '../services/clientService';
 import { userService } from '../services/userService';
 import { debtRepaymentService } from '../services/orderService';
+import { pdfService } from '../services/pdfService';
 import { showError, showSuccess } from '../lib/toast';
 import { formatMoney } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
-import { useRole } from '../hooks/useRole';
 import { DebtRepaymentModal } from '../components/Kassa/DebtRepaymentModal';
-import { DebtRepaymentReceipt } from '../components/Kassa/DebtRepaymentReceipt';
+import { useRole } from '@/hooks/useRole';
 
 export function DebtRepaymentPage() {
 	const { user } = useAuth();
-	const roles = useRole();
 	const queryClient = useQueryClient();
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [selectedItem, setSelectedItem] = useState<any | null>(null);
 	const today = new Date();
-	const todayStr = format(today, 'yyyy-MM-dd');
 	const oneMonthAgo = new Date(today);
 	oneMonthAgo.setMonth(today.getMonth() - 1);
+	const roles = useRole();
 
 	const [draftDateFrom, setDraftDateFrom] = useState<Date | undefined>(oneMonthAgo);
 	const [draftDateTo, setDraftDateTo] = useState<Date | undefined>(today);
@@ -38,7 +35,6 @@ export function DebtRepaymentPage() {
 	const [employeeOptions, setEmployeeOptions] = useState<{ id: string; label: string; value: string }[]>([]);
 	const [appliedClientId, setAppliedClientId] = useState<number | null>(null);
 	const [appliedEmployeeId, setAppliedEmployeeId] = useState<number | null>(null);
-	const receiptRef = useRef<HTMLDivElement>(null);
 
 	// React Query bilan ma'lumotlarni olish
 	const {
@@ -112,32 +108,18 @@ export function DebtRepaymentPage() {
 		deleteMutation.mutate(id);
 	};
 
-	const handleDownload = (item: any) => {
-		setSelectedItem(item);
-		// Small delay to ensure state is set before printing
-		setTimeout(() => {
-			if (receiptRef.current) {
-				handlePrint();
-			}
-		}, 100);
+	/** API orqali to'langan qarz PDF yuklab yangi tabda ochish */
+	const openDebtRepaymentPdf = async (debtRepaymentId: number) => {
+		try {
+			const blob = await pdfService.getDebtRepaymentPdf(debtRepaymentId);
+			const blobUrl = URL.createObjectURL(blob);
+			window.open(blobUrl, '_blank', 'noopener,noreferrer');
+			setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+		} catch (e: any) {
+			console.error('PDF yuklash xatosi', e);
+			showError(e?.response?.data?.detail || e?.message || 'PDF yuklashda xatolik');
+		}
 	};
-
-	const handlePrint = useReactToPrint({
-		contentRef: receiptRef,
-		documentTitle: `Qarz-hisobi-${selectedItem?.id || 'unknown'}`,
-		pageStyle: `
-            @page {
-                size: A4 landscape;
-                margin: 10mm;
-            }
-            @media print {
-                body {
-                    -webkit-print-color-adjust: exact;
-                    print-color-adjust: exact;
-                }
-            }
-        `,
-	});
 
 	const handleModalSuccess = () => {
 		queryClient.invalidateQueries({ queryKey: ['debt-repayments-grouped'] });
@@ -367,31 +349,45 @@ export function DebtRepaymentPage() {
 																<td className='p-1'>
 																	<div className='flex items-center gap-0.5'>
 																		<button
-																			onClick={() => handleDownload(item)}
-																			className='p-1 rounded hover:bg-blue-100 text-blue-600 transition-colors'
-																			title='Yuklab olish'
-																		>
-																			<Download size={12} />
-																		</button>
-																		<button
-																			onClick={() => handleDelete(item.id)}
-																			disabled={
-																				deleteMutation.isPending &&
-																				deleteMutation.variables === item.id
+																			onClick={() =>
+																				openDebtRepaymentPdf(item.id)
 																			}
-																			className='p-1 rounded hover:bg-red-100 text-red-600 transition-colors disabled:opacity-50'
-																			title="O'chirish"
+																			className='p-1 rounded bg-amber-600 hover:bg-amber-700 transition-colors text-white'
+																			title='PDF (mijoz uchun)'
 																		>
-																			{deleteMutation.isPending &&
-																			deleteMutation.variables === item.id ? (
-																				<Loader2
-																					size={12}
-																					className='animate-spin'
-																				/>
-																			) : (
-																				<Trash2 size={12} />
-																			)}
+																			<Printer size={12} />
 																		</button>
+																		{format(item.created_time, 'yyyy-MM-dd') ==
+																		today ? (
+																			<button
+																				onClick={() => handleDelete(item.id)}
+																				disabled={
+																					deleteMutation.isPending &&
+																					deleteMutation.variables === item.id
+																				}
+																				className='p-1 rounded hover:bg-red-100 text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+																				title="O'chirish"
+																			>
+																				<Trash2 size={15} />
+																			</button>
+																		) : (
+																			(roles.isAdmin || roles.isSuperAdmin) && (
+																				<button
+																					onClick={() =>
+																						handleDelete(item.id)
+																					}
+																					disabled={
+																						deleteMutation.isPending &&
+																						deleteMutation.variables ===
+																							item.id
+																					}
+																					className='p-1 rounded hover:bg-red-100 text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+																					title="O'chirish"
+																				>
+																					<Trash2 size={15} />
+																				</button>
+																			)
+																		)}
 																	</div>
 																</td>
 															</tr>
@@ -434,44 +430,6 @@ export function DebtRepaymentPage() {
 				onClose={() => setIsModalOpen(false)}
 				onSuccess={handleModalSuccess}
 			/>
-
-			{/* Hidden Receipt for Printing */}
-			{selectedItem && (
-				<div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-					<div ref={receiptRef}>
-						<DebtRepaymentReceipt
-							date={selectedItem.date}
-							clientName={selectedItem.client_detail?.full_name || `ID: ${selectedItem.client}`}
-							filialName={
-								selectedItem.filial_detail?.name || user?.order_filial_detail?.name || 'Elegant'
-							}
-							exchangeRate={Number(selectedItem.exchange_rate || 12350)}
-							filialAddress={selectedItem.filial_detail?.address || user?.order_filial_detail?.address}
-							filialPhone={
-								selectedItem.filial_detail?.phone_number || user?.order_filial_detail?.phone_number
-							}
-							filialLogo={selectedItem.filial_detail?.logo || user?.order_filial_detail?.logo}
-							oldDebt={
-								Number(selectedItem.old_total_debt_client || 0) /
-								Number(selectedItem.exchange_rate || 12350)
-							}
-							paidAmountDollar={Number(selectedItem.summa_dollar || 0)}
-							totalPaidAmountDollar={
-								(Number(selectedItem.summa_naqt || 0) +
-									Number(selectedItem.summa_dollar || 0) *
-										Number(selectedItem.exchange_rate || 12350) +
-									Number(selectedItem.summa_transfer || 0) +
-									Number(selectedItem.summa_terminal || 0)) /
-								Number(selectedItem.exchange_rate || 12350)
-							}
-							remainingDebt={
-								Number(selectedItem.total_debt_client || 0) /
-								Number(selectedItem.exchange_rate || 12350)
-							}
-						/>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 }

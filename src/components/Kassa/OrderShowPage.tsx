@@ -2,14 +2,13 @@ import { useEffect, useRef, useState, Fragment } from 'react';
 import { useParams } from 'react-router-dom';
 import { Loader2, Banknote, CreditCard, AlertTriangle, Pencil, ChevronLeft, Printer, User } from 'lucide-react';
 import { orderService } from '../../services/orderService';
+import { pdfService } from '../../services/pdfService';
 import { OrderResponse } from '../../types';
 import { showError, showSuccess } from '../../lib/toast';
 import { useExchangeRate } from '../../contexts/ExchangeRateContext';
 import { Input } from '../ui/Input';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { renderReceiptHtml } from './Receipt';
-import { Dialog, DialogContent, DialogFooter } from '../ui/dialog';
 import { formatMoney } from '../../lib/utils';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 import { useRole } from '@/hooks/useRole';
@@ -32,85 +31,20 @@ export function OrderShowPage() {
 	const [data, setData] = useState<OrderProductsByModelResponse | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const handleBack = () => window.history.back();
-	const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
-	const [receiptHtmlPreview, setReceiptHtmlPreview] = useState<string>('');
 
-	const buildReceiptHtml = (role: 'hodim' | 'mijoz') => {
+	/** PDF service orqali yuklab, yangi tabda ochish */
+	const openPdfInNewTab = async (orderPk: number, type: 'client' | 'worker') => {
 		try {
-			const items = products.flatMap((g) =>
-				g.product.map((p: any) => {
-					const usd = Number(p.price_dollar || 0);
-					const priceUz = usd * (Number(order_history.exchange_rate) || 1);
-					const count = Number(p.count || 0);
-					return {
-						id: p.id,
-						modelName: g.model,
-						name: p.branch_category_detail?.name || p.type_detail?.name || '-',
-						joy: p.sklad_detail?.name || 'Ombor',
-						quantity: count,
-						unit: p.type_detail?.name || p.unit || '-',
-						price: priceUz,
-						totalPrice: priceUz * count,
-						stock: p.stock || 0,
-					} as any;
-				}),
-			);
-
-			const totalAmount = Number(order_history.all_product_summa || 0);
-			const usdRate = Number(order_history.exchange_rate) || 1;
-			const totalPaidUZS =
-				Number(order_history.summa_naqt || 0) +
-				Number(order_history.summa_dollar || 0) * usdRate +
-				Number(order_history.summa_transfer || 0) +
-				Number(order_history.summa_terminal || 0);
-
-			return renderReceiptHtml({
-				items,
-				totalAmount,
-				usdAmount: (totalAmount / usdRate).toFixed(2),
-				usdRate,
-				customer: {
-					name: order_history.client_detail?.full_name || '',
-				} as any,
-				kassirName: order_history.created_by_detail?.full_name || '',
-				orderNumber: String(order_history.id),
-				date: order_history.created_time ? new Date(order_history.created_time) : new Date(),
-				paidAmount: totalPaidUZS,
-				remainingDebt: Number(order_history.client_detail?.total_debt || 0) * usdRate,
-				filialLogo: order_history.order_filial_detail?.logo || null,
-				filialName: order_history.order_filial_detail?.name || 'Elegant',
-				filialAddress: order_history.order_filial_detail?.address || '',
-				filialPhone: order_history.order_filial_detail?.phone_number || '',
-				hodimLayout: role === 'hodim',
-			});
-		} catch (e) {
-			console.error('Failed to build receipt html', e);
-			return '';
+			const blob = await pdfService.getOrderHistoryPdf(orderPk, type);
+			const blobUrl = URL.createObjectURL(blob);
+			window.open(blobUrl, '_blank', 'noopener,noreferrer');
+			setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+		} catch (e: any) {
+			console.error('PDF yuklash xatosi', e);
+			showError(e?.response?.data?.detail || e?.message || "PDF yuklashda xatolik");
 		}
 	};
 
-	const openPrintPreview = (role: 'hodim' | 'mijoz') => {
-		const html = buildReceiptHtml(role);
-		setReceiptHtmlPreview(html);
-		setIsPrintDialogOpen(true);
-	};
-
-	const printPreview = () => {
-		if (!receiptHtmlPreview) return;
-		const w = window.open('', '_blank', 'width=900,height=700');
-		if (!w) return;
-		w.document.write(receiptHtmlPreview);
-		w.document.close();
-		w.focus();
-		setTimeout(() => {
-			try {
-				w.print();
-				w.close();
-			} catch (e) {
-				console.error('Print failed', e);
-			}
-		}, 300);
-	};
 	useEffect(() => {
 		const loadData = async () => {
 			if (!id) return;
@@ -150,17 +84,19 @@ export function OrderShowPage() {
 		Number(order_history.summa_transfer || 0) +
 		Number(order_history.summa_terminal || 0);
 	const totalPaidUSD = usdRate ? totalPaidUZS / usdRate : 0;
-	/** Inline editable cell for given_count */
+	/** Inline editable cell for given_count — tahrirlash faqat sklad_manager, admin, super_admin uchun */
 	function GivenCountCell({
 		productId,
 		count,
 		givenCount,
 		onUpdated,
+		canEdit,
 	}: {
 		productId: number;
 		count: number;
 		givenCount: number;
 		onUpdated: (productId: number, newValue: number) => void;
+		canEdit: boolean;
 	}) {
 		const [isEditing, setIsEditing] = useState(false);
 		const [value, setValue] = useState(String(givenCount));
@@ -225,6 +161,23 @@ export function OrderShowPage() {
 						className='h-7 w-20 text-right text-sm px-1.5 '
 					/>
 					{isSaving && <Loader2 className='h-3.5 w-3.5 animate-spin text-gray-500' />}
+				</div>
+			);
+		}
+
+		// Faqat sklad_manager / admin / super_admin tahrirlashi mumkin
+		if (!canEdit) {
+			return (
+				<div className='flex items-center justify-end gap-1.5'>
+					<Badge variant={isDifferent ? 'destructive' : 'default'} className='text-base font-bold'>
+						<span className='text-sm'>{givenCount}</span>
+					</Badge>
+					{isDifferent && (
+						<AlertTriangle
+							className='h-4.5 w-4.5 text-red-500 flex-shrink-0'
+							aria-label={`Soni: ${count}, Berilgan: ${givenCount}`}
+						/>
+					)}
 				</div>
 			);
 		}
@@ -323,7 +276,7 @@ export function OrderShowPage() {
 							variant='outline'
 							size='sm'
 							className='px-1.5 py-1 flex items-center gap-1'
-							onClick={() => openPrintPreview('hodim')}
+							onClick={() => id && openPdfInNewTab(parseInt(id), 'worker')}
 						>
 							<Printer className='h-3.5 w-3.5 text-indigo-600' />
 							<span className='text-xs text-indigo-700'>Hodim uchun</span>
@@ -333,40 +286,13 @@ export function OrderShowPage() {
 							variant='outline'
 							size='sm'
 							className='px-1.5 py-1 flex items-center gap-1'
-							onClick={() => openPrintPreview('mijoz')}
+							onClick={() => id && openPdfInNewTab(parseInt(id), 'client')}
 						>
 							<User className='h-3.5 w-3.5 text-emerald-600' />
 							<span className='text-xs text-emerald-700'>Mijoz uchun</span>
 						</Button>
 					</div>
 				</div>
-
-				{/* Print Preview Dialog for Hodim */}
-				<Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
-					<DialogContent className='w-[75vw] max-w-none'>
-						<div className='overflow-auto max-h-[75vh] my-2 w-full'>
-							{receiptHtmlPreview ? (
-								<div
-									className='w-full min-w-0'
-									dangerouslySetInnerHTML={{ __html: receiptHtmlPreview }}
-								/>
-							) : (
-								<div className='p-4 text-sm text-muted-foreground'>Preview mavjud emas</div>
-							)}
-						</div>
-						<DialogFooter>
-							<div className='flex items-center gap-2 ml-auto'>
-								<Button variant='secondary' onClick={printPreview}>
-									<Printer className='h-4 w-4 mr-2' />
-									Chop etish
-								</Button>
-								<Button variant='ghost' onClick={() => setIsPrintDialogOpen(false)}>
-									Yopish
-								</Button>
-							</div>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
 
 				<div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5 sm:gap-2'>
 					{/* Kassir */}
@@ -503,20 +429,21 @@ export function OrderShowPage() {
 						</p>
 					</div>
 
-					{/* Foyda */}
-					{Number(order_history.all_profit_dollar || 0) > 0 && (
-						<div className='bg-lime-50 p-2 rounded border border-lime-200'>
-							<p className='text-[10px] font-semibold text-lime-600 mb-1 uppercase tracking-wide'>
-								Foyda
-							</p>
-							<p className='font-bold text-lime-700 text-base'>
-								{formatMoney(Number(order_history.all_profit_dollar))} USD
-							</p>
-							<p className='text-xs text-lime-600 mt-0.5'>
-								{formatMoney(Number(order_history.all_profit_dollar) * usdRate)} UZS
-							</p>
-						</div>
-					)}
+					{/* Foyda — faqat admin / super admin */}
+					{(roles.isAdmin || roles.isSuperAdmin) &&
+						Number(order_history.all_profit_dollar || 0) > 0 && (
+							<div className='bg-lime-50 p-2 rounded border border-lime-200'>
+								<p className='text-[10px] font-semibold text-lime-600 mb-1 uppercase tracking-wide'>
+									Foyda
+								</p>
+								<p className='font-bold text-lime-700 text-base'>
+									{formatMoney(Number(order_history.all_profit_dollar))} USD
+								</p>
+								<p className='text-xs text-lime-600 mt-0.5'>
+									{formatMoney(Number(order_history.all_profit_dollar) * usdRate)} UZS
+								</p>
+							</div>
+						)}
 
 					{/* To'lov usullari */}
 					<div className='md:col-span-2 lg:col-span-3 xl:col-span-5'>
@@ -695,12 +622,16 @@ export function OrderShowPage() {
 								<th className='px-2 py-1 text-right text-xs font-semibold text-gray-700 whitespace-nowrap'>
 									Narxi ($)
 								</th>
-								<th className='px-2 py-1 text-right text-xs font-semibold text-gray-700 whitespace-nowrap'>
-									Asl Narxi ($)
-								</th>
-								<th className='px-2 py-1 text-right text-xs font-semibold text-gray-700 whitespace-nowrap'>
-									Foyda ($)
-								</th>
+								{(roles.isAdmin || roles.isSuperAdmin) && (
+									<>
+										<th className='px-2 py-1 text-right text-xs font-semibold text-gray-700 whitespace-nowrap'>
+											Asl Narxi ($)
+										</th>
+										<th className='px-2 py-1 text-right text-xs font-semibold text-gray-700 whitespace-nowrap'>
+											Foyda ($)
+										</th>
+									</>
+								)}
 							</tr>
 						</thead>
 						<tbody>
@@ -756,6 +687,7 @@ export function OrderShowPage() {
 															count={count}
 															givenCount={Number(product.given_count || 0)}
 															onUpdated={handleGivenCountUpdated}
+															canEdit={roles.isAdmin || roles.isSuperAdmin || roles.isSkladManager}
 														/>
 													</td>
 													<td className='px-2 py-1 text-xs text-gray-800 text-right'>
@@ -776,12 +708,16 @@ export function OrderShowPage() {
 																)}
 														</span>
 													</td>
-													<td className='px-2 py-1 text-xs text-gray-800 text-right'>
-														{formatMoney(realPrice)}
-													</td>
-													<td className='px-2 py-1 text-xs font-semibold text-green-600 text-right'>
-														{formatMoney(profit)}
-													</td>
+													{(roles.isAdmin || roles.isSuperAdmin) && (
+														<>
+															<td className='px-2 py-1 text-xs text-gray-800 text-right'>
+																{formatMoney(realPrice)}
+															</td>
+															<td className='px-2 py-1 text-xs font-semibold text-green-600 text-right'>
+																{formatMoney(profit)}
+															</td>
+														</>
+													)}
 												</tr>
 											);
 										})}
@@ -818,34 +754,39 @@ export function OrderShowPage() {
 										),
 									)}
 								</td>
-								<td className='px-2 py-1 text-xs font-bold text-gray-800 text-right'>
-									{formatMoney(
-										products.reduce(
-											(sum, g) =>
-												sum +
-												g.product.reduce(
-													(s, p) => s + Number(p.real_price || 0) * Number(p.count || 0),
+								{(roles.isAdmin || roles.isSuperAdmin) && (
+									<>
+										<td className='px-2 py-1 text-xs font-bold text-gray-800 text-right'>
+											{formatMoney(
+												products.reduce(
+													(sum, g) =>
+														sum +
+														g.product.reduce(
+															(s, p) =>
+																s + Number(p.real_price || 0) * Number(p.count || 0),
+															0,
+														),
 													0,
 												),
-											0,
-										),
-									)}
-								</td>
-								<td className='px-2 py-1 text-xs font-bold text-green-700 text-right'>
-									{formatMoney(
-										products.reduce(
-											(sum, g) =>
-												sum +
-												g.product.reduce((s, p) => {
-													const profit =
-														(Number(p.price_dollar || 0) - Number(p.real_price || 0)) *
-														Number(p.count || 0);
-													return s + profit;
-												}, 0),
-											0,
-										),
-									)}
-								</td>
+											)}
+										</td>
+										<td className='px-2 py-1 text-xs font-bold text-green-700 text-right'>
+											{formatMoney(
+												products.reduce(
+													(sum, g) =>
+														sum +
+														g.product.reduce((s, p) => {
+															const profit =
+																(Number(p.price_dollar || 0) - Number(p.real_price || 0)) *
+																Number(p.count || 0);
+															return s + profit;
+														}, 0),
+													0,
+												),
+											)}
+										</td>
+									</>
+								)}
 							</tr>
 						</tbody>
 					</table>
