@@ -109,14 +109,7 @@ export function ProductModal({
 			setQuantity('1');
 			setSelectedSkladId(null);
 			setSkladStockCount(null);
-			setErrors({}); // Errorlarni tozalash
-			// Default price ni o'rnatish
-			// if (product.unit_price) {
-			//     const defaultPrice = product.unit_price ?? 0;
-			//     setPrice(String(defaultPrice));
-			// } else {
-			//     setPrice('0');
-			// }
+			setErrors({});
 		}
 	}, [product, orderProductId, isOpen, orderData, exchangeRate, currencyCode]);
 

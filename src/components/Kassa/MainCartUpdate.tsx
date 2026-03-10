@@ -1,5 +1,5 @@
 import { Trash2, User, Loader2, Edit2, X } from 'lucide-react';
-import { CartItem, Customer, OrderItem, OrderResponse } from '../../types';
+import { Customer, OrderItem, OrderResponse } from '../../types';
 import { useState, useEffect, useCallback } from 'react';
 import { showError, showSuccess } from '../../lib/toast';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,27 +11,21 @@ import { OrderPaymentFields } from './OrderPaymentFields';
 import { formatMoney } from '../../lib/utils';
 
 interface MainCartUpdateProps {
-	items: CartItem[];
-	onUpdateQuantity: (id: string, delta: number) => void;
 	onRemoveItem: (id: string) => void;
-	totalItems: number;
 	orderData?: OrderResponse | null;
 	selectedCustomer?: Customer | null;
 	orderId?: number;
 	/** Mahsulot qo'shilgandan keyin yangilash uchun (KassaPage dan beriladi) */
 	refreshCartTrigger?: number;
 	/** Savdo ro'yxati yoki summa o'zgarganda (PaymentModal uchun) */
-	onCartChange?: (items: CartItem[], totalAmount: number) => void;
+	onCartChange?: (items: OrderItem[], totalAmount: number) => void;
 	/** Read-only mode - faqat ko'rish uchun */
 	readOnly?: boolean;
 	/** Tovar qaytarish orderi */
 	isVozvratOrder?: boolean;
 }
 export function MainCartUpdate({
-	items,
-	onUpdateQuantity: _onUpdateQuantity,
 	onRemoveItem,
-	totalItems: _totalItems,
 	orderData,
 	selectedCustomer,
 	orderId,
@@ -42,71 +36,14 @@ export function MainCartUpdate({
 }: MainCartUpdateProps) {
 	const { user } = useAuth();
 	const { displayRate } = useExchangeRate();
-	const [cartItemsFromApi, setCartItemsFromApi] = useState<CartItem[]>([]);
-	const [orderProductsRaw, setOrderProductsRaw] = useState<any[]>([]);
+	const [orderProducts, setOrderProducts] = useState<OrderItem[]>([]);
 	const [skladlar, setSkladlar] = useState<{ id: number; name: string }[]>([]);
 	const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 	const [productForModal, setProductForModal] = useState<any | null>(null);
 	const [isLoadingCart, setIsLoadingCart] = useState(false);
 	const [isDeleteItemModalOpen, setIsDeleteItemModalOpen] = useState(false);
-	const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+	const [itemToDelete, setItemToDelete] = useState<number | null>(null);
 	const [isDeletingItem, setIsDeletingItem] = useState(false);
-
-	// Order-history-product dan CartItem ga transform (Yangi API: product_detail qo'shildi)
-	const transformOrderProductToCartItem = useCallback((op: OrderItem): CartItem => {
-		const productDetail = op.product_detail;
-
-		// Avval eski strukturadan detail ma'lumotlarini olish (backward compatibility)
-		// Agar ular null bo'lsa, product_detail ichidagi ID lardan foydalanish
-		const branchDetail = op.branch_detail ?? null;
-		const branchCategoryDetail = op.branch_category_detail?.name;
-		const modelDetail = op.model_detail ?? null;
-		const typeDetail = op.type_detail ?? null;
-		const sizeDetail = op.size_detail ?? null;
-
-		const quantity = op.count ?? 0;
-
-		const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : displayRate;
-
-		let unitPriceSum = Number(op.price_sum) / op.count;
-
-		let unitPriceDollar = unitPriceSum / exchangeRate;
-		let totalPriceDollar = unitPriceDollar * quantity;
-		if (op.price_dollar != null) {
-			totalPriceDollar = parseFloat(String(op.price_dollar)) || totalPriceDollar;
-			unitPriceDollar = quantity ? totalPriceDollar / quantity : unitPriceDollar;
-		}
-
-		// Birlik: unit_detail.name (masalan "Komplekt"), keyin unit_detail.code, keyin dona
-		const unitName =
-			sizeDetail?.unit_detail?.name ?? sizeDetail?.unit_detail?.code ?? sizeDetail?.unit_detail ?? 'dona';
-		return {
-			id: String(op.id),
-			productId: op.product ?? productDetail?.id ?? op.id,
-			stock: productDetail?.count ?? op.count ?? 0,
-			unit: unitName,
-			quantity,
-			priceDollar: unitPriceDollar,
-			totalPriceDollar: totalPriceDollar,
-			priceSum: op.price_sum ? parseFloat(String(op.price_sum)) : 0,
-
-			branchName: branchDetail?.name ?? undefined,
-			branchCategoryName: branchCategoryDetail ?? undefined,
-			modelName: modelDetail?.name ?? undefined,
-			typeName: typeDetail?.name ?? undefined,
-			size: sizeDetail?.size ?? undefined,
-			unitCode: unitName,
-			// ID larni olish: avval product_detail dan, keyin order-history-product dan
-			branchId: productDetail?.branch ?? op.branch ?? undefined,
-			modelId: productDetail?.model ?? op.model ?? undefined,
-			typeId: productDetail?.type ?? op.type ?? undefined,
-			sizeId: productDetail?.size ?? op.size ?? undefined,
-			isFavorite: false,
-
-			name: '',
-			price: 0,
-		};
-	}, []);
 
 	// /api/v1/order-history-product dan order-history yoki vozvrat_order bo'yicha mahsulotlarni yuklash
 	const loadOrderProducts = useCallback(async () => {
@@ -117,9 +54,8 @@ export function MainCartUpdate({
 			const list = isVozvratOrder
 				? await vozvratOrderService.getVozvratOrderProducts(orderHistoryId)
 				: await orderService.getOrderProducts(orderHistoryId);
-			const filtered = (list || []).filter((p: any) => !p.is_delete);
-			setOrderProductsRaw(filtered);
-			setCartItemsFromApi(filtered.map(transformOrderProductToCartItem));
+			const filtered = (list || []).filter((p: OrderItem) => !p.is_delete);
+			setOrderProducts(filtered);
 		} catch (error) {
 			console.error('Failed to load order products:', error);
 			showError(
@@ -127,17 +63,17 @@ export function MainCartUpdate({
 					? 'Qaytarish mahsulotlarini yuklashda xatolik'
 					: 'Savdo mahsulotlarini yuklashda xatolik',
 			);
-			setCartItemsFromApi([]);
+			setOrderProducts([]);
 		} finally {
 			setIsLoadingCart(false);
 		}
-	}, [orderId, orderData?.id, isVozvratOrder, transformOrderProductToCartItem]);
+	}, [orderId, orderData?.id, isVozvratOrder]);
 
 	useEffect(() => {
 		if (orderId ?? orderData?.id) {
 			loadOrderProducts();
 		} else {
-			setCartItemsFromApi([]);
+			setOrderProducts([]);
 		}
 	}, [orderId, orderData?.id, loadOrderProducts, refreshCartTrigger]);
 
@@ -148,18 +84,17 @@ export function MainCartUpdate({
 	// Exchange rate to use for USD calculations
 	const exchangeRate = orderData?.exchange_rate != null ? Number(orderData.exchange_rate) : displayRate;
 
-	// Order mavjud bo'lsa API dan kelgan ro'yxat, yo'q bo'lsa parent dan kelgan items
-	const displayItems = (orderId ?? orderData?.id) ? cartItemsFromApi : items;
-	const totalAmount = displayItems.reduce((sum, item) => sum + (item.price_sum || 0), 0);
-	const totalAmountDollar = displayItems.reduce((sum, item) => sum + item.price_dollar, 0);
+	// Jami summani hisoblash
+	const totalAmount = orderProducts.reduce((sum, item) => sum + (parseFloat(item.price_sum) || 0), 0);
+	const totalAmountDollar = orderProducts.reduce((sum, item) => sum + (parseFloat(item.price_dollar) || 0), 0);
 
 	// Parent (PaymentModal va boshqalar) uchun ro'yxat va jami summani yangilash
 	useEffect(() => {
-		onCartChange?.(displayItems, totalAmount);
-	}, [displayItems, totalAmount]);
+		onCartChange?.(orderProducts, totalAmount);
+	}, [orderProducts, totalAmount]);
 
 	// Mahsulotni o'chirish uchun tasdiqlash modalini ochish
-	const handleRemoveItem = (id: string) => {
+	const handleRemoveItem = (id: number) => {
 		setItemToDelete(id);
 		setIsDeleteItemModalOpen(true);
 	};
@@ -171,11 +106,11 @@ export function MainCartUpdate({
 		setIsDeletingItem(true);
 		try {
 			if (orderHistoryId) {
-				await orderService.deleteOrderProduct(Number(itemToDelete));
+				await orderService.deleteOrderProduct(itemToDelete);
 				await loadOrderProducts();
 				showSuccess("Mahsulot muvaffaqiyatli o'chirildi");
 			} else {
-				onRemoveItem(itemToDelete);
+				onRemoveItem(String(itemToDelete));
 			}
 			setIsDeleteItemModalOpen(false);
 			setItemToDelete(null);
@@ -188,36 +123,36 @@ export function MainCartUpdate({
 	};
 
 	// Edit order-history-product - open modal with product info
-	const handleEditOrderProduct = (cartItemId: string) => {
-		const raw = orderProductsRaw.find((p) => String(p.id) === String(cartItemId));
-		if (!raw) return;
-		// build Product object for ProductModal
-		const productDetail = raw.product_detail ?? {};
-		const sizeDetail = raw.size_detail ?? {};
-		const nameParts = [raw.branch_detail?.name, raw.model_detail?.name, raw.type_detail?.name, sizeDetail.size]
+	const handleEditOrderProduct = (item: OrderItem) => {
+		const nameParts = [
+			item.branch_detail?.name,
+			item.model_detail?.name,
+			item.type_detail?.name,
+			item.size_detail?.name,
+		]
 			.filter(Boolean)
 			.join(' ');
 		const productFor = {
-			id: String(raw.id),
-			productId: productDetail.id ?? raw.product,
-			name: nameParts || `Mahsulot #${productDetail.id ?? raw.product}`,
-			price: parseFloat(raw.price_sum ?? '0') || 0,
-			price_sum: parseFloat(raw.price_sum ?? '0') || 0,
-			price_dollar: parseFloat(raw.price_dollar ?? '0') || 0,
-			stock: productDetail.count ?? raw.count ?? 0,
-			unit: sizeDetail.unit_code ?? sizeDetail.unit_detail?.code ?? 'dona',
-			unitCode: sizeDetail.unit_code ?? sizeDetail.unit_detail?.code ?? 'dona',
-			branchName: raw.branch_detail?.name,
-			modelName: raw.model_detail?.name,
-			typeName: raw.type_detail?.name,
-			branchCategoryName: raw.branch_category_detail?.name,
-			size: sizeDetail.size,
-			branchId: productDetail.branch ?? raw.branch,
-			modelId: productDetail.model ?? raw.model,
-			typeId: productDetail.type ?? raw.type,
-			sizeId: productDetail.size ?? raw.size,
-			unitPrice: parseFloat(productDetail.unit_price ?? raw.unit_price ?? '0') || 0,
-			wholesalePrice: parseFloat(productDetail.wholesale_price ?? raw.wholesale_price ?? '0') || 0,
+			id: String(item.id),
+			productId: item.product_detail?.id ?? item.product,
+			name: nameParts || `Mahsulot #${item.product_detail?.id ?? item.product}`,
+			price: parseFloat(item.price_sum) || 0,
+			price_sum: parseFloat(item.price_sum) || 0,
+			price_dollar: parseFloat(item.price_dollar) || 0,
+			stock: item.product_detail?.count ?? item.count ?? 0,
+			unit: item.size_detail?.unit_code ?? item.size_detail?.unit_detail?.code ?? 'dona',
+			unitCode: item.size_detail?.unit_code ?? item.size_detail?.unit_detail?.code ?? 'dona',
+			branchName: item.branch_detail?.name,
+			modelName: item.model_detail?.name,
+			typeName: item.type_detail?.name,
+			branchCategoryName: item.branch_category_detail?.name,
+			size: item.size_detail?.name,
+			branchId: item.product_detail?.branch ?? item.branch,
+			modelId: item.product_detail?.model ?? item.model,
+			typeId: item.product_detail?.type ?? item.type,
+			sizeId: item.product_detail?.size ?? item.size,
+			unitPrice: parseFloat(item.product_detail?.unit_price ?? item.unit_price ?? '0') || 0,
+			wholesalePrice: parseFloat(item.product_detail?.wholesale_price ?? item.wholesale_price ?? '0') || 0,
 		};
 		setProductForModal(productFor);
 		setIsProductModalOpen(true);
@@ -320,63 +255,75 @@ export function MainCartUpdate({
 						<p className='text-xs text-gray-500'>Savdo mahsulotlari yuklanmoqda...</p>
 					</div>
 				) : (
-					displayItems.map((item, index) => (
-						<div
-							key={item.id}
-							className='bg-white p-2 rounded-lg shadow-sm hover:shadow-md border border-blue-100 flex items-center gap-2 transition-all duration-200'
-						>
-							{/* Index */}
-							<div className='w-6 h-6 text-center font-bold text-blue-600 text-[10px] bg-blue-100 rounded flex items-center justify-center shrink-0'>
-								{index + 1}
-							</div>
-
-							{/* Quantity Display */}
-							<div className='text-center flex items-center justify-center border border-blue-200 rounded-md px-1.5 py-0.5 bg-blue-50 text-[10px] font-semibold text-blue-700 shrink-0 whitespace-nowrap'>
-								{item.quantity} {item.unit || item.unitCode || 'dona'}
-							</div>
-
-							{/* Product Details */}
-							<div className='flex-1 px-1.5 min-w-0'>
-								<div className='flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-gray-600'>
-									{item.branchCategoryName && (
-										<span className='text-indigo-600 font-medium'>{item.branchCategoryName}</span>
-									)}
-									{item.modelName && <span className='text-gray-700'>{item.modelName}</span>}
-									{item.typeName && <span className='text-gray-500'>{item.typeName}</span>}
+					orderProducts.map((item, index) => {
+						const unitName =
+							item.size_detail?.unit_detail?.name ?? item.size_detail?.unit_detail?.code ?? 'dona';
+						return (
+							<div
+								key={item.id}
+								className='bg-white p-2 rounded-lg shadow-sm hover:shadow-md border border-blue-100 flex items-center gap-2 transition-all duration-200'
+							>
+								{/* Index */}
+								<div className='w-6 h-6 text-center font-bold text-blue-600 text-[10px] bg-blue-100 rounded flex items-center justify-center shrink-0'>
+									{index + 1}
 								</div>
-							</div>
 
-							{/* Total & Actions */}
-							<div className='flex items-center gap-1.5 shrink-0'>
-								<div className='text-right'>
-									<div className='font-bold text-blue-700 text-xs whitespace-nowrap'>
-										{item.totalPriceDollar} $
-									</div>
-									<div className='text-[10px] text-gray-500'>{formatMoney(item.priceSum)} UZS</div>
+								{/* Quantity Display */}
+								<div className='text-center flex items-center justify-center border border-blue-200 rounded-md px-1.5 py-0.5 bg-blue-50 text-[10px] font-semibold text-blue-700 shrink-0 whitespace-nowrap'>
+									{item.count} {unitName}
 								</div>
-								{!readOnly && (
-									<>
-										{(orderId ?? orderData?.id) && (
-											<button
-												onClick={() => handleEditOrderProduct(item.id)}
-												className='text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded transition-colors shrink-0'
-												title='Tahrirlash'
-											>
-												<Edit2 size={14} />
-											</button>
+
+								{/* Product Details */}
+								<div className='flex-1 px-1.5 min-w-0'>
+									<div className='flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-gray-600'>
+										{item.branch_category_detail?.name && (
+											<span className='text-indigo-600 font-medium'>
+												{item.branch_category_detail.name}
+											</span>
 										)}
-										<button
-											onClick={() => handleRemoveItem(item.id)}
-											className='text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-colors shrink-0'
-											title="O'chirish"
-										>
-											<Trash2 size={14} />
-										</button>
-									</>
-								)}
+										{item.model_detail?.name && (
+											<span className='text-gray-700'>{item.model_detail.name}</span>
+										)}
+										{item.type_detail?.name && (
+											<span className='text-gray-500'>{item.type_detail.name}</span>
+										)}
+									</div>
+								</div>
+
+								{/* Total & Actions */}
+								<div className='flex items-center gap-1.5 shrink-0'>
+									<div className='text-right'>
+										<div className='font-bold text-blue-700 text-xs whitespace-nowrap'>
+											{item.price_dollar} $
+										</div>
+										<div className='text-[10px] text-gray-500'>
+											{formatMoney(parseFloat(item.price_sum) || 0)} UZS
+										</div>
+									</div>
+									{!readOnly && (
+										<>
+											{(orderId ?? orderData?.id) && (
+												<button
+													onClick={() => handleEditOrderProduct(item)}
+													className='text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1 rounded transition-colors shrink-0'
+													title='Tahrirlash'
+												>
+													<Edit2 size={14} />
+												</button>
+											)}
+											<button
+												onClick={() => handleRemoveItem(item.id)}
+												className='text-red-600 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-colors shrink-0'
+												title="O'chirish"
+											>
+												<Trash2 size={14} />
+											</button>
+										</>
+									)}
+								</div>
 							</div>
-						</div>
-					))
+						);
+					})
 				)}
 				<OrderPaymentFields
 					orderData={orderData ?? null}

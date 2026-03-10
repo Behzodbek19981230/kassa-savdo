@@ -34,6 +34,7 @@ export function OrderPaymentFields({
 	const [selectedMethods, setSelectedMethods] = useState<{ [key: string]: string }>({});
 	const [orderProducts, setOrderProducts] = useState<any[]>([]);
 	const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+	const [orderStatusChecked, setOrderStatusChecked] = useState(false);
 	const isInitialMount = useRef(true);
 	const hasUserChanged = useRef(false);
 
@@ -163,6 +164,7 @@ export function OrderPaymentFields({
 			setDriverInfo(orderData.driver_info || '');
 			setDiscountAmount(orderData.discount_amount || '0');
 			setZdachaDollar(orderData.zdacha_dollar || '0');
+			setOrderStatusChecked(orderData.order_status || false);
 			// zdachaSom avtomatik hisoblanadi (yuqoridagi useEffect orqali)
 
 			// Payment methods ni yuklash
@@ -202,6 +204,7 @@ export function OrderPaymentFields({
 				summa_transfer: parseFloat(summa_transfer) || 0,
 				summa_terminal: parseFloat(summa_terminal) || 0,
 				update_status: 1,
+				order_status: orderStatusChecked,
 			};
 
 			if (isVozvratOrder) {
@@ -215,6 +218,7 @@ export function OrderPaymentFields({
 			}
 			onOrderUpdate?.(updatedOrder);
 			showSuccess("Ma'lumotlar muvaffaqiyatli saqlandi");
+			navigate('/');
 		} catch (error: any) {
 			console.error('Failed to update order:', error);
 			const errorMessage = error?.response?.data?.detail || error?.message || "Ma'lumotlarni saqlashda xatolik";
@@ -449,6 +453,27 @@ export function OrderPaymentFields({
 							className='w-full px-2 py-1 text-[11px] border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-transparent resize-none'
 							rows={2}
 						/>
+					</div>
+					{/* Order Status Checkbox */}
+					<div className='mt-3 w-40'>
+						<label
+							htmlFor='orderStatus'
+							className={`flex items-center gap-1.5 rounded-lg px-3 py-2 shadow-sm border cursor-pointer transition-all ${
+								orderStatusChecked
+									? 'bg-green-600 border-green-400'
+									: 'bg-red-600 border-red-400 animate-pulse'
+							}`}
+						>
+							<input
+								type='checkbox'
+								id='orderStatus'
+								checked={orderStatusChecked}
+								onChange={(e) => setOrderStatusChecked(e.target.checked)}
+								className='w-4 h-4 text-white border border-white rounded focus:ring-0 cursor-pointer accent-white'
+								disabled={orderData?.order_status === true}
+							/>
+							<span className='text-sm font-bold text-white select-none'>Tasdiqlandimi?</span>
+						</label>
 					</div>
 				</div>
 

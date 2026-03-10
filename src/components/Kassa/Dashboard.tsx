@@ -367,22 +367,24 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 						</Select>
 					</div>
 
-					<div className='w-full sm:w-auto sm:min-w-[170px]'>
-						<Select
-							onValueChange={(v) =>
-								setDraft((p) => ({ ...p, priceDifference: v as DraftFilters['priceDifference'] }))
-							}
-							value={draft.priceDifference}
-						>
-							<SelectTrigger className='w-full h-7 text-sm'>
-								<SelectValue placeholder='Narx tafovuti' />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value='all'>Barchasi</SelectItem>
-								<SelectItem value='diff'>Tafovutli mahsulotlar</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
+					{(roles.isAdmin || roles.isSuperAdmin) && (
+						<div className='w-full sm:w-auto sm:min-w-[170px]'>
+							<Select
+								onValueChange={(v) =>
+									setDraft((p) => ({ ...p, priceDifference: v as DraftFilters['priceDifference'] }))
+								}
+								value={draft.priceDifference}
+							>
+								<SelectTrigger className='w-full h-7 text-sm'>
+									<SelectValue placeholder='Narx tafovuti' />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value='all'>Barchasi</SelectItem>
+									<SelectItem value='diff'>Tafovutli mahsulotlar</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 
 					<div className='w-full sm:w-auto'>
 						<DateRangePicker
@@ -453,18 +455,22 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 									<th className='text-right p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
 										Umumiy qolgan qarz($)
 									</th>
-									<th className='text-right p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
-										Jami foyda($)
-									</th>
+									{(roles.isAdmin || roles.isSuperAdmin) && (
+										<th className='text-right p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
+											Jami foyda($)
+										</th>
+									)}
 									<th className='text-right p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>
 										Yaratilgan vaqt
 									</th>
 									<th className='text-right p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>
 										Buyurtma holati
 									</th>
-									<th className='text-right p-1 font-semibold text-gray-700 min-w-[80px] text-xs'>
-										Keshbek($)
-									</th>
+									{(roles.isAdmin || roles.isSuperAdmin) && (
+										<th className='text-right p-1 font-semibold text-gray-700 min-w-[80px] text-xs'>
+											Keshbek($)
+										</th>
+									)}
 									<th className='text-right p-1 font-semibold text-gray-700 w-24 text-xs'>Amallar</th>
 								</tr>
 							</thead>
@@ -550,18 +556,20 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																	<span className='inline-flex items-center gap-1'>
 																		{order.client_detail?.full_name ||
 																			`ID: ${order.client}`}
-																		{order.price_difference && (
-																			<Tooltip>
-																				<TooltipTrigger asChild>
-																					<span className='inline-flex items-center text-orange-500 '>
-																						<AlertTriangle size={20} />
-																					</span>
-																				</TooltipTrigger>
-																				<TooltipContent className='!bg-orange-100 !text-orange-800 !border-orange-300'>
-																					Mahsulot narxida tafovut aniqlandi
-																				</TooltipContent>
-																			</Tooltip>
-																		)}
+																		{(roles.isAdmin || roles.isSuperAdmin) &&
+																			order.price_difference && (
+																				<Tooltip>
+																					<TooltipTrigger asChild>
+																						<span className='inline-flex items-center text-orange-500 '>
+																							<AlertTriangle size={20} />
+																						</span>
+																					</TooltipTrigger>
+																					<TooltipContent className='!bg-orange-100 !text-orange-800 !border-orange-300'>
+																						Mahsulot narxida tafovut
+																						aniqlandi
+																					</TooltipContent>
+																				</Tooltip>
+																			)}
 																	</span>
 																</td>
 																<td
@@ -676,18 +684,20 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																></td>
-																<td
-																	className={clsx(
-																		'p-1 text-right text-gray-700 text-xs',
-																		order.update_status === 1
-																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
-																			: !order.order_status
-																				? 'bg-red-100'
-																				: 'group-hover:bg-blue-50/30',
-																	)}
-																>
-																	{cashback.toFixed(2)}
-																</td>
+																{(roles.isAdmin || roles.isSuperAdmin) && (
+																	<td
+																		className={clsx(
+																			'p-1 text-right text-gray-700 text-xs',
+																			order.update_status === 1
+																				? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																				: !order.order_status
+																					? 'bg-red-100'
+																					: 'group-hover:bg-blue-50/30',
+																		)}
+																	>
+																		{cashback.toFixed(2)}
+																	</td>
+																)}
 																<td
 																	className={clsx(
 																		'p-1 text-right',
@@ -840,14 +850,18 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 												(groups[0]?.items?.[0]?.exchange_rate || 1)
 											).toFixed(2)}
 										</td>
-										<td className='p-1 text-right font-semibold text-green-600 text-xs'>
-											{overallTotals.totalFoyda.toFixed(2)}
-										</td>
+										{(roles.isAdmin || roles.isSuperAdmin) && (
+											<td className='p-1 text-right font-semibold text-green-600 text-xs'>
+												{overallTotals.totalFoyda.toFixed(2)}
+											</td>
+										)}
 										<td className='p-1 text-right font-semibold text-xs'></td>
 										<td className='p-1 text-right font-semibold text-xs'></td>
-										<td className='p-1 text-right font-semibold text-xs'>
-											{overallTotals.totalKeshbek.toFixed(2)}
-										</td>
+										{(roles.isAdmin || roles.isSuperAdmin) && (
+											<td className='p-1 text-right font-semibold text-xs'>
+												{overallTotals.totalKeshbek.toFixed(2)}
+											</td>
+										)}
 										<td className='p-1 text-right font-semibold text-xs'></td>
 									</tr>
 								)}

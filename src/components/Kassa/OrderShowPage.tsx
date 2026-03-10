@@ -11,6 +11,8 @@ import { Button } from '../ui/button';
 import { renderReceiptHtml } from './Receipt';
 import { Dialog, DialogContent, DialogFooter } from '../ui/dialog';
 import { formatMoney } from '../../lib/utils';
+import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
+import { useRole } from '@/hooks/useRole';
 
 interface ProductByModel {
 	model_id: number;
@@ -26,6 +28,7 @@ interface OrderProductsByModelResponse {
 export function OrderShowPage() {
 	const { id } = useParams<{ id: string }>();
 	const { displayRate } = useExchangeRate();
+	const roles = useRole();
 	const [data, setData] = useState<OrderProductsByModelResponse | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const handleBack = () => window.history.back();
@@ -263,6 +266,16 @@ export function OrderShowPage() {
 
 	return (
 		<div className='h-full overflow-y-auto p-2 sm:p-3'>
+			{/* Price Difference Alert */}
+			{(roles.isAdmin || roles.isSuperAdmin) && order_history.price_difference && (
+				<div className='bg-orange-100 border-2 border-orange-400 rounded-lg p-2 mb-3 flex items-center gap-3'>
+					<AlertTriangle className='h-6 w-6 text-orange-600 flex-shrink-0' />
+					<div>
+						<p className='font-bold text-orange-800 text-sm'>Mahsulot narxida tafovut aniqlandi!</p>
+					</div>
+				</div>
+			)}
+
 			{/* Order History Ma'lumotlari */}
 			<div className='bg-white rounded-lg shadow-md p-2 sm:p-3 mb-2'>
 				<div className='flex flex-col sm:flex-row items-center justify-between gap-2 mb-2 pb-1.5 border-b border-gray-200'>
@@ -722,9 +735,11 @@ export function OrderShowPage() {
 														{product.sklad_detail?.name || 'Ombor'}
 													</td>
 													<td className='px-2 py-1 text-xs text-gray-800'>
-														{product.branch_category_detail?.name ||
-															product.type_detail?.name ||
-															'-'}
+														<span className='inline-flex items-center gap-1'>
+															{product.branch_category_detail?.name ||
+																product.type_detail?.name ||
+																'-'}
+														</span>
 													</td>
 													<td className='px-2 py-1 text-xs text-gray-800'>
 														{product.size_detail?.size || '-'}
@@ -744,7 +759,22 @@ export function OrderShowPage() {
 														/>
 													</td>
 													<td className='px-2 py-1 text-xs text-gray-800 text-right'>
-														{formatMoney(priceDollar)}
+														<span className='inline-flex items-center gap-1'>
+															{formatMoney(priceDollar)}
+															{(roles.isAdmin || roles.isSuperAdmin) &&
+																product.price_difference && (
+																	<Tooltip>
+																		<TooltipTrigger asChild>
+																			<span className='inline-flex items-center text-orange-500'>
+																				<AlertTriangle size={16} />
+																			</span>
+																		</TooltipTrigger>
+																		<TooltipContent className='!bg-orange-100 !text-orange-800 !border-orange-300'>
+																			Mahsulot narxida tafovut aniqlandi
+																		</TooltipContent>
+																	</Tooltip>
+																)}
+														</span>
 													</td>
 													<td className='px-2 py-1 text-xs text-gray-800 text-right'>
 														{formatMoney(realPrice)}
