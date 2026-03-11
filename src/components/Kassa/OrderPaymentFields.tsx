@@ -424,6 +424,7 @@ export function OrderPaymentFields({
 						<div className='flex items-center mb-1.5'>
 							<FileText size={14} className='mr-1.5 text-blue-600' />
 							<span className='text-blue-600 text-[10px] font-semibold'>Izoh</span>
+							<span className='text-[9px] text-gray-500 ml-1'>(ixtiyoriy)</span>
 						</div>
 						<textarea
 							value={note}
@@ -431,7 +432,7 @@ export function OrderPaymentFields({
 								hasUserChanged.current = true;
 								setNote(e.target.value);
 							}}
-							placeholder='Izoh kiriting...'
+							placeholder='Izoh kiriting (ixtiyoriy)...'
 							className='w-full px-2 py-1 text-[11px] border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent resize-none'
 							rows={2}
 						/>
@@ -442,6 +443,7 @@ export function OrderPaymentFields({
 						<div className='flex items-center mb-1.5'>
 							<Truck size={14} className='mr-1.5 text-purple-600' />
 							<span className='text-purple-600 text-[10px] font-semibold'>Yetkazib beruvchi</span>
+							<span className='text-[9px] text-gray-500 ml-1'>(ixtiyoriy)</span>
 						</div>
 						<textarea
 							value={driverInfo}
@@ -449,7 +451,7 @@ export function OrderPaymentFields({
 								hasUserChanged.current = true;
 								setDriverInfo(e.target.value);
 							}}
-							placeholder="Yetkazib beruvchi ma'lumotlari..."
+							placeholder="Yetkazib beruvchi ma'lumotlari (ixtiyoriy)..."
 							className='w-full px-2 py-1 text-[11px] border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-transparent resize-none'
 							rows={2}
 						/>

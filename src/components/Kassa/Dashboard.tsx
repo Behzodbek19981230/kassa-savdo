@@ -477,7 +477,10 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 							<tbody>
 								{groups.length === 0 || groups.every((g) => (g.items?.length || 0) === 0) ? (
 									<tr>
-										<td colSpan={14} className='text-center py-12 text-gray-400'>
+										<td
+											colSpan={roles.isAdmin || roles.isSuperAdmin ? 14 : 12}
+											className='text-center py-12 text-gray-400'
+										>
 											Ma'lumotlar yo'q
 										</td>
 									</tr>
@@ -646,18 +649,20 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																>
 																	{formatMoney(totalDebt / exchangeRate)}
 																</td>
-																<td
-																	className={clsx(
-																		'p-1 text-right text-green-600 font-semibold text-xs',
-																		order.update_status === 1
-																			? '!bg-amber-100 group-hover:!bg-amber-200/70'
-																			: !order.order_status
-																				? 'bg-red-100'
-																				: 'group-hover:bg-blue-50/30',
-																	)}
-																>
-																	{formatMoney(totalProfit)}
-																</td>
+																{(roles.isAdmin || roles.isSuperAdmin) && (
+																	<td
+																		className={clsx(
+																			'p-1 text-right text-green-600 font-semibold text-xs',
+																			order.update_status === 1
+																				? '!bg-amber-100 group-hover:!bg-amber-200/70'
+																				: !order.order_status
+																					? 'bg-red-100'
+																					: 'group-hover:bg-blue-50/30',
+																		)}
+																	>
+																		{formatMoney(totalProfit)}
+																	</td>
+																)}
 																<td
 																	className={clsx(
 																		'p-1 text-right text-gray-600 whitespace-nowrap text-xs',

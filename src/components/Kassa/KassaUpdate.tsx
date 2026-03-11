@@ -269,22 +269,7 @@ export function KassaUpdate({
 		}
 		setSelectedProduct(null);
 	};
-	const handleUpdateQuantity = (id: string, delta: number) => {
-		if (!isSaleStarted) return;
-		setCart((prev) =>
-			prev.map((item) => {
-				if (item.id === id) {
-					const newQty = Math.max(1, item.quantity + delta);
-					return {
-						...item,
-						quantity: newQty,
-						totalPrice: newQty * (item.price_dollar || item.price_sum || 0),
-					};
-				}
-				return item;
-			}),
-		);
-	};
+
 	const handleRemoveItem = (id: string) => {
 		if (!isSaleStarted) return;
 		setCart((prev) => prev.filter((item) => item.id !== id));

@@ -170,8 +170,8 @@ export function MainCartUpdate({
 			await orderService.updateOrderProduct(rawId, {
 				count: quantity,
 				sklad: options.skladId,
-				// price_sum: options.priceSum,
-				// price_dollar: options.priceDollar,
+				price_sum: options.priceSum,
+				price_dollar: options.priceDollar,
 				// currency: options.currencyId,
 			});
 			showSuccess('Mahsulot muvaffaqiyatli yangilandi');

@@ -38,10 +38,11 @@ export function ProductModal({
 	isVozvratOrder = false,
 	onConfirm,
 }: ProductModalProps) {
-	const [quantity, setQuantity] = useState<string>('1');
+	const [quantity, setQuantity] = useState<string>('');
 	const [price, setPrice] = useState<string>('0');
 	const [selectedSkladId, setSelectedSkladId] = useState<number | null>(null);
 	const [skladStockCount, setSkladStockCount] = useState<number | null>(null);
+	const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
 	const [isLoadingStock, setIsLoadingStock] = useState(false);
 	const [errors, setErrors] = useState<{ sklad?: string; quantity?: string; price?: string; stock?: string }>({});
 
@@ -57,10 +58,11 @@ export function ProductModal({
 
 	// Reset funksiyasi
 	const resetForm = () => {
-		setQuantity('1');
+		setQuantity('');
 		setPrice('0');
 		setSelectedSkladId(null);
 		setSkladStockCount(null);
+		setSelectedProductId(null);
 		setSelectedCurrency(staticCurrencies[0]);
 		setErrors({});
 	};
@@ -73,26 +75,36 @@ export function ProductModal({
 	}, [isOpen]);
 
 	// Order-product-history dan default qiymatlarni yuklash (tahrirlash uchun)
+	// Backend price_dollar va price_sum ni unitsum (jami) sifatida saqlaydi → birlik narx = unitsum / count
 	useEffect(() => {
 		if (orderProductId && isOpen) {
 			orderService
 				.getOrderProductById(orderProductId)
 				.then((orderProduct) => {
-					// Quantity
-					const qty = orderProduct.count ?? 1;
+					const qty = Math.max(1, Number(orderProduct.count) || 1);
 					setQuantity(String(qty));
+					// API da price_dollar va price_sum = unitsum (jami), birlik narx = unitsum / count
+					const unitsumDollar = parseFloat(orderProduct.price_dollar) || 0;
+					const unitsumSum = parseFloat(orderProduct.price_sum) || 0;
+					const perUnitDollar = qty > 0 ? unitsumDollar / qty : 0;
+					const perUnitSum = qty > 0 ? unitsumSum / qty : 0;
 					if (currencyCode === 'USD') {
-						const pricePerUnit = orderProduct.price_dollar ?? orderProduct.price_sum ?? 0;
-						setPrice(String(pricePerUnit));
+						setPrice(perUnitDollar > 0 ? String(perUnitDollar) : perUnitSum > 0 ? String(perUnitSum / exchangeRate) : '0');
 					} else {
-						const pricePerUnit = orderProduct.price_sum ?? orderProduct.price_dollar ?? 0;
-						setPrice(String(pricePerUnit));
+						setPrice(perUnitSum > 0 ? String(perUnitSum) : perUnitDollar > 0 ? String(perUnitDollar * exchangeRate) : '0');
 					}
 
 					// Sklad
 					if (orderProduct.sklad != null) {
 						setSelectedSkladId(Number(orderProduct.sklad));
 					}
+
+					// Determine real product id from orderProduct response
+					const prodId =
+						(orderProduct.product && Number(orderProduct.product)) ||
+						(orderProduct.product_detail && Number(orderProduct.product_detail?.id)) ||
+						null;
+					if (prodId) setSelectedProductId(prodId);
 
 					setErrors({});
 				})
@@ -106,23 +118,29 @@ export function ProductModal({
 					}
 				});
 		} else if (product && !orderProductId && isOpen) {
-			setQuantity('1');
+			setQuantity('');
 			setSelectedSkladId(null);
 			setSkladStockCount(null);
+			// If product prop contains actual product id (flat shape), use it
+			const pid = (product as any)?.productId ?? (product as any)?.product ?? (product as any)?.id ?? null;
+			if (pid) setSelectedProductId(Number(pid));
 			setErrors({});
 		}
 	}, [product, orderProductId, isOpen, orderData, exchangeRate, currencyCode]);
 
 	// Sklad tanlanganda /api/v1/product-stock/ dan qoldiqni olish
 	useEffect(() => {
-		if (!product || selectedSkladId == null) {
+		// Determine product id to query for stock: prefer selectedProductId, fall back to product prop
+		const productIdToQuery =
+			selectedProductId ??
+			(product ? ((product as any).productId ?? (product as any).product ?? (product as any).id) : null);
+		if (!productIdToQuery || selectedSkladId == null) {
 			setSkladStockCount(null);
 			return;
 		}
-		if (!product.id) return;
 		setIsLoadingStock(true);
 		productService
-			.getProductStock({ product: product.id, sklad: selectedSkladId })
+			.getProductStock({ product: Number(productIdToQuery), sklad: selectedSkladId })
 			.then((res) => setSkladStockCount(res.count ?? 0))
 			.catch(() => setSkladStockCount(null))
 			.finally(() => setIsLoadingStock(false));
@@ -140,7 +158,17 @@ export function ProductModal({
 
 	if (!isOpen || !product) return null;
 
-	const parsedPrice = parseFloat((price || '').toString().replace(/\s+/g, '')) || 0;
+	const parsedPrice = (() => {
+		const raw = String(price || '');
+		// remove non-breaking spaces, regular spaces, convert comma to dot, strip any non-numeric except dot and minus
+		const cleaned = raw
+			.replace(/\u00A0/g, '')
+			.replace(/\s+/g, '')
+			.replace(/,/g, '.')
+			.replace(/[^0-9.\-]/g, '');
+		const n = parseFloat(cleaned);
+		return Number.isNaN(n) ? 0 : n;
+	})();
 
 	const handleConfirm = () => {
 		const newErrors: { sklad?: string; quantity?: string; price?: string; stock?: string } = {};
@@ -175,32 +203,28 @@ export function ProductModal({
 		// Errorlar yo'q, tozalash va davom etish
 		setErrors({});
 
-		// Currency bo'yicha price_dollar va price_sum ni hisoblash (bitta mahsulot uchun)
+		// Birlik narxlari (tanlangan valyuta bo'yicha)
 		let priceDollarPerUnit = 0;
 		let priceSumPerUnit = 0;
-
 		if (selectedCurrency?.code === 'USD') {
-			// Agar USD tanlangan bo'lsa
 			priceDollarPerUnit = priceValue;
 			priceSumPerUnit = priceValue * exchangeRate;
 		} else {
-			// Agar UZS yoki boshqa currency tanlangan bo'lsa
 			priceSumPerUnit = priceValue;
 			priceDollarPerUnit = priceValue / exchangeRate;
 		}
 
-		// Backend ga yuborishda miqdoriga ko'paytirilgan summalar (2 xona aniqlikda)
-		const priceDollar = parseFloat((priceDollarPerUnit * qty).toFixed(2));
-		const priceSum = parseFloat((priceSumPerUnit * qty).toFixed(2));
+		// Backend price_dollar va price_sum ni unitsum (jami) sifatida kutadi: unitsum = birlik narx * count
+		const unitsumDollar = parseFloat((priceDollarPerUnit * qty).toFixed(2));
+		const unitsumSum = parseFloat((priceSumPerUnit * qty).toFixed(2));
 
-		// Agar currency USD bo'lsa, UZS ga konvertatsiya qilish (backward compatibility)
 		const priceInSum = selectedCurrency?.code === 'USD' ? priceValue * exchangeRate : priceValue;
 
 		onConfirm(qty, priceInSum, {
 			skladId: Number(selectedSkladId),
 			currencyId: selectedCurrency?.id,
-			priceDollar: priceDollar,
-			priceSum: priceSum,
+			priceDollar: unitsumDollar,
+			priceSum: unitsumSum,
 		});
 		onClose();
 	};
@@ -213,24 +237,26 @@ export function ProductModal({
 			<div className='bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-indigo-200'>
 				<div className='flex justify-between items-center p-2 sm:p-3 border-b border-indigo-100 bg-indigo-50'>
 					<div className='flex-1'>
-						{/* Mahsulot ma'lumotlari */}
+						{/* Mahsulot ma'lumotlari (support flat or nested product shapes) */}
 						<div className='flex flex-wrap gap-2 text-xs text-gray-600'>
-							{product.branch_category_detail?.name && (
+							{(product.branch_category_detail?.name || (product as any).branchCategoryName) && (
 								<div className='flex items-center gap-1'>
 									<span className='font-semibold text-indigo-600'>Kategoriya:</span>
-									<span>{product.branch_category_detail?.name}</span>
+									<span>
+										{product.branch_category_detail?.name ?? (product as any).branchCategoryName}
+									</span>
 								</div>
 							)}
-							{product.model_detail?.name && (
+							{(product.model_detail?.name || (product as any).modelName) && (
 								<div className='flex items-center gap-1'>
 									<span className='font-semibold text-indigo-600'>Modeli:</span>
-									<span>{product.model_detail?.name}</span>
+									<span>{product.model_detail?.name ?? (product as any).modelName}</span>
 								</div>
 							)}
-							{product.type_detail?.name && (
+							{(product.type_detail?.name || (product as any).typeName) && (
 								<div className='flex items-center gap-1'>
 									<span className='font-semibold text-indigo-600'>Model turi:</span>
-									<span>{product.type_detail?.name}</span>
+									<span>{product.type_detail?.name ?? (product as any).typeName}</span>
 								</div>
 							)}
 						</div>
@@ -319,7 +345,10 @@ export function ProductModal({
 									autoFocus
 								/>
 								<div className='flex justify-between text-xs text-gray-600 bg-indigo-50/50 px-2 py-1.5 min-w-[3rem] items-center'>
-									{product?.size_detail?.unit_code ?? 'dona'}
+									{product?.size_detail?.unit_code ??
+										(product as any).unitCode ??
+										(product as any).unit ??
+										'dona'}
 								</div>
 							</div>
 							{errors.quantity && (
@@ -332,31 +361,23 @@ export function ProductModal({
 							<Label htmlFor='price' className='block text-xs text-indigo-600 mb-1 ml-1 font-semibold'>
 								Summasi (birlik summa)
 							</Label>
-							{!orderProductId ? (
-								<div
-									className={`flex rounded-lg overflow-hidden border ${errors.price ? 'border-red-500' : 'border-indigo-200'}`}
-								>
-									<NumberInput
-										value={price}
-										onChange={(val) => {
-											setPrice(val);
-											if (errors.price) setErrors((prev) => ({ ...prev, price: undefined }));
-										}}
-										allowDecimal={true}
-										placeholder={`Narx (${currencyCode})`}
-										className='flex-1 block w-full rounded-l-lg border-0 text-sm p-2 bg-white'
-									/>
-									<div className='flex justify-between text-xs text-gray-600 bg-indigo-50/50 px-2 py-1.5 min-w-[3rem] items-center'>
-										{currencyCode}
-									</div>
+							<div
+								className={`flex rounded-lg overflow-hidden border ${errors.price ? 'border-red-500' : 'border-indigo-200'}`}
+							>
+								<NumberInput
+									value={price}
+									onChange={(val) => {
+										setPrice(val);
+										if (errors.price) setErrors((prev) => ({ ...prev, price: undefined }));
+									}}
+									allowDecimal={true}
+									placeholder={`Narx (${currencyCode})`}
+									className='flex-1 block w-full rounded-l-lg border-0 text-sm p-2 bg-white'
+								/>
+								<div className='flex justify-between text-xs text-gray-600 bg-indigo-50/50 px-2 py-1.5 min-w-[3rem] items-center'>
+									{currencyCode}
 								</div>
-							) : (
-								<div>
-									<div className='flex-1 w-full rounded-lg border-0 text-sm p-2 bg-gray-100 text-gray-500 flex items-center justify-center'>
-										{price} {currencyCode}
-									</div>
-								</div>
-							)}
+							</div>
 							{errors.price && <p className='mt-1 text-xs font-medium text-red-600'>{errors.price}</p>}
 						</div>
 					</div>

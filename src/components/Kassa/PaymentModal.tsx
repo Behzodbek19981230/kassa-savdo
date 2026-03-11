@@ -38,10 +38,10 @@ export function PaymentModal({
 	const { addSale } = useSales();
 	const [paidAmount, setPaidAmount] = useState(0);
 	const [selectedMethods, setSelectedMethods] = useState<{ [key: string]: string }>({
-		usd: '0',
-		cash: '0',
-		card: '0',
-		terminal: '0',
+		usd: '',
+		cash: '',
+		card: '',
+		terminal: '',
 	});
 	const receiptRef = useRef<HTMLDivElement>(null);
 	const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
@@ -53,6 +53,7 @@ export function PaymentModal({
 	const [discountAmount, setDiscountAmount] = useState<string>('');
 	const [zdachaDollar, setZdachaDollar] = useState<string>('');
 	const [zdachaSom, setZdachaSom] = useState<string>('');
+	const [paymentFieldErrors, setPaymentFieldErrors] = useState<string[]>([]);
 	const router = useNavigate();
 	// OrderData o'zgarganda note va driverInfo ni yangilash
 	useEffect(() => {
@@ -142,10 +143,10 @@ export function PaymentModal({
 	};
 
 	const handleMethodAmountChange = (methodId: string, amount: string) => {
-		// `amount` is a normalized numeric string (e.g. "10000.5") from NumberInput
 		const next = { ...selectedMethods, [methodId]: amount };
 		setSelectedMethods(next);
 		setPaidAmount(getPaidAmountInUzs(next));
+		setPaymentFieldErrors((prev) => prev.filter((id) => id !== methodId));
 	};
 
 	const handleRemoveMethod = (methodId: string) => {
@@ -168,22 +169,51 @@ export function PaymentModal({
 
 	const handleComplete = async () => {
 		if (orderData) {
+			// Validatsiya: barcha to'lov usullariga kamida 0 kiritilishi shart
+			const methodKeys = ['usd', 'cash', 'card', 'terminal'];
+			const emptyFields = methodKeys.filter((k) => {
+				const v = selectedMethods[k];
+				return v == null || String(v).trim() === '';
+			});
+			if (emptyFields.length > 0) {
+				setPaymentFieldErrors(emptyFields);
+				showError("Barcha to'lov usullariga kamida 0 kiriting.");
+				return;
+			}
+			setPaymentFieldErrors([]);
+
 			setIsCompleting(true);
 			try {
+				// Normalize empty payment method fields to '0'
+				const normalizedMethods = { ...selectedMethods };
+				methodKeys.forEach((k) => {
+					if (normalizedMethods[k] == null || normalizedMethods[k] === '') normalizedMethods[k] = '0';
+				});
+				if (JSON.stringify(normalizedMethods) !== JSON.stringify(selectedMethods)) {
+					setSelectedMethods(normalizedMethods);
+				}
+
+				// Ensure discount and zdacha fields are at least '0'
+				if (discountAmount === '') setDiscountAmount('0');
+				if (zdachaDollar === '') setZdachaDollar('0');
+				if (zdachaSom === '') setZdachaSom('0');
+
 				// Payment methods ni API polylariga map qilish
-				const summa_naqt = parseFloat(selectedMethods.cash || '') || 0;
-				const summa_dollar = parseFloat(selectedMethods.usd || '') || 0;
-				const summa_transfer = parseFloat(selectedMethods.card || '') || 0;
-				// Terminal to'lovi (so'mda)
-				const summa_terminal = parseFloat(selectedMethods.terminal || '') || 0;
+				const summa_naqt = parseFloat(normalizedMethods.cash || '') || 0;
+				const summa_dollar = parseFloat(normalizedMethods.usd || '') || 0;
+				const summa_transfer = parseFloat(normalizedMethods.card || '') || 0;
+				const summa_terminal = parseFloat(normalizedMethods.terminal || '') || 0;
 
-				// Summa total dollar (jami summa USD da)
-				const summa_total_dollar = totalAmount;
+				// all_product_summa va summa_total_dollar = mahsulotlar price_dollar (unitsum) yig'indisi, count ga ko'paytirish shart emas
+				const totalDollarFromItems =
+					items.length > 0
+						? items.reduce((s, i) => s + (Number((i as any).price_dollar) || 0), 0)
+						: usdRate > 0
+							? totalAmount / usdRate
+							: 0;
+				const all_product_summa = totalDollarFromItems;
+				const summa_total_dollar = totalDollarFromItems;
 
-				// Agar order_status belgilanmasa, barcha summa maydonlarini 0 jo'natamiz
-				// const zeroSums = !orderStatusChecked; // Keyinchalik ishlatilishi mumkin
-
-				// Order-history ga PATCH qilish
 				const updateData = {
 					is_karzinka: false,
 					note: note,
@@ -193,12 +223,12 @@ export function PaymentModal({
 					summa_transfer: summa_transfer,
 					summa_terminal: summa_terminal,
 					summa_total_dollar: summa_total_dollar,
-					all_product_summa: totalAmount,
+					all_product_summa: all_product_summa,
 					// order_status va vozvrat/is_debtor_product
 					order_status: orderStatusChecked,
-					discount_amount: parseFloat(discountAmount) || 0,
-					zdacha_dollar: parseFloat(zdachaDollar) || 0,
-					zdacha_som: parseFloat(zdachaSom) || 0,
+					discount_amount: parseFloat(discountAmount || '0') || 0,
+					zdacha_dollar: parseFloat(zdachaDollar || '0') || 0,
+					zdacha_som: parseFloat(zdachaSom || '0') || 0,
 				};
 
 				const updatedOrder = await orderService.sellOrder(orderData.id, updateData);
@@ -346,13 +376,16 @@ export function PaymentModal({
 						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3'>
 							{paymentMethods.map((method) => {
 								const isSelected = (parseFloat(selectedMethods[method.id] || '') || 0) > 0;
+								const hasError = paymentFieldErrors.includes(method.id);
 								return (
 									<div
 										key={method.id}
 										className={`border rounded-lg overflow-hidden shadow-sm hover:shadow transition-all duration-200 ${
-											isSelected
-												? 'border-indigo-400 ring-1 ring-indigo-200'
-												: 'border-indigo-200'
+											hasError
+												? 'border-red-500 ring-1 ring-red-200'
+												: isSelected
+													? 'border-indigo-400 ring-1 ring-indigo-200'
+													: 'border-indigo-200'
 										}`}
 									>
 										<div
@@ -377,16 +410,23 @@ export function PaymentModal({
 										<div className='p-1.5 bg-white'>
 											<div className='relative'>
 												<NumberInput
-													value={String(selectedMethods[method.id] ?? '0')}
+													value={String(selectedMethods[method.id] ?? '')}
 													onChange={(val) => handleMethodAmountChange(method.id, val)}
 													allowDecimal={method.unit === 'USD'}
-													placeholder={method.unit === 'USD' ? '0' : '0'}
-													className='w-full border border-indigo-200 focus:border focus:border-indigo-500 py-1 pr-8 text-right font-semibold text-xs rounded focus:bg-indigo-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+													placeholder={'0'}
+													className={`w-full py-1 pr-8 text-right font-semibold text-xs rounded focus:bg-indigo-50/50 focus-visible:ring-0 focus-visible:ring-offset-0 ${
+														hasError
+															? 'border-2 border-red-500 focus:border-red-500 bg-red-50/50'
+															: 'border border-indigo-200 focus:border focus:border-indigo-500'
+													}`}
 												/>
 												<span className='absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500 pointer-events-none'>
 													{method.unit}
 												</span>
 											</div>
+											{hasError && (
+												<p className='text-[10px] text-red-600 mt-0.5'>Kamida 0 kiriting</p>
+											)}
 										</div>
 									</div>
 								);
@@ -403,7 +443,7 @@ export function PaymentModal({
 										value={discountAmount}
 										onChange={(val) => setDiscountAmount(val)}
 										allowDecimal={true}
-										placeholder='0'
+										placeholder=''
 										className='w-full border border-amber-200 focus:border focus:border-amber-500 py-1 pr-10 text-right font-semibold text-xs rounded focus:bg-amber-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 									/>
 									<span className='absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500 pointer-events-none'>
@@ -422,7 +462,7 @@ export function PaymentModal({
 										value={zdachaDollar}
 										onChange={(val) => setZdachaDollar(val)}
 										allowDecimal={true}
-										placeholder='0'
+										placeholder=''
 										className='w-full border border-green-200 focus:border focus:border-green-500 py-1 pr-10 text-right font-semibold text-xs rounded focus:bg-green-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 									/>
 									<span className='absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium text-gray-500 pointer-events-none'>
@@ -441,7 +481,7 @@ export function PaymentModal({
 										value={zdachaSom}
 										onChange={(val) => setZdachaSom(val)}
 										allowDecimal={true}
-										placeholder='0'
+										placeholder=''
 										className='w-full border border-blue-200 focus:border focus:border-blue-500 py-1 pr-10 text-right font-semibold text-xs rounded focus:bg-blue-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
 										disabled
 									/>
@@ -460,11 +500,12 @@ export function PaymentModal({
 									<div className='flex items-center mb-1.5'>
 										<FileText size={14} className='mr-1.5 text-blue-600' />
 										<span className='text-blue-600 text-[10px] font-semibold'>Izoh</span>
+										<span className='text-[9px] text-gray-500 ml-1'>(ixtiyoriy)</span>
 									</div>
 									<textarea
 										value={note}
 										onChange={(e) => setNote(e.target.value)}
-										placeholder='Izoh kiriting...'
+										placeholder='Izoh kiriting (ixtiyoriy)...'
 										className='w-full px-2 py-1 text-[11px] border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent resize-none'
 										rows={2}
 									/>
@@ -477,11 +518,12 @@ export function PaymentModal({
 										<span className='text-purple-600 text-[10px] font-semibold'>
 											Yetkazib beruvchi
 										</span>
+										<span className='text-[9px] text-gray-500 ml-1'>(ixtiyoriy)</span>
 									</div>
 									<textarea
 										value={driverInfo}
 										onChange={(e) => setDriverInfo(e.target.value)}
-										placeholder="Yetkazib beruvchi ma'lumotlari..."
+										placeholder="Yetkazib beruvchi ma'lumotlari (ixtiyoriy)..."
 										className='w-full px-2 py-1 text-[11px] border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-transparent resize-none'
 										rows={2}
 									/>

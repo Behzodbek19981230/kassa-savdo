@@ -630,6 +630,8 @@ export function Layout({ children, onBack, showBackButton = true }: LayoutProps)
 															queryClient.invalidateQueries({
 																queryKey: ['debtor-products'],
 															});
+															// Refresh the page so UI fully reflects read state
+															window.location.reload();
 														},
 													});
 												}}

@@ -14,6 +14,7 @@ import { Autocomplete, type AutocompleteOption } from '../ui/Autocomplete';
 import clsx from 'clsx';
 import { Button } from '../ui/button';
 import { formatMoney } from '../../lib/utils';
+import { useRole } from '@/hooks/useRole';
 
 interface DraftFilters {
 	search: string;
@@ -47,6 +48,7 @@ function tolovSummasi(order: OrderResponse): number {
 
 export function DebtorDashboard() {
 	const navigate = useNavigate();
+	const roles = useRole();
 
 	// Draft filters (user edits these, not applied until "Filter" button click)
 	const [draft, setDraft] = useState<DraftFilters>({ ...defaultDraft });
@@ -300,25 +302,32 @@ export function DebtorDashboard() {
 									<th className='text-right p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
 										Umumiy qolgan qarz($)
 									</th>
-									<th className='text-right p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
-										Jami foyda($)
-									</th>
+									{(roles.isAdmin || roles.isSuperAdmin) && (
+										<th className='text-right p-1 font-semibold text-gray-700 min-w-[90px] text-xs'>
+											Jami foyda($)
+										</th>
+									)}
 									<th className='text-right p-1 font-semibold text-gray-700 min-w-[120px] text-xs'>
 										Yaratilgan vaqt
 									</th>
 									<th className='text-right p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>
 										Buyurtma holati
 									</th>
-									<th className='text-right p-1 font-semibold text-gray-700 min-w-[80px] text-xs'>
-										Keshbek($)
-									</th>
+									{(roles.isAdmin || roles.isSuperAdmin) && (
+										<th className='text-right p-1 font-semibold text-gray-700 min-w-[80px] text-xs'>
+											Keshbek($)
+										</th>
+									)}
 									<th className='text-right p-1 font-semibold text-gray-700 w-24 text-xs'>Amallar</th>
 								</tr>
 							</thead>
 							<tbody>
 								{groups.length === 0 || groups.every((g) => (g.items?.length || 0) === 0) ? (
 									<tr>
-										<td colSpan={14} className='text-center py-12 text-gray-400'>
+										<td
+											colSpan={roles.isAdmin || roles.isSuperAdmin ? 14 : 12}
+											className='text-center py-12 text-gray-400'
+										>
 											Ma'lumotlar yo'q
 										</td>
 									</tr>
@@ -403,9 +412,11 @@ export function DebtorDashboard() {
 																<td className='p-1 text-right text-red-600 font-semibold text-xs'>
 																	{(totalDebt / exchangeRate).toFixed(2)}
 																</td>
-																<td className='p-1 text-right text-green-600 font-semibold text-xs'>
-																	{totalProfit.toFixed(2)}
-																</td>
+																{(roles.isAdmin || roles.isSuperAdmin) && (
+																	<td className='p-1 text-right text-green-600 font-semibold text-xs'>
+																		{totalProfit.toFixed(2)}
+																	</td>
+																)}
 																<td className='p-1 text-right text-gray-600 whitespace-nowrap text-xs'>
 																	{order.created_time
 																		? format(new Date(order.created_time), 'HH:mm')
@@ -429,9 +440,11 @@ export function DebtorDashboard() {
 																		</span>
 																	)}
 																</td>
-																<td className='p-1 text-right text-gray-700 text-xs'>
-																	{cashback.toFixed(2)}
-																</td>
+																{(roles.isAdmin || roles.isSuperAdmin) && (
+																	<td className='p-1 text-right text-gray-700 text-xs'>
+																		{cashback.toFixed(2)}
+																	</td>
+																)}
 																<td className='p-1 text-right group-hover:bg-blue-50/30 transition-colors'>
 																	<Button
 																		size='icon'
@@ -492,14 +505,18 @@ export function DebtorDashboard() {
 												(groups[0]?.items?.[0]?.exchange_rate || 1)
 											).toFixed(2)}
 										</td>
-										<td className='p-1 text-right font-semibold text-green-600 text-xs'>
-											{overallTotals.totalFoyda.toFixed(2)}
-										</td>
+										{(roles.isAdmin || roles.isSuperAdmin) && (
+											<td className='p-1 text-right font-semibold text-green-600 text-xs'>
+												{overallTotals.totalFoyda.toFixed(2)}
+											</td>
+										)}
 										<td className='p-1 text-right font-semibold text-xs'></td>
 										<td className='p-1 text-right font-semibold text-xs'></td>
-										<td className='p-1 text-right font-semibold text-xs'>
-											{overallTotals.totalKeshbek.toFixed(2)}
-										</td>
+										{(roles.isAdmin || roles.isSuperAdmin) && (
+											<td className='p-1 text-right font-semibold text-xs'>
+												{overallTotals.totalKeshbek.toFixed(2)}
+											</td>
+										)}
 										<td className='p-1 text-right font-semibold text-xs'></td>
 									</tr>
 								)}
