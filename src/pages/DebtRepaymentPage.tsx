@@ -289,7 +289,15 @@ export function DebtRepaymentPage() {
 															Number(item.summa_terminal || 0);
 														const isFirstInGroup = itemIdx === 0;
 														const groupDate = group.date
-															? format(new Date(group.date), 'dd.MM.yyyy')
+															? (() => {
+																	try {
+																		const date = new Date(group.date);
+																		if (isNaN(date.getTime())) return 'Barcha sanalar';
+																		return format(date, 'dd.MM.yyyy');
+																	} catch {
+																		return 'Barcha sanalar';
+																	}
+																})()
 															: 'Barcha sanalar';
 														return (
 															<tr
@@ -357,8 +365,18 @@ export function DebtRepaymentPage() {
 																		>
 																			<Printer size={12} />
 																		</button>
-																		{format(item.created_time, 'yyyy-MM-dd') ==
-																		today ? (
+																		{(() => {
+																			try {
+																				if (!item.created_time) return false;
+																				const createdDate = new Date(item.created_time);
+																				if (isNaN(createdDate.getTime())) return false;
+																				const todayStr = format(today, 'yyyy-MM-dd');
+																				const createdStr = format(createdDate, 'yyyy-MM-dd');
+																				return createdStr === todayStr;
+																			} catch {
+																				return false;
+																			}
+																		})() ? (
 																			<button
 																				onClick={() => handleDelete(item.id)}
 																				disabled={
