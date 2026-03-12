@@ -352,7 +352,10 @@ export function KassaUpdate({
 				<>
 					<ProductModal
 						isOpen={!!selectedProduct}
-						onClose={() => setSelectedProduct(null)}
+						onClose={() => {
+							setSelectedProduct(null);
+							setRefreshCartTrigger((t) => t + 1);
+						}}
 						product={selectedProduct}
 						exchangeRate={exchangeRate}
 						skladlar={skladlar}

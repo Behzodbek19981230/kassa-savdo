@@ -42,7 +42,7 @@ export function DebtRepaymentModal({ isOpen, onClose, onSuccess }: DebtRepayment
 	const [zdachaSom, setZdachaSom] = useState<string>('0');
 
 	const exchangeRate = displayRate;
-	const clientDebt = selectedClient?.total_debt ? Number(selectedClient.total_debt) / exchangeRate : 0;
+	const clientDebt = selectedClient?.total_debt ? Number(selectedClient.total_debt) : 0;
 
 	// Mijozlarni qidirish - useCallback bilan memoize qilish (debounce uchun)
 	const searchClients = useCallback(async (query: string) => {

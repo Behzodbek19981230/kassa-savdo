@@ -43,41 +43,30 @@ export interface OrderItem {
 	order_history_detail: OrderHistoryDetail | null;
 	vozvrat_order: number | null;
 	vozvrat_order_detail: any | null;
-
 	product: number;
 	product_detail: ProductDetail;
-
 	branch: number;
 	branch_detail: BranchDetail;
-
 	branch_category: number;
 	branch_category_detail: BranchCategoryDetail;
-
 	model: number;
 	model_detail: ModelDetail;
-
 	type: number;
 	type_detail: TypeDetail;
-
 	size: number;
 	size_detail: SizeDetail;
-
 	count: number;
 	given_count: number;
-
 	real_price: string;
 	unit_price: string;
 	wholesale_price: string;
-
 	is_delete: boolean;
 	cargo_terminal: any | null;
 	price_difference: boolean;
 	status_order: boolean;
 	is_karzinka: boolean;
-
 	sklad: number;
 	sklad_detail: SkladDetail;
-
 	price_dollar: string;
 	price_sum: string;
 }
@@ -344,7 +333,7 @@ export interface SizeDetail {
 	id: number;
 	product_type: number;
 	product_type_detail?: TypeDetail;
-	name: string;
+	size: string;
 	unit?: number;
 	unit_detail?: UnitDetail;
 	unit_code?: string;

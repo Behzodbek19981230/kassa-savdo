@@ -41,7 +41,7 @@ export function OrderShowPage() {
 			setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
 		} catch (e: any) {
 			console.error('PDF yuklash xatosi', e);
-			showError(e?.response?.data?.detail || e?.message || "PDF yuklashda xatolik");
+			showError(e?.response?.data?.detail || e?.message || 'PDF yuklashda xatolik');
 		}
 	};
 
@@ -78,13 +78,8 @@ export function OrderShowPage() {
 
 	const { order_history, products } = data;
 	const usdRate = order_history?.exchange_rate != null ? Number(order_history.exchange_rate) : displayRate;
-	const totalPaidUZS =
-		Number(order_history.summa_naqt || 0) +
-		Number(order_history.summa_dollar || 0) * usdRate +
-		Number(order_history.summa_transfer || 0) +
-		Number(order_history.summa_terminal || 0);
-	const totalPaidUSD = usdRate ? totalPaidUZS / usdRate : 0;
-	/** Inline editable cell for given_count — tahrirlash faqat sklad_manager, admin, super_admin uchun */
+
+	const totalPaidUSD = Number(order_history?.summa_total_dollar);
 	function GivenCountCell({
 		productId,
 		count,
@@ -103,6 +98,7 @@ export function OrderShowPage() {
 		const [isSaving, setIsSaving] = useState(false);
 		const inputRef = useRef<HTMLInputElement | null>(null);
 		const isDifferent = givenCount !== count;
+		const roles = useRole();
 
 		useEffect(() => {
 			if (isEditing && inputRef.current) {
@@ -304,168 +300,113 @@ export function OrderShowPage() {
 						<p className='text-xs text-gray-600'>{order_history.created_by_detail?.phone_number || ''}</p>
 					</div>
 
-					{/* Filial */}
-					<div className='bg-amber-50 p-2 rounded border border-amber-200'>
-						<p className='text-[10px] font-semibold text-amber-600 mb-1 uppercase tracking-wide'>Filial</p>
-						<p className='font-bold text-gray-800 text-sm'>
-							{order_history.order_filial_detail?.name || "Noma'lum"}
-						</p>
-					</div>
-
-					{/* Valyuta kursi */}
-					<div className='bg-cyan-50 p-2 rounded border border-cyan-200'>
+					{/* Dollar kursi */}
+					<div className='bg-gradient-to-br from-cyan-50 to-teal-50 p-2 rounded border border-cyan-200'>
 						<p className='text-[10px] font-semibold text-cyan-600 mb-1 uppercase tracking-wide'>
-							Valyuta kursi
+							Dollar kursi
 						</p>
-						<p className='font-bold text-gray-800 text-sm'>1 USD = {formatMoney(Number(usdRate))} UZS</p>
+						<p className='font-bold text-gray-800 text-xs'>
+							{usdRate > 0 ? Number(usdRate).toLocaleString() : '-'}
+						</p>
 					</div>
 
-					{/* Holati */}
-					<div className='bg-gray-50 p-2 rounded border border-gray-200'>
-						<p className='text-[10px] font-semibold text-gray-600 mb-1 uppercase tracking-wide'>Holati</p>
-						<div className='space-y-0.5'>
-							<div className='flex items-center gap-1.5'>
-								<span
-									className={`w-1.5 h-1.5 rounded-full ${
-										order_history.status_order_dukon ? 'bg-green-500' : 'bg-gray-300'
-									}`}
-								></span>
-								<span className='text-xs text-gray-700'>
-									Dukon: {order_history.status_order_dukon ? 'Tayyor' : 'Kutilmoqda'}
-								</span>
-							</div>
-							<div className='flex items-center gap-1.5'>
-								<span
-									className={`w-1.5 h-1.5 rounded-full ${
-										order_history.status_order_sklad ? 'bg-green-500' : 'bg-gray-300'
-									}`}
-								></span>
-								<span className='text-xs text-gray-700'>
-									Sklad: {order_history.status_order_sklad ? 'Tayyor' : 'Kutilmoqda'}
-								</span>
-							</div>
-						</div>
-					</div>
+					{/* Jami to'lanadigan summa */}
+					{(() => {
+						const allProductSummaUSD = Number(order_history.all_product_summa || 0);
+						const discountAmountUSD = Number(order_history.discount_amount || 0);
+						const payableUSD = allProductSummaUSD;
 
-					{/* Jami summa */}
-					<div className='bg-indigo-50 p-2 rounded border-2 border-indigo-300'>
+						return (
+							<div className='bg-gradient-to-br from-indigo-50 to-blue-50 p-2 rounded border-2 border-indigo-300'>
+								<p className='text-[10px] font-semibold text-indigo-600 mb-1 uppercase tracking-wide'>
+									Jami to'lanadigan summa ($)
+								</p>
+								<p className='text-xs font-semibold text-indigo-600'>{formatMoney(payableUSD)} USD</p>
+							</div>
+						);
+					})()}
+
+					{/* To'langan summa */}
+					<div className='bg-gradient-to-br from-indigo-50 to-blue-50 p-2 rounded border-2 border-indigo-300'>
 						<p className='text-[10px] font-semibold text-indigo-600 mb-1 uppercase tracking-wide'>
-							Jami summa
+							To'langan summa ($)
 						</p>
-						<p className='font-bold text-indigo-700 text-base mb-0.5'>
-							{formatMoney(Number(order_history.all_product_summa || 0) / usdRate)} USD
-						</p>
-						<p className='text-xs font-semibold text-indigo-600'>
-							{formatMoney(Number(order_history.all_product_summa || 0))} UZS
-						</p>
+						<p className='text-xs font-semibold text-indigo-600'>{formatMoney(totalPaidUSD)} USD</p>
 					</div>
 
 					{/* Chegirma */}
-					<div className='bg-rose-50 p-2 rounded border border-rose-200'>
-						<p className='text-[10px] font-semibold text-rose-600 mb-1 uppercase tracking-wide'>Chegirma</p>
-						<p className='font-bold text-rose-700 text-base'>
-							{formatMoney(Number(order_history.discount_amount || 0))} UZS
+					<div className='bg-gradient-to-br from-rose-50 to-red-50 p-2 rounded border border-rose-200'>
+						<p className='text-[10px] font-semibold text-rose-600 mb-1 uppercase tracking-wide'>
+							Chegirma ($)
 						</p>
-						{Number(order_history.discount_amount || 0) > 0 && (
-							<p className='text-[10px] text-rose-600 mt-0.5'>
-								{(
-									(Number(order_history.discount_amount) /
-										Number(order_history.all_product_summa || 1)) *
-									100
-								).toFixed(1)}
-								%
-							</p>
-						)}
+						<p className='font-bold text-rose-700 text-base mb-0.5'>
+							{formatMoney(Number(order_history.discount_amount || 0))} USD
+						</p>
+						<p className='text-xs font-semibold text-rose-600'>
+							{usdRate > 0
+								? formatMoney(Number(order_history.discount_amount || 0) * usdRate)
+								: formatMoney(Number(order_history.discount_amount || 0))}{' '}
+							UZS
+						</p>
 					</div>
 
-					{/* To'lanishi kerak */}
-					{/* To'lanishi kerak va Jami to'landi yonma-yon */}
-					{(Number(order_history.all_product_summa || 0) - Number(order_history.discount_amount || 0) > 0 ||
-						totalPaidUZS > 0) && (
-						<div className='bg-emerald-50 p-2 rounded border-2 border-emerald-300'>
+					{/* Foyda */}
+					{(roles.isSuperAdmin || roles.isAdmin) && (
+						<div className='bg-gradient-to-br from-emerald-50 to-green-50 p-2 rounded border border-emerald-200'>
 							<p className='text-[10px] font-semibold text-emerald-600 mb-1 uppercase tracking-wide'>
-								To'lanishi kerak
+								Foyda ($)
 							</p>
 							<p className='font-bold text-emerald-700 text-base mb-0.5'>
-								{formatMoney(
-									(Number(order_history.all_product_summa || 0) -
-										Number(order_history.discount_amount || 0)) /
-										usdRate,
-								)}{' '}
-								USD
+								{formatMoney(Number(order_history.all_profit_dollar || 0))} USD
 							</p>
 							<p className='text-xs font-semibold text-emerald-600'>
-								{formatMoney(
-									Number(order_history.all_product_summa || 0) -
-										Number(order_history.discount_amount || 0),
-								)}{' '}
+								{usdRate > 0
+									? formatMoney(Number(order_history.all_profit_dollar || 0) * usdRate)
+									: '-'}{' '}
 								UZS
 							</p>
 						</div>
 					)}
 
-					{/* Jami to'landi */}
-					<div className='bg-indigo-50 p-2 rounded border-2 border-indigo-300'>
-						<p className='text-[10px] font-semibold text-indigo-600 mb-1 uppercase tracking-wide'>
-							Jami to'landi
-						</p>
-						<div className='text-right'>
-							<div className='font-bold text-lg sm:text-xl text-indigo-700'>
-								{formatMoney(totalPaidUSD)} USD
-							</div>
-							<div className='text-sm sm:text-base text-gray-500'>{formatMoney(totalPaidUZS)} UZS</div>
-						</div>
-					</div>
-					{/* Qarz ma'lumotlari */}
-					<div className='bg-red-50 p-2 rounded border border-red-200'>
-						<p className='text-[10px] font-semibold text-red-600 mb-2 uppercase tracking-wide'>
-							Qarz ma'lumotlari
-						</p>
-						<p className='font-bold text-red-700 text-base'>
-							{formatMoney(Number(order_history.client_detail?.total_debt || 0))} USD
-						</p>
-						<p className='text-xs text-red-600 mt-0.5'>
-							{formatMoney(Number(order_history.client_detail?.total_debt || 0) * usdRate)} UZS
-						</p>
-					</div>
+					{/* Qolgan qarz */}
+					{(() => {
+						const totalDebtClient = Number(order_history.total_debt_client || 0);
 
-					{/* Foyda — faqat admin / super admin */}
-					{(roles.isAdmin || roles.isSuperAdmin) &&
-						Number(order_history.all_profit_dollar || 0) > 0 && (
-							<div className='bg-lime-50 p-2 rounded border border-lime-200'>
-								<p className='text-[10px] font-semibold text-lime-600 mb-1 uppercase tracking-wide'>
-									Foyda
+						return (
+							<div className='bg-gradient-to-br from-red-50 to-pink-50 p-2 rounded border border-red-200'>
+								<p className='text-[10px] font-semibold text-red-600 mb-1 uppercase tracking-wide'>
+									Qolgan qarz ($)
 								</p>
-								<p className='font-bold text-lime-700 text-base'>
-									{formatMoney(Number(order_history.all_profit_dollar))} USD
+								<p className='font-bold text-red-700 text-base mb-0.5'>
+									{formatMoney(totalDebtClient)} USD
 								</p>
-								<p className='text-xs text-lime-600 mt-0.5'>
-									{formatMoney(Number(order_history.all_profit_dollar) * usdRate)} UZS
+								<p className='text-xs font-semibold text-red-600'>
+									{usdRate > 0 ? (totalDebtClient * usdRate).toLocaleString() : '-'} UZS
 								</p>
 							</div>
-						)}
-
+						);
+					})()}
+				</div>
+				<div className='mt-2 col-span-2'>
 					{/* To'lov usullari */}
-					<div className='md:col-span-2 lg:col-span-3 xl:col-span-5'>
+					<div>
 						<p className='text-[10px] font-semibold text-gray-600 mb-2 uppercase tracking-wide'>
 							To'lov usullari
 						</p>
 						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2'>
 							{Number(order_history.summa_dollar || 0) > 0 && (
 								<div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
-									<div className='bg-green-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+									<div className='bg-gradient-to-r from-green-700 to-emerald-800 text-white p-1.5 sm:p-2 flex justify-between items-center'>
 										<div className='flex items-center space-x-1.5'>
 											<div className='bg-green-100 p-1 rounded'>
 												<Banknote className='text-green-700 w-3 h-3' />
 											</div>
-											<span className='font-medium text-[10px] sm:text-xs'>
-												AQSH dollari naqd
-											</span>
+											<span className='font-medium text-[10px] sm:text-xs'>US dollar naqd</span>
 										</div>
 									</div>
 									<div className='p-1.5 sm:p-2 bg-white'>
 										<div className='text-right flex items-center justify-end gap-1'>
-											<p className='font-semibold text-sm text-gray-800'>
+											<p className='font-semibold text-xs text-gray-800'>
 												{formatMoney(Number(order_history.summa_dollar))}
 											</p>
 											<span className='text-[10px] font-medium text-gray-500'>USD</span>
@@ -478,7 +419,7 @@ export function OrderShowPage() {
 							)}
 							{Number(order_history.summa_naqt || 0) > 0 && (
 								<div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
-									<div className='bg-green-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+									<div className='bg-gradient-to-r from-lime-500 to-green-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
 										<div className='flex items-center space-x-1.5'>
 											<div className='bg-lime-100 p-1 rounded'>
 												<Banknote className='text-lime-700 w-3 h-3' />
@@ -488,7 +429,7 @@ export function OrderShowPage() {
 									</div>
 									<div className='p-1.5 sm:p-2 bg-white'>
 										<div className='text-right flex items-center justify-end gap-1'>
-											<p className='font-semibold text-sm text-gray-800'>
+											<p className='font-semibold text-xs text-gray-800'>
 												{formatMoney(Number(order_history.summa_naqt))}
 											</p>
 											<span className='text-[10px] font-medium text-gray-500'>UZS</span>
@@ -499,7 +440,7 @@ export function OrderShowPage() {
 
 							{Number(order_history.summa_transfer || 0) > 0 && (
 								<div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
-									<div className='bg-blue-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+									<div className='bg-gradient-to-r from-blue-400 to-cyan-500 text-white p-1.5 sm:p-2 flex justify-between items-center'>
 										<div className='flex items-center space-x-1.5'>
 											<div className='bg-blue-100 p-1 rounded'>
 												<CreditCard className='text-blue-700 w-3 h-3' />
@@ -509,7 +450,7 @@ export function OrderShowPage() {
 									</div>
 									<div className='p-1.5 sm:p-2 bg-white'>
 										<div className='text-right flex items-center justify-end gap-1'>
-											<p className='font-semibold text-sm text-gray-800'>
+											<p className='font-semibold text-xs text-gray-800'>
 												{formatMoney(Number(order_history.summa_transfer))}
 											</p>
 											<span className='text-[10px] font-medium text-gray-500'>UZS</span>
@@ -519,7 +460,7 @@ export function OrderShowPage() {
 							)}
 							{Number(order_history.summa_terminal || 0) > 0 && (
 								<div className='border rounded-lg overflow-hidden shadow-sm border-indigo-200'>
-									<div className='bg-blue-600 text-white p-1.5 sm:p-2 flex justify-between items-center'>
+									<div className='bg-gradient-to-r from-blue-400 to-cyan-500 text-white p-1.5 sm:p-2 flex justify-between items-center'>
 										<div className='flex items-center space-x-1.5'>
 											<div className='bg-blue-100 p-1 rounded'>
 												<CreditCard className='text-blue-700 w-3 h-3' />
@@ -529,7 +470,7 @@ export function OrderShowPage() {
 									</div>
 									<div className='p-1.5 sm:p-2 bg-white'>
 										<div className='text-right flex items-center justify-end gap-1'>
-											<p className='font-semibold text-sm text-gray-800'>
+											<p className='font-semibold text-xs text-gray-800'>
 												{formatMoney(Number(order_history.summa_terminal))}
 											</p>
 											<span className='text-[10px] font-medium text-gray-500'>UZS</span>
@@ -539,10 +480,11 @@ export function OrderShowPage() {
 							)}
 						</div>
 					</div>
-
+				</div>
+				<div className='mt-2 col-span-2'>
 					{/* Qaytim */}
 					{(Number(order_history.zdacha_dollar || 0) > 0 || Number(order_history.zdacha_som || 0) > 0) && (
-						<div className='bg-yellow-50 p-2 rounded border border-yellow-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+						<div className='bg-gradient-to-br from-yellow-50 to-amber-50 p-2 rounded border border-yellow-200'>
 							<p className='text-[10px] font-semibold text-yellow-600 mb-2 uppercase tracking-wide'>
 								Qaytim
 							</p>
@@ -566,10 +508,11 @@ export function OrderShowPage() {
 							</div>
 						</div>
 					)}
-
+				</div>
+				<div className='mt-2 grid grid-cols-2 gap-2'>
 					{/* Izoh */}
 					{order_history.note && (
-						<div className='bg-slate-50 p-2 rounded border border-slate-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+						<div className='bg-gradient-to-br from-slate-50 to-gray-50 p-2 rounded border border-slate-200'>
 							<p className='text-[10px] font-semibold text-slate-600 mb-1 uppercase tracking-wide'>
 								Izoh
 							</p>
@@ -579,7 +522,7 @@ export function OrderShowPage() {
 
 					{/* Yetkazib beruvchi */}
 					{order_history.driver_info && (
-						<div className='bg-teal-50 p-2 rounded border border-teal-200 md:col-span-2 lg:col-span-3 xl:col-span-5'>
+						<div className='bg-gradient-to-br from-teal-50 to-cyan-50 p-2 rounded border border-teal-200'>
 							<p className='text-[10px] font-semibold text-teal-600 mb-1 uppercase tracking-wide'>
 								Yetkazib beruvchi
 							</p>
@@ -687,7 +630,11 @@ export function OrderShowPage() {
 															count={count}
 															givenCount={Number(product.given_count || 0)}
 															onUpdated={handleGivenCountUpdated}
-															canEdit={roles.isAdmin || roles.isSuperAdmin || roles.isSkladManager}
+															canEdit={
+																roles.isAdmin ||
+																roles.isSuperAdmin ||
+																roles.isSkladManager
+															}
 														/>
 													</td>
 													<td className='px-2 py-1 text-xs text-gray-800 text-right'>
@@ -777,7 +724,8 @@ export function OrderShowPage() {
 														sum +
 														g.product.reduce((s, p) => {
 															const profit =
-																(Number(p.price_dollar || 0) - Number(p.real_price || 0)) *
+																(Number(p.price_dollar || 0) -
+																	Number(p.real_price || 0)) *
 																Number(p.count || 0);
 															return s + profit;
 														}, 0),

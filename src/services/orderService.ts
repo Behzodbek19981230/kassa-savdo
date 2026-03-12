@@ -104,6 +104,7 @@ export interface OrderResponse {
 	order_detail?: any | null;
 	client: number;
 	client_detail: ClientDetail | null;
+	created_time: string;
 	employee: number;
 	exchange_rate: string;
 	date: string | null;
@@ -130,7 +131,6 @@ export interface OrderResponse {
 	status_order_sklad: boolean;
 	driver_info: string;
 	is_karzinka: boolean;
-	created_time?: string | null;
 	created_by?: number | null;
 	created_by_detail?: CreatedByDetail | null;
 	order_filial?: number | null;
@@ -155,7 +155,7 @@ export const orderService = {
 			exchange_rate: data.exchange_rate,
 			// date: data.date || new Date().toISOString(),
 			note: data.note || '',
-			all_profit_dollar: data.all_profit_dollar || 0,
+			// all_profit_dollar: data.all_profit_dollar || 0,
 			total_debt_client: data.total_debt_client || 0,
 			total_debt_today_client: data.total_debt_today_client || 0,
 			all_product_summa: data.all_product_summa || 0,

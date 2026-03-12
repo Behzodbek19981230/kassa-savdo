@@ -32,6 +32,7 @@ import clsx from 'clsx';
 import { formatMoney } from '../../lib/utils';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 import { useRole } from '@/hooks/useRole';
+import { OrderItem } from '@/types';
 
 interface DashboardProps {
 	onNewSale?: () => void;
@@ -494,31 +495,26 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 													: rawItems;
 											return (
 												<Fragment key={`group-${group.date ?? gIdx}`}>
-													{items.map((order: any, itemIdx: number) => {
+													{items.map((order: OrderResponse, itemIdx: number) => {
 														const isKarzinka = order.is_karzinka;
 														const orderPath = isKarzinka
 															? `/order/${order.id}`
 															: `/order/show/${order.id}`;
-														const tolangan = tolovSummasi(order as OrderResponse);
 														const isFirstInGroup = itemIdx === 0;
 														const groupDate = group.date
 															? format(new Date(group.date), 'dd.MM.yyyy')
 															: 'Barcha sanalar';
 
 														const payable = parseFloat(order.all_product_summa || '0');
-														const paid = tolangan;
-														const exchangeRate = order.exchange_rate || 1;
+														const paid = parseFloat(order.summa_total_dollar || '0');
 														const changeDollar = parseFloat(order.zdacha_dollar || '0');
-														const changeSom = parseFloat(order.zdacha_som || '0');
 														const todayDebt = parseFloat(
 															order.total_debt_today_client || '0',
 														);
 														const totalDebt = parseFloat(order.total_debt_client || '0');
 														const totalProfit = parseFloat(order.all_profit_dollar || '0');
 														const cashback = parseFloat(
-															order.client_detail?.keshbek ||
-																order.cashback_dollar ||
-																'0',
+															order.client_detail?.keshbek || '0',
 														);
 
 														return (
@@ -635,7 +631,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
-																	{formatMoney(todayDebt / exchangeRate)}
+																	{formatMoney(todayDebt)}
 																</td>
 																<td
 																	className={clsx(
@@ -647,7 +643,7 @@ export function Dashboard({ onNewSale }: DashboardProps) {
 																				: 'group-hover:bg-blue-50/30',
 																	)}
 																>
-																	{formatMoney(totalDebt / exchangeRate)}
+																	{formatMoney(totalDebt)}
 																</td>
 																{(roles.isAdmin || roles.isSuperAdmin) && (
 																	<td

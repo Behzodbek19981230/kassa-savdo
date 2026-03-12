@@ -342,14 +342,13 @@ export function DebtorDashboard() {
 														const orderPath = isKarzinka
 															? `/order/${order.id}`
 															: `/order/show/${order.id}`;
-														const tolangan = tolovSummasi(order as OrderResponse);
 														const isFirstInGroup = itemIdx === 0;
 														const groupDate = group.date
 															? format(new Date(group.date), 'dd.MM.yyyy')
 															: 'Barcha sanalar';
 
 														const payable = parseFloat(order.all_product_summa || '0');
-														const paid = tolangan;
+														const paid = parseFloat(order.summa_total_dollar || '0');
 														const exchangeRate = order.exchange_rate || 1;
 														const changeDollar = parseFloat(order.zdacha_dollar || '0');
 														const changeSom = parseFloat(order.zdacha_som || '0');
@@ -396,10 +395,10 @@ export function DebtorDashboard() {
 																		'—'}
 																</td>
 																<td className='p-1 text-right font-medium text-blue-700 text-xs'>
-																	{(payable / exchangeRate).toFixed(2)}
+																	{payable}
 																</td>
 																<td className='p-1 text-right text-gray-700 text-xs'>
-																	{(paid / exchangeRate).toFixed(2)}
+																	{paid}
 																</td>
 																<td className='p-1 text-right text-gray-700 text-xs'>
 																	{changeDollar > 0 || changeSom > 0
@@ -407,10 +406,10 @@ export function DebtorDashboard() {
 																		: '—'}
 																</td>
 																<td className='p-1 text-right text-red-600 font-semibold text-xs'>
-																	{(todayDebt / exchangeRate).toFixed(2)}
+																	{todayDebt}
 																</td>
 																<td className='p-1 text-right text-red-600 font-semibold text-xs'>
-																	{(totalDebt / exchangeRate).toFixed(2)}
+																	{totalDebt}
 																</td>
 																{(roles.isAdmin || roles.isSuperAdmin) && (
 																	<td className='p-1 text-right text-green-600 font-semibold text-xs'>
