@@ -29,6 +29,7 @@ export const STORAGE_KEYS = {
 	AUTH_TOKEN: 'auth_token',
 	REFRESH_TOKEN: 'refresh_token',
 	KASSIR: 'kassir',
+	AUTH_EXPIRES_AT: 'auth_expires_at',
 } as const;
 
 // Timeouts

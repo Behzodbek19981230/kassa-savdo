@@ -36,5 +36,6 @@ export const authService = {
 		localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
 		localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
 		localStorage.removeItem(STORAGE_KEYS.KASSIR);
+		localStorage.removeItem(STORAGE_KEYS.AUTH_EXPIRES_AT);
 	},
 };

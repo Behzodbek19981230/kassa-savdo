@@ -13,17 +13,32 @@ const api: AxiosInstance = axios.create({
 // Request interceptor - har bir so'rovdan oldin token qo'shish
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+		const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+		const expiresAt = localStorage.getItem(STORAGE_KEYS.AUTH_EXPIRES_AT);
 
-        if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
+		// Agar sessiya muddati tugagan bo'lsa, tokenlarni tozalaymiz va login sahifasiga yuboramiz
+		if (expiresAt && Number(expiresAt) > 0 && Date.now() > Number(expiresAt)) {
+			localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+			localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+			localStorage.removeItem(STORAGE_KEYS.KASSIR);
+			localStorage.removeItem(STORAGE_KEYS.AUTH_EXPIRES_AT);
 
-        return config;
-    },
+			if (window.location.pathname !== '/login') {
+				window.location.href = '/login';
+			}
+
+			return config;
+		}
+
+		if (token && config.headers) {
+			config.headers.Authorization = `Bearer ${token}`;
+		}
+
+		return config;
+	},
     (error: AxiosError) => {
-        return Promise.reject(error);
-    }
+		return Promise.reject(error);
+	},
 );
 
 // Response interceptor - javoblarni boshqarish va token yangilash
@@ -54,8 +69,11 @@ api.interceptors.response.use(
                         }
                     );
 
-                    const newAccessToken = refreshResponse.data.access;
-                    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, newAccessToken);
+					const newAccessToken = refreshResponse.data.access;
+					localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, newAccessToken);
+					// Refreshdan keyin ham sessiya muddati 1 soatga uzaytiriladi
+					const expiresAt = Date.now() + 60 * 60 * 1000;
+					localStorage.setItem(STORAGE_KEYS.AUTH_EXPIRES_AT, String(expiresAt));
 
                     // Original so'rovni yangi token bilan qayta yuborish
                     if (originalRequest.headers) {

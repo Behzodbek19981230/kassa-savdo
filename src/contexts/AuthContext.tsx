@@ -34,21 +34,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     useEffect(() => {
-        // localStorage dan token va kassir ma'lumotlarini yuklash
-        const savedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-        const savedKassir = localStorage.getItem(STORAGE_KEYS.KASSIR);
+		// localStorage dan token va kassir ma'lumotlarini yuklash
+		const savedToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+		const savedKassir = localStorage.getItem(STORAGE_KEYS.KASSIR);
+		const expiresAt = localStorage.getItem(STORAGE_KEYS.AUTH_EXPIRES_AT);
 
-        if (savedToken) {
-            setToken(savedToken);
-            if (savedKassir) {
-                setKassir(JSON.parse(savedKassir));
-            }
-            // Token mavjud bo'lsa, user ma'lumotlarini yuklash
-            loadUserData().finally(() => setIsLoading(false));
-        } else {
-            setIsLoading(false);
-        }
-    }, []);
+		// Agar token muddati tugagan bo'lsa, majburan logout qilamiz
+		if (expiresAt && Number(expiresAt) > 0 && Date.now() > Number(expiresAt)) {
+			logout();
+			setIsLoading(false);
+			return;
+		}
+
+		if (savedToken) {
+			setToken(savedToken);
+			if (savedKassir) {
+				setKassir(JSON.parse(savedKassir));
+			}
+			// Token mavjud bo'lsa, user ma'lumotlarini yuklash
+			loadUserData().finally(() => setIsLoading(false));
+		} else {
+			setIsLoading(false);
+		}
+	}, []);
 
     const loadUserData = async () => {
         try {
@@ -98,12 +106,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const login = async (username: string, password: string): Promise<boolean> => {
         try {
-            const response = await authService.login(username, password);
+			const response = await authService.login(username, password);
 
-            // Access va refresh tokenlarni saqlash
-            setToken(response.access);
-            localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.access);
-            localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.refresh);
+			// Access va refresh tokenlarni saqlash
+			setToken(response.access);
+			localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.access);
+			localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.refresh);
+			// 1 soatlik sessiya muddati
+			const expiresAt = Date.now() + 60 * 60 * 1000;
+			localStorage.setItem(STORAGE_KEYS.AUTH_EXPIRES_AT, String(expiresAt));
 
             // Login dan keyin user ma'lumotlarini yuklash va order_filial tekshiruvi
             const userData = await userService.getCurrentUser();

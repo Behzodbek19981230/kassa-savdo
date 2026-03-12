@@ -89,12 +89,7 @@ export function DebtRepaymentPage() {
 			const items = group.items || [];
 			totalCount += items.length;
 			for (const item of items) {
-				const paidAmount =
-					Number(item.summa_naqt || 0) +
-					Number(item.summa_dollar || 0) * Number(item.exchange_rate || 1) +
-					Number(item.summa_transfer || 0) +
-					Number(item.summa_terminal || 0);
-				totalPaid += paidAmount;
+				totalPaid += Number(item.summa_total_dollar || 0);
 				totalOldDebt += Number(item.old_total_debt_client || 0);
 				totalNewDebt += Number(item.total_debt_client || 0);
 			}
@@ -253,13 +248,13 @@ export function DebtRepaymentPage() {
 										Xodim
 									</th>
 									<th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
-										Eski qarz
+										Eski qarz($)
 									</th>
 									<th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
-										Yangi qarz
+										Yangi qarz($)
 									</th>
 									<th className='text-left p-1 font-semibold text-gray-700 min-w-[100px] text-xs'>
-										To'landi
+										To'landi($)
 									</th>
 									<th className='text-left p-1 font-semibold text-gray-700 min-w-[110px] text-xs'>
 										Holati
@@ -281,18 +276,13 @@ export function DebtRepaymentPage() {
 											return (
 												<Fragment key={`group-${group.date ?? gIdx}`}>
 													{items.map((item: any, itemIdx: number) => {
-														const paidAmount =
-															Number(item.summa_naqt || 0) +
-															Number(item.summa_dollar || 0) *
-																Number(item.exchange_rate || 1) +
-															Number(item.summa_transfer || 0) +
-															Number(item.summa_terminal || 0);
 														const isFirstInGroup = itemIdx === 0;
 														const groupDate = group.date
 															? (() => {
 																	try {
 																		const date = new Date(group.date);
-																		if (isNaN(date.getTime())) return 'Barcha sanalar';
+																		if (isNaN(date.getTime()))
+																			return 'Barcha sanalar';
 																		return format(date, 'dd.MM.yyyy');
 																	} catch {
 																		return 'Barcha sanalar';
@@ -334,14 +324,14 @@ export function DebtRepaymentPage() {
 																	{formatMoney(
 																		Number(item.old_total_debt_client || 0),
 																	)}{' '}
-																	UZS
 																</td>
 																<td className='p-1 text-gray-800 text-left text-xs'>
-																	{formatMoney(Number(item.total_debt_client || 0))}{' '}
-																	UZS
+																	{formatMoney(
+																		Number(item.total_debt_client || 0),
+																	)}{' '}
 																</td>
 																<td className='p-1 font-semibold text-gray-900 text-left text-xs'>
-																	{formatMoney(paidAmount)} UZS
+																	{formatMoney(item.summa_total_dollar)}
 																</td>
 																<td className='p-1'>
 																	<span
@@ -368,10 +358,19 @@ export function DebtRepaymentPage() {
 																		{(() => {
 																			try {
 																				if (!item.created_time) return false;
-																				const createdDate = new Date(item.created_time);
-																				if (isNaN(createdDate.getTime())) return false;
-																				const todayStr = format(today, 'yyyy-MM-dd');
-																				const createdStr = format(createdDate, 'yyyy-MM-dd');
+																				const createdDate = new Date(
+																					item.created_time,
+																				);
+																				if (isNaN(createdDate.getTime()))
+																					return false;
+																				const todayStr = format(
+																					today,
+																					'yyyy-MM-dd',
+																				);
+																				const createdStr = format(
+																					createdDate,
+																					'yyyy-MM-dd',
+																				);
 																				return createdStr === todayStr;
 																			} catch {
 																				return false;
@@ -425,13 +424,13 @@ export function DebtRepaymentPage() {
 										<td className='p-1' />
 
 										<td className='p-1 text-left font-semibold text-blue-700 text-xs'>
-											{formatMoney(overallTotals.totalOldDebt)} UZS
+											{formatMoney(overallTotals.totalOldDebt)}
 										</td>
 										<td className='p-1 text-left font-semibold text-blue-700 text-xs'>
-											{formatMoney(overallTotals.totalNewDebt)} UZS
+											{formatMoney(overallTotals.totalNewDebt)}
 										</td>
 										<td className='p-1 text-left font-semibold text-green-700 text-xs'>
-											{formatMoney(overallTotals.totalPaid)} UZS
+											{formatMoney(overallTotals.totalPaid)}
 										</td>
 										<td colSpan={3} />
 									</tr>
