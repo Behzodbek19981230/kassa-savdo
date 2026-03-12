@@ -289,7 +289,7 @@ export function Cart({
         id: client.id.toString(),
         label: () => {
             return (
-                <div className='flex flex-col '>
+                <div className='flex flex-col  '>
                     <span className='text-xs font-semibold text-blue-600'>{client.full_name}</span>
                     <span className='text-xs text-gray-500'>{client.phone_number}</span>
                 </div>
@@ -508,6 +508,7 @@ export function Cart({
                                 <div className='flex items-center gap-2 bg-white/20 px-3 py-2 rounded-xl backdrop-blur-sm'>
                                     <div className='relative flex-1 '>
                                         <Autocomplete
+                                            className='!h-8'
                                             options={autocompleteOptions}
                                             value={selectedClientId?.toString() || ''}
                                             onChange={handleCustomerSelect}
@@ -734,9 +735,13 @@ export function Cart({
                                 {item.count} {item.size_detail?.unit_code || 'dona'}
                             </div>
 
+
                             {/* Product Details */}
                             <div className='flex-1 px-1.5 min-w-0'>
                                 <div className='flex flex-wrap gap-1'>
+                                    <span className='text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded'>
+                                        Birlik narxi: {item.price_dollar} $
+                                    </span>
                                     {item.branch_category_detail?.name && (
                                         <span className='text-[10px] text-orange-600 font-medium bg-orange-50 px-1.5 py-0.5 rounded'>
                                             Kategoriya: {item.branch_category_detail?.name}
@@ -764,9 +769,9 @@ export function Cart({
                             <div className='flex items-center gap-1.5 shrink-0'>
                                 <div className='text-right'>
                                     <div className='font-bold text-blue-700 text-xs whitespace-nowrap'>
-                                        {item.price_dollar} $
+                                        {formatMoney((item.price_dollar ?? 0) * (item.count ?? 0))} $
                                     </div>
-                                    <div className='text-[10px] text-gray-500'>{formatMoney(item.price_sum)} UZS</div>
+                                    <div className='text-[10px] text-gray-500'>{formatMoney((item.price_sum ?? 0) * (item.count ?? 0))} UZS</div>
                                 </div>
                                 {!readOnly && (
                                     <>

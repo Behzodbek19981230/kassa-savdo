@@ -306,6 +306,9 @@ export function MainCartUpdate({
                                 {/* Product Details */}
                                 <div className='flex-1 px-1.5 min-w-0'>
                                     <div className='flex flex-wrap gap-1'>
+                                        <span className='text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded'>
+                                            Birlik narxi: {item.price_dollar} $
+                                        </span>
                                         {item.branch_category_detail?.name && (
                                             <span className='text-[10px] text-orange-600 font-medium bg-orange-50 px-1.5 py-0.5 rounded'>
                                                 Kategoriya: {item.branch_category_detail?.name}
@@ -333,10 +336,10 @@ export function MainCartUpdate({
                                 <div className='flex items-center gap-1.5 shrink-0'>
                                     <div className='text-right'>
                                         <div className='font-bold text-blue-700 text-xs whitespace-nowrap'>
-                                            {item.price_dollar} $
+                                            {formatMoney((Number(item.price_dollar ?? 0) * (Number(item.count ?? 0))))} $
                                         </div>
                                         <div className='text-[10px] text-gray-500'>
-                                            {formatMoney(item.price_sum)} UZS
+                                            {formatMoney((Number(item.price_sum ?? 0) * (Number(item.count ?? 0))))} UZS
                                         </div>
                                     </div>
                                     {!readOnly && (
