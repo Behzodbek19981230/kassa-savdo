@@ -99,9 +99,18 @@ export function PaymentModal({
     })();
     // amount to pay in USD (base USD total minus discount in USD)
     const amountToPayUsd = baseTotalUsd - discountNum;
-    const amountToPay = amountToPayUsd * usdRate; // UZS
-    const zdachaUzs = (parseFloat(zdachaDollar) || 0) * usdRate;
-    const remaining = amountToPay - paidAmount + zdachaUzs; // manfiy = qaytim kerak, zdacha kiritilsa kamayadi
+    // UZS ga aylantirganda rounding qilish kerak (kasr qismi bo'lmaydi)
+    const amountToPay = Math.round(amountToPayUsd * usdRate); // UZS
+    const zdachaDollarNum = parseFloat(zdachaDollar) || 0;
+    const zdachaUzs = Math.round(zdachaDollarNum * usdRate); // UZS
+
+    // Qoldiqni USD da hisoblaymiz - agar USD da 0 bo'lsa, UZS ni ham 0 qilamiz
+    const paidAmountUsd = usdRate > 0 ? paidAmount / usdRate : 0;
+    const remainingUsd = amountToPayUsd - paidAmountUsd + zdachaDollarNum;
+    // Agar USD da 0 ga yaqin bo'lsa (0.01 dan kichik), uni 0 qilamiz
+    const remainingUsdRounded = Math.abs(remainingUsd) < 0.01 ? 0 : remainingUsd;
+    const remaining = Math.round(remainingUsdRounded * usdRate); // UZS
+
     const usdAmount = formatUsdAmount(amountToPayUsd);
 
     const paymentMethods = [
@@ -145,12 +154,13 @@ export function PaymentModal({
     ];
 
     // Jami to'landi (har doim UZS da): naqd/card/terminal = so'm, dollar = USD* kurs
+    // Rounding qilish kerak - kasr qismi bo'lmaydi
     const getPaidAmountInUzs = (methods: { [key: string]: string }) => {
         const cash = parseFloat(methods.cash || '') || 0;
         const usd = parseFloat(methods.usd || '') || 0;
         const card = parseFloat(methods.card || '') || 0;
         const terminal = parseFloat(methods.terminal || '') || 0;
-        return cash + usd * usdRate + card + terminal;
+        return Math.round(cash + usd * usdRate + card + terminal);
     };
 
     const handleMethodAmountChange = (methodId: string, amount: string) => {
@@ -173,9 +183,10 @@ export function PaymentModal({
     }, [selectedMethods, usdRate]);
 
     // Qaytim dollar kiritilganda qaytim so'm avtomatik to'ldiriladi
+    // Rounding qilish kerak - kasr qismi bo'lmaydi
     useEffect(() => {
         const zdD = parseFloat(zdachaDollar) || 0;
-        setZdachaSom((zdD * usdRate).toFixed(0));
+        setZdachaSom(String(Math.round(zdD * usdRate)));
     }, [zdachaDollar, usdRate]);
 
     const handleComplete = async () => {
@@ -219,7 +230,8 @@ export function PaymentModal({
                 // - `summa_total_dollar` should be sum of all payment methods in USD
                 //   summa_dollar (USD) + (summa_naqt + summa_transfer + summa_terminal) / usdRate
                 // - `all_product_summa` should be total product sum in USD (baseTotalUsd)
-                const summa_total_dollar = summa_dollar + (summa_naqt + summa_transfer + summa_terminal) / usdRate;
+                // Rounding qilish kerak - 2 xona kasr
+                const summa_total_dollar = Math.round((summa_dollar + (summa_naqt + summa_transfer + summa_terminal) / usdRate) * 100) / 100;
 
                 // all_product_summa - mahsulotlar jami narxi USD da
                 const totalDollarFromItems =
@@ -358,27 +370,27 @@ export function PaymentModal({
                                 </p>
                             </div>
                             <div
-                                className={`p-2 rounded-lg border ${remaining < 0 ? 'bg-orange-50 border-orange-200' : remaining > 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}
+                                className={`p-2 rounded-lg border ${remainingUsdRounded < 0 ? 'bg-orange-50 border-orange-200' : remainingUsdRounded > 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}
                             >
                                 <p className='text-gray-600 mb-1 text-[10px] font-medium'>
-                                    {remaining < 0 ? 'Qaytim:' : 'Qoldi:'}
+                                    {remainingUsdRounded < 0 ? 'Qaytim:' : 'Qoldi:'}
                                 </p>
                                 <p
-                                    className={`text-lg font-bold ${remaining < 0 ? 'text-orange-600' : remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+                                    className={`text-lg font-bold ${remainingUsdRounded < 0 ? 'text-orange-600' : remainingUsdRounded > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
                                 >
-                                    {formatUsdAmount(Math.abs(remaining) / usdRate)}{' '}
+                                    {formatUsdAmount(Math.abs(remainingUsdRounded))}{' '}
                                     <span
-                                        className={`text-[10px] font-normal ${remaining < 0 ? 'text-orange-500' : remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
+                                        className={`text-[10px] font-normal ${remainingUsdRounded < 0 ? 'text-orange-500' : remainingUsdRounded > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
                                     >
                                         USD
                                     </span>
                                 </p>
                                 <p
-                                    className={`text-sm font-bold mt-0.5 ${remaining < 0 ? 'text-orange-600' : remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+                                    className={`text-sm font-bold mt-0.5 ${remainingUsdRounded < 0 ? 'text-orange-600' : remainingUsdRounded > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
                                 >
                                     {formatMoney(Math.abs(remaining))}{' '}
                                     <span
-                                        className={`text-[10px] font-normal ${remaining < 0 ? 'text-orange-500' : remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
+                                        className={`text-[10px] font-normal ${remainingUsdRounded < 0 ? 'text-orange-500' : remainingUsdRounded > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
                                     >
                                         UZS
                                     </span>

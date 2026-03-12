@@ -81,7 +81,8 @@ export function OrderPaymentFields({
 
     // To'lanishi kerak summa (jami - chegirma)
     const discountNum = parseFloat(discountAmount) || 0;
-    const amountToPay = calculatedTotalAmount - discountNum * usdRate; // To'lanishi kerak (chegirma dollar hisobga)
+    // Rounding qilish kerak - kasr qismi bo'lmaydi
+    const amountToPay = Math.round(calculatedTotalAmount - discountNum * usdRate); // To'lanishi kerak (chegirma dollar hisobga)
     const usdAmount = formatUsdAmount(amountToPay / usdRate);
 
     // Payment methods
@@ -125,28 +126,41 @@ export function OrderPaymentFields({
     ];
 
     // Jami to'landi (har doim UZS da)
+    // Rounding qilish kerak - kasr qismi bo'lmaydi
     const getPaidAmountInUzs = (methods: { [key: string]: string }) => {
         const cash = parseFloat(methods.cash || '') || 0;
         const usd = parseFloat(methods.usd || '') || 0;
         const card = parseFloat(methods.card || '') || 0;
         const terminal = parseFloat(methods.terminal || '') || 0;
-        return cash + usd * usdRate + card + terminal;
+        return Math.round(cash + usd * usdRate + card + terminal);
     };
 
     // To'langan summa: selectedMethods dan yoki orderData dan (default)
     const paidAmountFromMethods = getPaidAmountInUzs(selectedMethods);
+    // Rounding qilish kerak - kasr qismi bo'lmaydi
     const paidAmountFromOrderData = orderData
-        ? (Number(orderData.summa_naqt) || 0) +
-        (Number(orderData.summa_dollar) || 0) * usdRate +
-        (Number(orderData.summa_transfer) || 0) +
-        (Number(orderData.summa_terminal) || 0)
+        ? Math.round(
+            (Number(orderData.summa_naqt) || 0) +
+            (Number(orderData.summa_dollar) || 0) * usdRate +
+            (Number(orderData.summa_transfer) || 0) +
+            (Number(orderData.summa_terminal) || 0)
+        )
         : 0;
 
     // Agar selectedMethods bo'sh bo'lsa, orderData dan olish, aks holda selectedMethods dan
     const paidAmount = Object.keys(selectedMethods).length > 0 ? paidAmountFromMethods : paidAmountFromOrderData;
-    const zdachaUzs = (parseFloat(zdachaDollar) || 0) * usdRate;
+    // Rounding qilish kerak - kasr qismi bo'lmaydi
+    const zdachaDollarNum = parseFloat(zdachaDollar) || 0;
+    const zdachaUzs = Math.round(zdachaDollarNum * usdRate);
+    
+    // Qoldiqni USD da hisoblaymiz - agar USD da 0 bo'lsa, UZS ni ham 0 qilamiz
+    const amountToPayUsd = usdRate > 0 ? amountToPay / usdRate : 0;
+    const paidAmountUsd = usdRate > 0 ? paidAmount / usdRate : 0;
+    const remainingUsd = amountToPayUsd - paidAmountUsd + zdachaDollarNum;
+    // Agar USD da 0 ga yaqin bo'lsa (0.01 dan kichik), uni 0 qilamiz
+    const remainingUsdRounded = Math.abs(remainingUsd) < 0.01 ? 0 : remainingUsd;
     // remaining: musbat = hali to'lanmagan (Qoldi), manfiy = qaytim kerak (Qaytim), zdacha kiritilsa qaytim kamayadi
-    const remaining = amountToPay - paidAmount + zdachaUzs;
+    const remaining = Math.round(remainingUsdRounded * usdRate);
 
     const handleMethodAmountChange = (methodId: string, amount: string) => {
         hasUserChanged.current = true;
@@ -161,9 +175,10 @@ export function OrderPaymentFields({
     };
 
     // Qaytim dollar kiritilganda qaytim so'm avtomatik to'ldiriladi
+    // Rounding qilish kerak - kasr qismi bo'lmaydi
     useEffect(() => {
         const zdD = parseFloat(zdachaDollar) || 0;
-        setZdachaSom((zdD * usdRate).toFixed(0));
+        setZdachaSom(String(Math.round(zdD * usdRate)));
     }, [zdachaDollar, usdRate]);
 
     // OrderData o'zgarganda maydonlarni yangilash
@@ -208,10 +223,12 @@ export function OrderPaymentFields({
             const summa_dollar_num = parseFloat(summa_dollar) || 0;
             const summa_transfer_num = parseFloat(summa_transfer) || 0;
             const summa_terminal_num = parseFloat(summa_terminal) || 0;
-            const summa_total_dollar = summa_dollar_num + (summa_naqt_num + summa_transfer_num + summa_terminal_num) / usdRate;
+            // Rounding qilish kerak - 2 xona kasr
+            const summa_total_dollar = Math.round((summa_dollar_num + (summa_naqt_num + summa_transfer_num + summa_terminal_num) / usdRate) * 100) / 100;
 
             // all_product_summa - mahsulotlar jami narxi USD da
-            const all_product_summa = calculatedTotalAmount / usdRate;
+            // Rounding qilish kerak - 2 xona kasr
+            const all_product_summa = Math.round((calculatedTotalAmount / usdRate) * 100) / 100;
 
             const payload = {
                 note: note,
@@ -307,27 +324,27 @@ export function OrderPaymentFields({
                         </p>
                     </div>
                     <div
-                        className={`p-2 rounded-lg border ${remaining < 0 ? 'bg-orange-50 border-orange-200' : remaining > 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}
+                        className={`p-2 rounded-lg border ${remainingUsdRounded < 0 ? 'bg-orange-50 border-orange-200' : remainingUsdRounded > 0 ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}
                     >
                         <p className='text-gray-600 mb-1 text-[10px] font-medium'>
-                            {remaining < 0 ? 'Qaytim:' : 'Qoldi:'}
+                            {remainingUsdRounded < 0 ? 'Qaytim:' : 'Qoldi:'}
                         </p>
                         <p
-                            className={`text-lg font-bold ${remaining < 0 ? 'text-orange-600' : remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+                            className={`text-lg font-bold ${remainingUsdRounded < 0 ? 'text-orange-600' : remainingUsdRounded > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
                         >
-                            {formatUsdAmount(Math.abs(remaining) / usdRate)}{' '}
+                            {formatUsdAmount(Math.abs(remainingUsdRounded))}{' '}
                             <span
-                                className={`text-[10px] font-normal ${remaining < 0 ? 'text-orange-500' : remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
+                                className={`text-[10px] font-normal ${remainingUsdRounded < 0 ? 'text-orange-500' : remainingUsdRounded > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
                             >
                                 USD
                             </span>
                         </p>
                         <p
-                            className={`text-sm font-bold mt-0.5 ${remaining < 0 ? 'text-orange-600' : remaining > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+                            className={`text-sm font-bold mt-0.5 ${remainingUsdRounded < 0 ? 'text-orange-600' : remainingUsdRounded > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
                         >
                             {formatMoney(Math.abs(remaining))}{' '}
                             <span
-                                className={`text-[10px] font-normal ${remaining < 0 ? 'text-orange-500' : remaining > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
+                                className={`text-[10px] font-normal ${remainingUsdRounded < 0 ? 'text-orange-500' : remainingUsdRounded > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
                             >
                                 UZS
                             </span>
