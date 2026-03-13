@@ -71,19 +71,19 @@ export function OrderPaymentFields({
 
 	// Jami summani hisoblash (order-history-product lardan)
 	const calculatedTotalAmount = orderProducts.reduce((sum, product) => {
+		const priceSum = Number(product.price_dollar) || 0;
+		const count = Number(product.count) || 0;
+		return sum + priceSum * count;
+	}, 0);
+
+	const calculatedTotalAmountUzs = orderProducts.reduce((sum, product) => {
 		const priceSum = Number(product.price_sum) || 0;
 		const count = Number(product.count) || 0;
 		return sum + priceSum * count;
 	}, 0);
 
-	// Format USD amount
-	const formatUsdAmount = (val: number) => formatMoney(Math.abs(Number(val)) < 0.005 ? 0 : val);
-
-	// To'lanishi kerak summa (jami - chegirma)
-	const discountNum = parseFloat(discountAmount) || 0;
-	// Rounding qilish kerak - kasr qismi bo'lmaydi
-	const amountToPay = calculatedTotalAmount; // To'lanishi kerak (chegirma dollar hisobga)
-	const usdAmount = formatMoney(amountToPay);
+	const usdAmount = formatMoney(calculatedTotalAmount);
+	const usdAmountUzs = formatMoney(calculatedTotalAmountUzs);
 
 	// Payment methods
 	const paymentMethods = [
@@ -151,10 +151,10 @@ export function OrderPaymentFields({
 	const paidAmount = Object.keys(selectedMethods).length > 0 ? paidAmountFromMethods : paidAmountFromOrderData;
 	// Rounding qilish kerak - kasr qismi bo'lmaydi
 	const zdachaDollarNum = parseFloat(zdachaDollar) || 0;
-	const zdachaUzs = Math.round(zdachaDollarNum * usdRate);
+	const zdachaUzs = formatMoney(zdachaDollarNum * usdRate);
 
 	// Qoldiqni USD da hisoblaymiz - agar USD da 0 bo'lsa, UZS ni ham 0 qilamiz
-	const amountToPayUsd = usdRate > 0 ? amountToPay / usdRate : 0;
+	const amountToPayUsd = usdRate > 0 ? calculatedTotalAmount / usdRate : 0;
 	const paidAmountUsd = usdRate > 0 ? paidAmount / usdRate : 0;
 	const remainingUsd = amountToPayUsd - paidAmountUsd + zdachaDollarNum;
 	// Agar USD da 0 ga yaqin bo'lsa (0.01 dan kichik), uni 0 qilamiz
@@ -309,8 +309,7 @@ export function OrderPaymentFields({
 									{usdAmount} <span className='text-[10px] font-normal text-indigo-400'>USD</span>
 								</p>
 								<p className='text-sm font-bold text-indigo-600 mt-0.5'>
-									{formatMoney(amountToPay)}{' '}
-									<span className='text-[10px] font-normal text-indigo-500'>UZS</span>
+									{usdAmountUzs} <span className='text-[10px] font-normal text-indigo-500'>UZS</span>
 								</p>
 							</>
 						)}
@@ -318,7 +317,7 @@ export function OrderPaymentFields({
 					<div className='bg-emerald-50 p-2 rounded-lg border border-emerald-200'>
 						<p className='text-gray-600 mb-1 text-[10px] font-medium'>To'landi:</p>
 						<p className='text-lg font-bold text-emerald-600'>
-							{formatUsdAmount(paidAmount / usdRate)}{' '}
+							{formatMoney(paidAmount)}{' '}
 							<span className='text-[10px] font-normal text-emerald-400'>USD</span>
 						</p>
 						<p className='text-sm font-bold text-emerald-500 mt-0.5'>
@@ -335,12 +334,8 @@ export function OrderPaymentFields({
 						<p
 							className={`text-lg font-bold ${remainingUsdRounded < 0 ? 'text-orange-600' : remainingUsdRounded > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
 						>
-							{formatUsdAmount(Math.abs(remainingUsdRounded))}{' '}
-							<span
-								className={`text-[10px] font-normal ${remainingUsdRounded < 0 ? 'text-orange-500' : remainingUsdRounded > 0 ? 'text-rose-500' : 'text-emerald-500'}`}
-							>
-								USD
-							</span>
+							{formatMoney(Math.abs(remainingUsdRounded))}{' '}
+							<span className='text-[10px] font-normal text-indigo-500'>USD</span>
 						</p>
 						<p
 							className={`text-sm font-bold mt-0.5 ${remainingUsdRounded < 0 ? 'text-orange-600' : remainingUsdRounded > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
