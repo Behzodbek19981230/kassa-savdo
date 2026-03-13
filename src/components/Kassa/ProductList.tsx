@@ -1,100 +1,84 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useCallback } from 'react';
 import { Search, RotateCcw, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { ProductItem, ProductGroup } from '../../types';
 import { Input } from '../ui/Input';
-import { productService, Branch, ProductImage } from '../../services/productService';
+import { productService, Branch, ProductImage, ProductModel, BranchCategoryDetail } from '../../services/productService';
 import { Autocomplete } from '../ui/Autocomplete';
+import { useInfiniteQuery } from '@tanstack/react-query';
+
+const AUTOCOMPLETE_PAGE_SIZE = 30;
 
 interface ProductListProps {
-    products: ProductItem[];
-    appliedSearch?: string;
-    onSearchSubmit?: (value: string) => void;
+
     onProductClick: (product: ProductItem) => void;
-    selectedBranch?: number | null;
-    selectedModel?: number | null;
-    selectedType?: number | null;
-    onBranchChange?: (branchId: number | null) => void;
-    onModelChange?: (modelId: number | null) => void;
-    onTypeChange?: (typeId: number | null) => void;
-    scrollToBottom?: () => void;
-    hasMore?: boolean;
-    isLoadingMore?: boolean;
+
 }
 
 const filterAutocompleteClass =
     '!h-7 !min-h-7 rounded-lg border border-blue-200 px-2 text-xs focus:ring-1 focus:ring-blue-300 max-h-[300px]';
 
 export function ProductList({
-    products,
-    appliedSearch = '',
-    onSearchSubmit,
     onProductClick,
-    selectedBranch,
-    selectedModel,
-    selectedType,
-    onBranchChange,
-    onModelChange,
-    onTypeChange,
-    scrollToBottom,
 }: ProductListProps) {
     const [branches, setBranches] = useState<Branch[]>([]);
     const [isLoadingBranches, setIsLoadingBranches] = useState(false);
-    const [searchInput, setSearchInput] = useState(appliedSearch);
+    const [branchCategorySearch, setBranchCategorySearch] = useState('');
+    const [modelSearch, setModelSearch] = useState('');
+    const [searchInput, setSearchInput] = useState('');
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
     const [selectedProductImages, setSelectedProductImages] = useState<ProductImage[]>([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isLoadingImages, setIsLoadingImages] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [groupedProducts, setGroupedProducts] = useState<ProductGroup[]>([]);
-    const [isLoadingGrouped, setIsLoadingGrouped] = useState(false);
-    const [page, setPage] = useState(1);
     const [limit] = useState(30); // You can adjust limit as needed
-    const [hasMoreGroups, setHasMoreGroups] = useState(true);
+    const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+    const [selectedBranchCategory, setSelectedBranchCategory] = useState<number | null>(null);
+    const [selectedModel, setSelectedModel] = useState<number | null>(null);
+    const [appliedSearch, setAppliedSearch] = useState('');
 
-    // Fetch grouped products by model
-    const fetchGroupedProducts = useCallback(
-        async (reset = false) => {
-            setIsLoadingGrouped(true);
-            try {
-                const response = await productService.getProductsGroupedByModel({
-                    search: searchInput,
-                    branch: selectedBranch ?? undefined,
-                    model: selectedModel ?? undefined,
-                    type: selectedType ?? undefined,
-                    page: reset ? 1 : page,
-                    limit,
-                });
-                const newGroups = response.results || [];
-                if (reset) {
-                    setGroupedProducts(newGroups);
-                } else {
-                    setGroupedProducts((prev: any[]) => [...prev, ...newGroups]);
-                }
-                setHasMoreGroups(response.pagination?.currentPage < response.pagination?.lastPage);
-            } catch (error) {
-                if (reset) setGroupedProducts([]);
-            } finally {
-                setIsLoadingGrouped(false);
+    const groupedProductsInfinite = useInfiniteQuery({
+        queryKey: [
+            'groupedProducts',
+            {
+                search: appliedSearch.trim(),
+                branch: selectedBranch ?? undefined,
+                branch_category: selectedBranchCategory ?? undefined,
+                model: selectedModel ?? undefined,
+            },
+        ],
+        queryFn: ({ pageParam }) =>
+            productService.getProductsGroupedByModel({
+                search: appliedSearch.trim() || undefined,
+                branch: selectedBranch ?? undefined,
+                branch_category: selectedBranchCategory ?? undefined,
+                model: selectedModel ?? undefined,
+                page: pageParam,
+                limit,
+            }),
+        getNextPageParam: (lastPage) =>
+            lastPage.pagination &&
+                lastPage.pagination.currentPage !== undefined &&
+                lastPage.pagination.lastPage !== undefined &&
+                lastPage.pagination.currentPage < lastPage.pagination.lastPage
+                ? lastPage.pagination.currentPage + 1
+                : undefined,
+        initialPageParam: 1,
+        enabled: true,
+    });
+
+    const groupedProducts = useMemo(() => {
+        const allGroups: ProductGroup[] = [];
+        groupedProductsInfinite.data?.pages.forEach((page) => {
+            if (page.results) {
+                allGroups.push(...page.results);
             }
-        },
-        [searchInput, selectedBranch, selectedModel, selectedType, page, limit],
-    );
+        });
+        return allGroups;
+    }, [groupedProductsInfinite.data]);
 
-    // Reset page and fetch on filter/search change
-    useEffect(() => {
-        setPage(1);
-        fetchGroupedProducts(true);
-    }, [searchInput, selectedBranch, selectedModel, selectedType]);
+    const isLoadingGrouped = groupedProductsInfinite.isLoading || groupedProductsInfinite.isFetching;
+    const hasMoreGroups = !!groupedProductsInfinite.hasNextPage;
 
-    // Fetch more when page changes (except first page)
-    useEffect(() => {
-        if (page === 1) return;
-        fetchGroupedProducts();
-    }, [page]);
-    useEffect(() => {
-        setSearchInput(appliedSearch);
-    }, [appliedSearch]);
 
     useEffect(() => {
         setIsLoadingBranches(true);
@@ -111,29 +95,72 @@ export function ProductList({
             });
     }, []);
 
-    const uniqueModels = useMemo(() => {
-        const seen = new Set<number>();
-        return products
-            .filter((p) => p.model_detail != null && p.model_detail.name)
-            .filter((p) => {
-                if (seen.has(p.model_detail!.id)) return false;
-                seen.add(p.model_detail!.id);
-                return true;
-            })
-            .map((p) => ({ id: p.model_detail!.id, name: p.model_detail!.name! }));
-    }, [products]);
+    const prevBranchRef = useRef<number | null | undefined>(selectedBranch);
+    useEffect(() => {
+        if (prevBranchRef.current !== selectedBranch && prevBranchRef.current !== undefined) {
+            setSelectedBranchCategory(null);
+            setSelectedModel(null);
+        }
+        prevBranchRef.current = selectedBranch;
+    }, [selectedBranch]);
 
-    const uniqueTypes = useMemo(() => {
-        const seen = new Set<number>();
-        return products
-            .filter((p) => p.type_detail != null && p.type_detail.name)
-            .filter((p) => {
-                if (seen.has(p.type_detail!.id)) return false;
-                seen.add(p.type_detail!.id);
-                return true;
-            })
-            .map((p) => ({ id: p.type_detail!.id, name: p.type_detail!.name! }));
-    }, [products]);
+    const branchCategoriesInfinite = useInfiniteQuery({
+        queryKey: [
+            'productBranchCategories',
+            'filter',
+            {
+                product_branch: selectedBranch ?? undefined,
+                is_delete: false,
+                search: branchCategorySearch,
+            },
+        ],
+        queryFn: ({ pageParam }) =>
+            productService.getBranchCategories({
+                product_branch: selectedBranch ?? undefined,
+                page: pageParam,
+                limit: AUTOCOMPLETE_PAGE_SIZE,
+                search: branchCategorySearch || undefined,
+            }),
+        getNextPageParam: (lastPage) =>
+            lastPage.pagination && lastPage.pagination.currentPage < lastPage.pagination.lastPage
+                ? lastPage.pagination.currentPage + 1
+                : undefined,
+        initialPageParam: 1,
+        enabled: true,
+    });
+
+    const prevBranchCategoryRef = useRef<number | null | undefined>(selectedBranchCategory);
+    useEffect(() => {
+        if (prevBranchCategoryRef.current !== selectedBranchCategory && prevBranchCategoryRef.current !== undefined) {
+            setSelectedModel(null);
+        }
+        prevBranchCategoryRef.current = selectedBranchCategory;
+    }, [selectedBranchCategory]);
+
+    const modelsInfinite = useInfiniteQuery({
+        queryKey: [
+            'productModels',
+            'filter',
+            {
+                branch_category: selectedBranchCategory ?? undefined,
+                is_delete: false,
+                search: modelSearch,
+            },
+        ],
+        queryFn: ({ pageParam }) =>
+            productService.getProductModels({
+                branch_category: selectedBranchCategory ?? undefined,
+                page: pageParam,
+                limit: AUTOCOMPLETE_PAGE_SIZE,
+                search: modelSearch || undefined,
+            }),
+        getNextPageParam: (lastPage) =>
+            lastPage.pagination && lastPage.pagination.currentPage < lastPage.pagination.lastPage
+                ? lastPage.pagination.currentPage + 1
+                : undefined,
+        initialPageParam: 1,
+        enabled: true,
+    });
 
     const branchOptions = useMemo(
         () => [
@@ -142,36 +169,59 @@ export function ProductList({
         ],
         [branches],
     );
+
+    const branchCategories = useMemo(() => {
+        const allCategories: BranchCategoryDetail[] = [];
+        branchCategoriesInfinite.data?.pages.forEach((page) => {
+            if (page.results) {
+                allCategories.push(...page.results.filter((c) => !c.is_delete));
+            }
+        });
+        return allCategories;
+    }, [branchCategoriesInfinite.data]);
+
+    const branchCategoryOptions = useMemo(
+        () => [
+            { id: 'all', label: 'Barchasi', value: 'all' },
+            ...branchCategories.map((c) => ({ id: String(c.id), label: c.name, value: String(c.id) })),
+        ],
+        [branchCategories],
+    );
+
+    const models = useMemo(() => {
+        const allModels: ProductModel[] = [];
+        modelsInfinite.data?.pages.forEach((page) => {
+            if (page.results) {
+                allModels.push(...page.results.filter((m) => !m.is_delete));
+            }
+        });
+        return allModels;
+    }, [modelsInfinite.data]);
+
     const modelOptions = useMemo(
         () => [
             { id: 'all', label: 'Barchasi', value: 'all' },
-            ...uniqueModels.map((m) => ({ id: String(m.id), label: m.name, value: String(m.id) })),
+            ...models.map((m) => ({ id: String(m.id), label: m.name, value: String(m.id) })),
         ],
-        [uniqueModels],
-    );
-    const typeOptions = useMemo(
-        () => [
-            { id: 'all', label: 'Barchasi', value: 'all' },
-            ...uniqueTypes.map((t) => ({ id: String(t.id), label: t.name, value: String(t.id) })),
-        ],
-        [uniqueTypes],
+        [models],
     );
 
     const handleSearchSubmit = () => {
-        onSearchSubmit?.(searchInput.trim());
+        setAppliedSearch(searchInput);
     };
 
     const handleClear = () => {
         setSearchInput('');
-        onSearchSubmit?.('');
-        onBranchChange?.(null);
-        onModelChange?.(null);
-        onTypeChange?.(null);
+        setAppliedSearch('');
+        setSelectedBranch(null);
+        setSelectedBranchCategory(null);
+        setSelectedModel(null);
+        setBranchCategorySearch('');
+        setModelSearch('');
     };
 
-    // Image click handler
+
     const handleImageClick = async (product: ProductItem) => {
-        console.log(product.id);
 
         if (!product.id) return;
 
@@ -190,7 +240,6 @@ export function ProductList({
         }
     };
 
-    // Scroll event handler
     useEffect(() => {
         const container = scrollContainerRef.current;
         if (!container) return;
@@ -200,9 +249,12 @@ export function ProductList({
             const scrollTop = container.scrollTop;
             const scrollHeight = container.scrollHeight;
             const clientHeight = container.clientHeight;
-            if (scrollHeight - scrollTop <= clientHeight + threshold && !isLoadingGrouped && hasMoreGroups) {
-                setPage((prev) => prev + 1);
-                scrollToBottom?.();
+            if (
+                scrollHeight - scrollTop <= clientHeight + threshold &&
+                !isLoadingGrouped &&
+                hasMoreGroups
+            ) {
+                groupedProductsInfinite.fetchNextPage();
             }
         };
 
@@ -210,11 +262,10 @@ export function ProductList({
         return () => {
             container.removeEventListener('scroll', handleScroll);
         };
-    }, [isLoadingGrouped, hasMoreGroups]);
+    }, [isLoadingGrouped, hasMoreGroups, groupedProductsInfinite.fetchNextPage]);
 
     return (
         <div className='flex flex-col h-full min-h-0 bg-blue-50/30 overflow-hidden'>
-            {/* Qidiruv — faqat submit da backend ga boradi; tugmalar faqat icon */}
             <div className='p-3 border-b border-blue-200/50 bg-white/90 backdrop-blur-sm'>
                 <div className='flex gap-2'>
                     <div className='relative flex-1'>
@@ -249,35 +300,52 @@ export function ProductList({
                 </div>
             </div>
 
-            {/* Filterlar: bir qatorda 3 ta, butun width bo'yicha */}
             <div className='p-2 grid grid-cols-3 gap-2 border-b border-blue-200/50 bg-white/80 backdrop-blur-sm'>
                 <Autocomplete
                     options={branchOptions}
                     value={selectedBranch?.toString() ?? 'all'}
-                    onChange={(v) => onBranchChange?.(v === 'all' ? null : parseInt(v))}
+                    onChange={(v) => setSelectedBranch(v === 'all' ? null : parseInt(v))}
                     placeholder={isLoadingBranches ? '...' : 'Kategoriya'}
                     className={`${filterAutocompleteClass} w-full min-w-0`}
                     emptyMessage='Kategoriya topilmadi'
                 />
                 <Autocomplete
-                    options={modelOptions}
-                    value={selectedModel?.toString() ?? 'all'}
-                    onChange={(v) => onModelChange?.(v === 'all' ? null : parseInt(v))}
-                    placeholder='Model'
+                    options={branchCategoryOptions}
+                    value={selectedBranchCategory?.toString() ?? 'all'}
+                    onChange={(v) => {
+                        if (v === 'all') {
+                            setSelectedBranchCategory(null);
+                        } else {
+                            setSelectedBranchCategory(parseInt(v));
+                        }
+                        setSelectedModel(null);
+                    }}
+                    placeholder={branchCategoriesInfinite.isLoading ? '...' : 'Kategoriya turi'}
                     className={`${filterAutocompleteClass} w-full min-w-0`}
-                    emptyMessage='Model topilmadi'
+                    emptyMessage='Kategoriya turi topilmadi'
+                    onSearchChange={setBranchCategorySearch}
+                    onScrollToBottom={() => branchCategoriesInfinite.fetchNextPage()}
+                    hasMore={!!branchCategoriesInfinite.hasNextPage}
                 />
                 <Autocomplete
-                    options={typeOptions}
-                    value={selectedType?.toString() ?? 'all'}
-                    onChange={(v) => onTypeChange?.(v === 'all' ? null : parseInt(v))}
-                    placeholder='Turi'
+                    options={modelOptions}
+                    value={selectedModel?.toString() ?? 'all'}
+                    onChange={(v) => {
+                        if (v === 'all') {
+                            setSelectedModel(null);
+                        } else {
+                            setSelectedModel(parseInt(v));
+                        }
+                    }}
+                    placeholder={modelsInfinite.isLoading ? '...' : 'Model'}
                     className={`${filterAutocompleteClass} w-full min-w-0`}
-                    emptyMessage='Tur topilmadi'
+                    emptyMessage='Model topilmadi'
+                    onSearchChange={setModelSearch}
+                    onScrollToBottom={() => modelsInfinite.fetchNextPage()}
+                    hasMore={!!modelsInfinite.hasNextPage}
                 />
             </div>
 
-            {/* Ro'yxat */}
             <div ref={scrollContainerRef} className='flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-1 min-h-0'>
                 {isLoadingGrouped && groupedProducts.length === 0 ? (
                     <div className='flex flex-col items-center justify-center py-12 text-gray-500'>

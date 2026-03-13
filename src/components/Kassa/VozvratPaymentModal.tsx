@@ -7,6 +7,10 @@ import { NumberInput } from '../ui/NumberInput';
 import { vozvratOrderService } from '../../services/orderService';
 import { showError, showSuccess } from '../../lib/toast';
 import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface VozvratPaymentModalProps {
     isOpen: boolean;
@@ -19,6 +23,38 @@ interface VozvratPaymentModalProps {
     onOrderUpdate?: (order: any) => void;
 }
 
+// Zod validatsiya schema - form string qiymatlar bilan ishlaydi
+const vozvratPaymentSchema = z.object({
+    summaDollar: z.string().min(1, 'Maydon bo\'sh bo\'lmasligi kerak').refine((val) => {
+        const num = Number(val);
+        return !isNaN(num) && num >= 0;
+    }, 'Summa 0 dan kichik bo\'lmasligi kerak'),
+    summaSom: z.string().min(1, 'Maydon bo\'sh bo\'lmasligi kerak').refine((val) => {
+        const num = Number(val);
+        return !isNaN(num) && num >= 0;
+    }, 'Summa 0 dan kichik bo\'lmasligi kerak'),
+    summaKarta: z.string().min(1, 'Maydon bo\'sh bo\'lmasligi kerak').refine((val) => {
+        const num = Number(val);
+        return !isNaN(num) && num >= 0;
+    }, 'Summa 0 dan kichik bo\'lmasligi kerak'),
+    date: z.date().optional(),
+    note: z.string().optional(),
+}).refine(
+    (data) => {
+        // Kamida bitta to'lov usuli 0 dan katta bo'lishi kerak
+        const summaDollarNum = Number(data.summaDollar || 0);
+        const summaSomNum = Number(data.summaSom || 0);
+        const summaKartaNum = Number(data.summaKarta || 0);
+        return summaDollarNum > 0 || summaSomNum > 0 || summaKartaNum > 0;
+    },
+    {
+        message: 'Kamida bitta to\'lov usulini kiriting (0 dan katta)',
+        path: ['payment'], // Xato payment maydoniga qo'shiladi
+    }
+);
+
+type VozvratPaymentFormData = z.infer<typeof vozvratPaymentSchema>;
+
 export function VozvratPaymentModal({
     isOpen,
     onClose,
@@ -30,14 +66,35 @@ export function VozvratPaymentModal({
     onOrderUpdate,
 }: VozvratPaymentModalProps) {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [date, setDate] = useState<Date | undefined>(new Date());
-    const [summaTotalDollar, setSummaTotalDollar] = useState<string>('0');
-    const [summaDollar, setSummaDollar] = useState<string>('0');
-    const [summaSom, setSummaSom] = useState<string>('0');
-    const [summaKarta, setSummaKarta] = useState<string>('0');
-    const [note, setNote] = useState('');
     const [isConfirmed, setIsConfirmed] = useState(true);
+    const [summaTotalDollar, setSummaTotalDollar] = useState<string>('');
+
+    // React Hook Form
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+        watch,
+        setValue,
+        reset,
+    } = useForm<VozvratPaymentFormData>({
+        resolver: zodResolver(vozvratPaymentSchema),
+        defaultValues: {
+            summaDollar: '',
+            summaSom: '',
+            summaKarta: '',
+            date: new Date(),
+            note: '',
+        },
+    });
+
+    // Watch form values
+    const summaDollar = watch('summaDollar');
+    const summaSom = watch('summaSom');
+    const summaKarta = watch('summaKarta');
+    const date = watch('date');
 
     // Jami qaytarilgan summa ($) avtomatik: summaDollar + (summaSom + summaKarta) / kurs
     useEffect(() => {
@@ -46,43 +103,74 @@ export function VozvratPaymentModal({
         const k = Number(summaKarta || 0);
         const rate = usdRate || 1;
         const total = d + (s + k) / rate;
-        const formatted = Math.max(0, total).toFixed(2);
-        setSummaTotalDollar(formatted);
+        if (total > 0) {
+            const formatted = Math.max(0, total).toFixed(2);
+            setSummaTotalDollar(formatted);
+        } else {
+            setSummaTotalDollar('');
+        }
     }, [summaDollar, summaSom, summaKarta, usdRate]);
 
-    // OrderData o'zgarganda default qiymatlarni yuklash (0 bo'lsa ham 0 qoladi)
+    // OrderData o'zgarganda default qiymatlarni yuklash (yangilash uchun)
     useEffect(() => {
         if (orderData && isOpen) {
-            setDate(orderData.date ? new Date(orderData.date) : new Date());
-            setNote(orderData.note || '');
-            setSummaDollar(orderData.summa_dollar != null ? String(orderData.summa_dollar) : '0');
-            setSummaSom(orderData.summa_naqt != null ? String(orderData.summa_naqt) : '0');
-            setSummaKarta(orderData.summa_transfer != null ? String(orderData.summa_transfer) : '0');
-            // summaTotalDollar avto hisoblanadi, orderData dan yuklamaymiz
+            reset({
+                date: orderData.date ? new Date(orderData.date) : new Date(),
+                note: orderData.note || '',
+                summaDollar: orderData.summa_dollar != null && orderData.summa_dollar > 0 ? String(orderData.summa_dollar) : '',
+                summaSom: orderData.summa_naqt != null && orderData.summa_naqt > 0 ? String(orderData.summa_naqt) : '',
+                summaKarta: orderData.summa_transfer != null && orderData.summa_transfer > 0 ? String(orderData.summa_transfer) : '',
+            });
+        } else if (!orderData && isOpen) {
+            // Yangi vozvrat uchun barcha maydonlarni bo'sh qilish
+            reset({
+                summaDollar: '',
+                summaSom: '',
+                summaKarta: '',
+                date: new Date(),
+                note: '',
+            });
+            setSummaTotalDollar('');
         }
-    }, [orderData, isOpen]);
+    }, [orderData, isOpen, reset]);
 
-    const handleSubmit = async () => {
+    const onSubmit = async (data: VozvratPaymentFormData) => {
         if (!orderData) {
             showError('Order ma\'lumotlari topilmadi');
             return;
         }
 
+        // Summalarni hisoblash (string dan number ga o'tkazish)
+        const summaDollarNum = Number(data.summaDollar || 0);
+        const summaSomNum = Number(data.summaSom || 0);
+        const summaKartaNum = Number(data.summaKarta || 0);
+        const summaTotalDollarNum = Number(summaTotalDollar || 0);
+
+        // Agar barcha summalar 0 bo'lsa, is_karzinka true bo'lishi kerak
+        const allSumsZero = summaDollarNum === 0 && summaSomNum === 0 && summaKartaNum === 0;
+        const shouldBeKarzinka = allSumsZero || !isConfirmed;
+
         setIsSubmitting(true);
         try {
             const updateData: any = {
-                date: date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                note: note || '',
-                summa_total_dollar: Number(summaTotalDollar || 0),
-                summa_dollar: Number(summaDollar || 0),
-                summa_naqt: Number(summaSom || 0),
-                summa_transfer: Number(summaKarta || 0),
-                is_karzinka: !isConfirmed,
+                date: data.date ? data.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                note: data.note || '',
+                summa_total_dollar: summaTotalDollarNum,
+                summa_dollar: summaDollarNum,
+                summa_naqt: summaSomNum,
+                summa_transfer: summaKartaNum,
+                is_karzinka: shouldBeKarzinka,
             };
+            console.log(updateData);
+
 
             await vozvratOrderService.returnVozvratOrder(orderData.id, updateData);
             showSuccess('Vozvrat muvaffaqiyatli tasdiqlandi');
             onOrderUpdate?.(updateData);
+
+            // Ro'yxatni yangilash
+            queryClient.invalidateQueries({ queryKey: ['vozvrat-orders-grouped'] });
+
             onComplete?.();
             onClose();
             navigate('/tovar-qaytarish');
@@ -94,6 +182,7 @@ export function VozvratPaymentModal({
             setIsSubmitting(false);
         }
     };
+
 
     return (
         <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -137,7 +226,7 @@ export function VozvratPaymentModal({
                                 </Label>
                                 <DatePicker
                                     date={date}
-                                    onDateChange={setDate}
+                                    onDateChange={(newDate) => setValue('date', newDate || new Date())}
                                     placeholder='Sana tanlang'
                                     className='w-full'
                                 />
@@ -153,9 +242,9 @@ export function VozvratPaymentModal({
                                     <div className='relative'>
                                         <NumberInput
                                             value={summaTotalDollar}
-                                            onChange={() => {}}
+                                            onChange={() => { }}
                                             allowDecimal={true}
-                                            placeholder='0'
+                                            placeholder=''
                                             className='w-full border-2 border-indigo-200 focus:border-2 focus:border-indigo-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-indigo-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
                                             disabled
                                         />
@@ -168,58 +257,76 @@ export function VozvratPaymentModal({
                                 {/* Qaytarilgan summa ($) */}
                                 <div className='bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-xl border-2 border-emerald-200'>
                                     <Label className='block text-emerald-600 text-sm font-semibold mb-2'>
-                                        Qaytarilgan summa ($)
+                                        Qaytarilgan summa ($) <span className='text-red-500'>*</span>
                                     </Label>
                                     <div className='relative'>
                                         <NumberInput
                                             value={summaDollar}
-                                            onChange={(val) => setSummaDollar(val)}
+                                            onChange={(val) => setValue('summaDollar', val)}
                                             allowDecimal={true}
-                                            placeholder='0'
-                                            className='w-full border-2 border-emerald-200 focus:border-2 focus:border-emerald-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-emerald-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                            placeholder=''
+                                            className={`w-full border-2 ${errors.summaDollar || (errors as any).payment ? 'border-red-400' : 'border-emerald-200'} focus:border-2 focus:border-emerald-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-emerald-50/50 focus-visible:ring-0 focus-visible:ring-offset-0`}
                                         />
                                         <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
                                             USD
                                         </span>
                                     </div>
+                                    {errors.summaDollar && (
+                                        <p className='text-red-500 text-xs mt-1'>{errors.summaDollar.message}</p>
+                                    )}
+                                    {(errors as any).payment && (
+                                        <p className='text-red-500 text-xs mt-1'>{(errors as any).payment.message}</p>
+                                    )}
                                 </div>
 
                                 {/* Qaytarilgan summa so'mda */}
                                 <div className='bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border-2 border-blue-200'>
                                     <Label className='block text-blue-600 text-sm font-semibold mb-2'>
-                                        Qaytarilgan summa so'mda
+                                        Qaytarilgan summa so'mda <span className='text-red-500'>*</span>
                                     </Label>
                                     <div className='relative'>
                                         <NumberInput
                                             value={summaSom}
-                                            onChange={(val) => setSummaSom(val)}
+                                            onChange={(val) => setValue('summaSom', val)}
                                             allowDecimal={false}
-                                            placeholder='0'
-                                            className='w-full border-2 border-blue-200 focus:border-2 focus:border-blue-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-blue-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                            placeholder=''
+                                            className={`w-full border-2 ${errors.summaSom || (errors as any).payment ? 'border-red-400' : 'border-blue-200'} focus:border-2 focus:border-blue-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-blue-50/50 focus-visible:ring-0 focus-visible:ring-offset-0`}
                                         />
                                         <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
                                             UZS
                                         </span>
                                     </div>
+                                    {errors.summaSom && (
+                                        <p className='text-red-500 text-xs mt-1'>{errors.summaSom.message}</p>
+                                    )}
+                                    {(errors as any).payment && (
+                                        <p className='text-red-500 text-xs mt-1'>{(errors as any).payment.message}</p>
+                                    )}
                                 </div>
 
                                 {/* Qaytarilgan summa kartada */}
                                 <div className='bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-xl border-2 border-purple-200'>
                                     <Label className='block text-purple-600 text-sm font-semibold mb-2'>
-                                        Qaytarilgan summa kartada
+                                        Qaytarilgan summa kartada <span className='text-red-500'>*</span>
                                     </Label>
                                     <div className='relative'>
                                         <NumberInput
                                             value={summaKarta}
-                                            onChange={(val) => setSummaKarta(val)}
+                                            onChange={(val) => setValue('summaKarta', val)}
                                             allowDecimal={false}
-                                            placeholder='0'
-                                            className='w-full border-2 border-purple-200 focus:border-2 focus:border-purple-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-purple-50/50 focus-visible:ring-0 focus-visible:ring-offset-0'
+                                            placeholder=''
+                                            className={`w-full border-2 ${errors.summaKarta || (errors as any).payment ? 'border-red-400' : 'border-purple-200'} focus:border-2 focus:border-purple-500 py-2 pr-12 text-right font-semibold text-base rounded-lg focus:bg-purple-50/50 focus-visible:ring-0 focus-visible:ring-offset-0`}
                                         />
                                         <span className='absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none'>
                                             UZS
                                         </span>
                                     </div>
+                                    {errors.summaKarta && (
+                                        <p className='text-red-500 text-xs mt-1'>{errors.summaKarta.message}</p>
+                                    )}
+                                    {(errors as any).payment && (
+                                        <p className='text-red-500 text-xs mt-1'>{(errors as any).payment.message}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -229,8 +336,7 @@ export function VozvratPaymentModal({
                                     Izoh
                                 </Label>
                                 <textarea
-                                    value={note}
-                                    onChange={(e) => setNote(e.target.value)}
+                                    {...register('note')}
                                     placeholder='Izoh kiriting...'
                                     className='w-full px-3 py-2 text-sm border-2 border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none transition-all duration-200'
                                     rows={3}
@@ -255,20 +361,22 @@ export function VozvratPaymentModal({
 
                     {/* Footer */}
                     <div className='border-t border-gray-200 p-3 flex justify-end'>
-                        <button
-                            onClick={handleSubmit}
-                            disabled={isSubmitting || !orderData}
-                            className='bg-red-600 text-white px-4 py-1.5 rounded-md hover:bg-red-700 font-semibold text-xs shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <Loader2 size={16} className='animate-spin' />
-                                    <span>Tasdiqlanmoqda...</span>
-                                </>
-                            ) : (
-                                <span>Vozvratni tasdiqlash</span>
-                            )}
-                        </button>
+                        <form onSubmit={handleSubmit(onSubmit)} className='w-full'>
+                            <button
+                                type='submit'
+                                disabled={isSubmitting || !orderData}
+                                className='bg-red-600 text-white px-4 py-1.5 rounded-md hover:bg-red-700 font-semibold text-xs shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5'
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 size={16} className='animate-spin' />
+                                        <span>Tasdiqlanmoqda...</span>
+                                    </>
+                                ) : (
+                                    <span>Vozvratni tasdiqlash</span>
+                                )}
+                            </button>
+                        </form>
                     </div>
                 </Dialog.Content>
             </Dialog.Portal>

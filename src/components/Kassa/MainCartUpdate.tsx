@@ -1,6 +1,6 @@
 import { Trash2, User, Loader2, Edit2, X } from 'lucide-react';
 import { Customer, OrderItem, OrderResponse } from '../../types';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { showError, showSuccess } from '../../lib/toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useExchangeRate } from '../../contexts/ExchangeRateContext';
@@ -66,7 +66,9 @@ export function MainCartUpdate({
 		},
 		enabled: !!orderHistoryId || refreshCartTrigger > 0, // Enable when we have an orderHistoryId or refresh trigger changes
 	});
-	const orderProducts = fetchedOrderProducts || ([] as OrderItem[]);
+	
+	// Memoize orderProducts to prevent creating new array references on every render
+	const orderProducts = useMemo(() => fetchedOrderProducts || [], [fetchedOrderProducts]);
 
 	// Mijozning qarzi (orderResponse yoki client_detail ichidan olinadi)
 	const clientDebtValue = orderData?.client_detail?.total_debt ?? orderData?.total_debt_client ?? '0';
@@ -77,14 +79,29 @@ export function MainCartUpdate({
 
 	// Jami summani hisoblash
 	// price_sum/price_dollar birlik narx bo'lsa: jami = birlik * count
-	const totalAmount = orderProducts.reduce(
-		(sum, item) => sum + (parseFloat(item.price_sum) || 0) * (Number(item.count) || 0),
-		0,
+	const totalAmount = useMemo(
+		() =>
+			orderProducts.reduce(
+				(sum, item) => sum + (parseFloat(item.price_sum) || 0) * (Number(item.count) || 0),
+				0,
+			),
+		[orderProducts],
 	);
-	const totalAmountDollar = orderProducts.reduce(
-		(sum, item) => sum + (parseFloat(item.price_dollar) || 0) * (Number(item.count) || 0),
-		0,
+	const totalAmountDollar = useMemo(
+		() =>
+			orderProducts.reduce(
+				(sum, item) => sum + (parseFloat(item.price_dollar) || 0) * (Number(item.count) || 0),
+				0,
+			),
+		[orderProducts],
 	);
+
+	// Track previous values to prevent unnecessary updates
+	const prevValuesRef = useRef<{ orderProductsLength: number; totalAmount: number; totalAmountDollar: number }>({
+		orderProductsLength: 0,
+		totalAmount: 0,
+		totalAmountDollar: 0,
+	});
 
 	// Parent (PaymentModal va boshqalar) uchun ro'yxat va jami summani yangilash
 	// Debounce updates so header/cards elsewhere aren't updated on every quick change
@@ -93,12 +110,26 @@ export function MainCartUpdate({
 			onCartChange?.(orderProducts, totalAmount);
 		}, 600);
 		return () => clearTimeout(t);
-	}, [orderProducts, totalAmount]);
+	}, [orderProducts, totalAmount, onCartChange]);
 
 	// orderProducts o'zgarganda OrderPaymentFields ham qayta hisoblasin
+	// Only update if values actually changed to prevent infinite loops
 	useEffect(() => {
-		setPaymentRefreshTrigger((t) => t + 1);
-	}, [orderProducts, totalAmount, totalAmountDollar]);
+		const prev = prevValuesRef.current;
+		const hasChanged =
+			prev.orderProductsLength !== orderProducts.length ||
+			prev.totalAmount !== totalAmount ||
+			prev.totalAmountDollar !== totalAmountDollar;
+
+		if (hasChanged) {
+			prevValuesRef.current = {
+				orderProductsLength: orderProducts.length,
+				totalAmount,
+				totalAmountDollar,
+			};
+			setPaymentRefreshTrigger((t) => t + 1);
+		}
+	}, [orderProducts.length, totalAmount, totalAmountDollar]);
 
 	// Mahsulotni o'chirish uchun tasdiqlash modalini ochish
 	const handleRemoveItem = (id: number) => {

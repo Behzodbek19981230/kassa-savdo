@@ -28,6 +28,55 @@ export interface BranchCategoryDetail {
     is_delete: boolean;
 }
 
+export interface ProductModel {
+    id: number;
+    name: string;
+    branch_category?: number;
+    sorting?: number;
+    is_delete?: boolean;
+}
+
+export interface ProductType {
+    id: number;
+    name: string;
+    model?: number;
+    sorting?: number;
+    is_delete?: boolean;
+}
+
+export interface ProductModelsResponse {
+    pagination?: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
+    results: ProductModel[];
+    filters?: any;
+}
+
+export interface ProductTypesResponse {
+    pagination?: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
+    results: ProductType[];
+    filters?: any;
+}
+
+export interface BranchCategoriesResponse {
+    pagination?: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
+    results: BranchCategoryDetail[];
+    filters?: any;
+}
+
 // ProductResponse deprecated - ProductItem ishlatish kerak
 export type ProductResponse = ProductItem;
 
@@ -62,6 +111,7 @@ export const productService = {
         search?: string;
         filial?: number;
         branch?: number;
+        branch_category?: number;
         model?: number;
         type?: number;
     }): Promise<{ results: ProductGroup[]; pagination?: { currentPage: number; lastPage: number; perPage: number; total: number } }> => {
@@ -72,6 +122,7 @@ export const productService = {
         if (params?.search) queryParams.append('search', params.search);
         if (params?.filial) queryParams.append('filial', params.filial.toString());
         if (params?.branch) queryParams.append('branch', params.branch.toString());
+        if (params?.branch_category) queryParams.append('branch_category', params.branch_category.toString());
         if (params?.model) queryParams.append('model', params.model.toString());
         if (params?.type) queryParams.append('type', params.type.toString());
         const response = await api.get<any>(`/v1/product/group-by-model?${queryParams.toString()}`);
@@ -135,5 +186,77 @@ export const productService = {
         );
         const data = response.data;
         return Array.isArray(data) ? data : (data?.results ?? []);
+    },
+
+    // Product modellarni olish (branch_category bo'yicha filter)
+    getProductModels: async (params?: {
+        branch_category?: number;
+        page?: number;
+        limit?: number;
+        search?: string;
+    }): Promise<ProductModelsResponse> => {
+        const queryParams = new URLSearchParams();
+        if (params?.branch_category) {
+            queryParams.append('branch_category', params.branch_category.toString());
+        }
+        if (params?.page) {
+            queryParams.append('page', params.page.toString());
+        }
+        if (params?.limit) {
+            queryParams.append('limit', params.limit.toString());
+        }
+        if (params?.search) {
+            queryParams.append('search', params.search);
+        }
+        const response = await api.get<ProductModelsResponse>(`/v1/product-model?${queryParams.toString()}`);
+        return response.data;
+    },
+
+    // Product typelarni olish (model bo'yicha filter)
+    getProductTypes: async (params?: {
+        model?: number;
+        page?: number;
+        limit?: number;
+        search?: string;
+    }): Promise<ProductTypesResponse> => {
+        const queryParams = new URLSearchParams();
+        if (params?.model) {
+            queryParams.append('model', params.model.toString());
+        }
+        if (params?.page) {
+            queryParams.append('page', params.page.toString());
+        }
+        if (params?.limit) {
+            queryParams.append('limit', params.limit.toString());
+        }
+        if (params?.search) {
+            queryParams.append('search', params.search);
+        }
+        const response = await api.get<ProductTypesResponse>(`/v1/product-type?${queryParams.toString()}`);
+        return response.data;
+    },
+
+    // Branch categorylarni olish (product_branch bo'yicha filter)
+    getBranchCategories: async (params?: {
+        product_branch?: number;
+        page?: number;
+        limit?: number;
+        search?: string;
+    }): Promise<BranchCategoriesResponse> => {
+        const queryParams = new URLSearchParams();
+        if (params?.product_branch) {
+            queryParams.append('product_branch', params.product_branch.toString());
+        }
+        if (params?.page) {
+            queryParams.append('page', params.page.toString());
+        }
+        if (params?.limit) {
+            queryParams.append('limit', params.limit.toString());
+        }
+        if (params?.search) {
+            queryParams.append('search', params.search);
+        }
+        const response = await api.get<BranchCategoriesResponse>(`/v1/product-branch-category?${queryParams.toString()}`);
+        return response.data;
     },
 };
